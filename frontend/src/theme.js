@@ -5,16 +5,17 @@ import { createTheme } from "@mui/material/styles";
 export const tokens = (mode) => ({
   ...(mode === "dark"
     ? {
+        // DARK MODE COLORS - Should be darker shades
         grey: {
-          100: "#d6dce5",
-          200: "#acb9cb",
-          300: "#8395b2",
-          400: "#597298",
-          500: "#304f7e",
-          600: "#263f65",
-          700: "#1d2f4c",
-          800: "#132032",
-          900: "#0a1019",
+          100: "#f5f5f5", // Lightest
+          200: "#e0e0e0",
+          300: "#c2c2c2",
+          400: "#a3a3a3",
+          500: "#858585",
+          600: "#666666",
+          700: "#474747",
+          800: "#292929",
+          900: "#0a0a0a", // Darkest
         },
         primary: {
           100: "#d1d3dc",
@@ -32,7 +33,7 @@ export const tokens = (mode) => ({
           200: "#acb9cb",
           300: "#8395b2",
           400: "#597298",
-          500: "#223458",
+          500: "#304f7e",
           600: "#263f65",
           700: "#1d2f4c",
           800: "#132032",
@@ -84,85 +85,87 @@ export const tokens = (mode) => ({
         },
       }
     : {
+        // LIGHT MODE COLORS - Should be lighter shades
         grey: {
-          100: "#0a1019",
-          200: "#132032",
-          300: "#1d2f4c",
-          400: "#263f65",
-          500: "#304f7e",
-          600: "#597298",
-          700: "#8395b2",
-          800: "#acb9cb",
-          900: "#d6dce5",
+          900: "#f5f5f5", // Lightest (reversed order)
+          800: "#e0e0e0",
+          700: "#c2c2c2",
+          600: "#a3a3a3",
+          500: "#858585",
+          400: "#666666",
+          300: "#474747",
+          200: "#292929",
+          100: "#0a0a0a", // Darkest (reversed order)
         },
         primary: {
-          100: "#050710",
-          200: "#0a0f20",
-          300: "#0f162f",
-          400: "#141e3f",
-          500: "#19254f",
-          600: "#475172",
-          700: "#757c95",
-          800: "#a3a8b9",
           900: "#d1d3dc",
+          800: "#a3a8b9",
+          700: "#757c95",
+          600: "#475172",
+          500: "#19254f", // Main color
+          400: "#141e3f",
+          300: "#0f162f",
+          200: "#0a0f20",
+          100: "#050710",
         },
         blueAccent: {
-          100: "#0a1019",
-          200: "#132032",
-          300: "#1d2f4c",
-          400: "#263f65",
-          500: "#304f7e",
-          600: "#597298",
-          700: "#8395b2",
-          800: "#acb9cb",
           900: "#d6dce5",
+          800: "#acb9cb",
+          700: "#8395b2",
+          600: "#597298",
+          500: "#304f7e", // Main color
+          400: "#263f65",
+          300: "#1d2f4c",
+          200: "#132032",
+          100: "#0a1019",
         },
         yellowAccent: {
-          100: "#292825",
-          200: "#53504a",
-          300: "#7c7770",
-          400: "#a69f95",
-          500: "#cfc7ba",
-          600: "#d9d2c8",
-          700: "#e2ddd6",
-          800: "#ece9e3",
           900: "#f5f4f1",
+          800: "#ece9e3",
+          700: "#e2ddd6",
+          600: "#d9d2c8",
+          500: "#cfc7ba", // Main color
+          400: "#a69f95",
+          300: "#7c7770",
+          200: "#53504a",
+          100: "#292825",
         },
         bleuAcc: {
-          100: "#0e121e",
-          200: "#1d233c",
-          300: "#2b355a",
-          400: "#3a4678",
-          500: "#485896",
-          600: "#6d79ab",
-          700: "#919bc0",
-          800: "#b6bcd5",
           900: "#dadeea",
+          800: "#b6bcd5",
+          700: "#919bc0",
+          600: "#6d79ab",
+          500: "#485896", // Main color
+          400: "#3a4678",
+          300: "#2b355a",
+          200: "#1d233c",
+          100: "#0e121e",
         },
         greenAccent: {
-          100: "#0f2922",
-          200: "#1e5245",
-          300: "#2e7c67",
-          400: "#3da58a",
-          500: "#4cceac",
-          600: "#70d8bd",
-          700: "#94e2cd",
-          800: "#b7ebde",
           900: "#dbf5ee",
+          800: "#b7ebde",
+          700: "#94e2cd",
+          600: "#70d8bd",
+          500: "#4cceac", // Main color
+          400: "#3da58a",
+          300: "#2e7c67",
+          200: "#1e5245",
+          100: "#0f2922",
         },
         redAccent: {
-          100: "#2c100f",
-          200: "#58201e",
-          300: "#832f2c",
-          400: "#af3f3b",
-          500: "#db4f4a",
-          600: "#e2726e",
-          700: "#e99592",
-          800: "#f1b9b7",
           900: "#f8dcdb",
+          800: "#f1b9b7",
+          700: "#e99592",
+          600: "#e2726e",
+          500: "#db4f4a", // Main color
+          400: "#af3f3b",
+          300: "#832f2c",
+          200: "#58201e",
+          100: "#2c100f",
         },
       }),
 });
+
 //mui theme setting
 export const themeSettings = (mode) => {
   const colors = tokens(mode);
@@ -171,39 +174,37 @@ export const themeSettings = (mode) => {
       mode: mode,
       ...(mode === "dark"
         ? {
-            primary: {
-              main: colors.primary[400],
-            },
-
-            secondary: {
-              main: colors.yellowAccent[500],
-            },
-
-            neutral: {
-              dark: colors.grey[700],
-              main: colors.grey[500],
-              light: colors.grey[200],
-            },
-            background: {
-              default: colors.primary[900],
-            },
-          }
-        : {
+            // DARK MODE
             primary: {
               main: colors.primary[500],
             },
-
             secondary: {
               main: colors.yellowAccent[500],
             },
-
             neutral: {
               dark: colors.grey[700],
               main: colors.grey[500],
-              light: colors.grey[200],
+              light: colors.grey[100],
             },
             background: {
-              default: colors.primary[200],
+              default: "#121212", // Dark background
+            },
+          }
+        : {
+            // LIGHT MODE
+            primary: {
+              main: colors.primary[500],
+            },
+            secondary: {
+              main: colors.yellowAccent[500],
+            },
+            neutral: {
+              dark: colors.grey[700],
+              main: colors.grey[500],
+              light: colors.grey[100],
+            },
+            background: {
+              default: "#f8f8f8", // Light background
             },
           }),
     },

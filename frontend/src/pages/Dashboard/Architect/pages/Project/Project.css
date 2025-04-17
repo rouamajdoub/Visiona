@@ -7,10 +7,8 @@
   height: auto;
   padding: 2rem;
   background: rgba(255, 255, 255, 0.1); /* Transparent background */
-  border: 2px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(15px); /* Glass effect */
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
-  border-radius: 10px;
+
   color: #fff;
   margin: 20px auto;
   transition: all 0.3s ease-in-out;
@@ -28,11 +26,8 @@
 }
 
 .project-container .MuiTab-root {
-  color: #242d49; 
-    font-weight: 600;
-  
-  
-
+  color: #242d49;
+  font-weight: 600;
 }
 
 .project-container .MuiTab-root.Mui-selected {
@@ -46,9 +41,9 @@
 .project-container .MuiBox-root {
   padding: 1rem;
 }
-.column  {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+.column {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
   overflow-y: scroll;
 }
 .column::-webkit-scrollbar {

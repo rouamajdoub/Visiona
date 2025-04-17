@@ -42,8 +42,9 @@ import {
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
-  const { users, reviews, userStats, architectRequests, loading, error } =
-    useSelector((state) => state.admin);
+  const { users, reviews, userStats, loading, error } = useSelector(
+    (state) => state.admin
+  );
   const [currentView, setCurrentView] = useState("dashboard");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Track sidebar state
 
@@ -60,38 +61,6 @@ const AdminDashboard = () => {
       <Typography variant="h6" gutterBottom>
         Architect Sign-Up Requests
       </Typography>
-      <TableContainer>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Country</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {architectRequests?.length > 0 ? (
-              architectRequests.map((req) => (
-                <TableRow key={req._id}>
-                  <TableCell>{req.name}</TableCell>
-                  <TableCell>{req.email}</TableCell>
-                  <TableCell>{req.country}</TableCell>
-                  <TableCell>{req.phone}</TableCell>
-                  <TableCell>{req.status}</TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} align="center">
-                  No requests found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
     </div>
   );
 
@@ -113,7 +82,7 @@ const AdminDashboard = () => {
     <Box className="custom-background">
       <Sidebar
         setCurrentView={setCurrentView}
-        setIsCollapsed={setIsSidebarCollapsed} // Pass the collapsed state
+        setIsCollapsed={setIsSidebarCollapsed}
       />
       <Box
         className={`dashboard-container ${

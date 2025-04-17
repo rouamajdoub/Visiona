@@ -4,13 +4,14 @@ import { createTask } from "../../../../../../redux/slices/TaskSlice"; // Adjust
 import styled from "styled-components";
 
 // Styled components
+// Styled components
 const Modal = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.2);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -18,18 +19,42 @@ const Modal = styled.div`
 `;
 
 const FormContainer = styled.div`
-  background: white;
+  background: #eaeefe;
   padding: 20px;
   border-radius: 10px;
   width: 400px;
   max-width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--pink, #ff919d);
+    border-radius: 10px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #ff919d;
+  }
 `;
 
 const FormTitle = styled.h2`
-  color: var(--pink);
+  color: var(--pink, #ff919d);
   margin-bottom: 20px;
   text-align: center;
+  position: sticky;
+  background: #eaeefe;
+  padding: 5px 0;
 `;
 
 const Form = styled.form`
@@ -39,37 +64,66 @@ const Form = styled.form`
 
 const FormGroup = styled.div`
   margin-bottom: 15px;
+  color: var(--pink, #242d49);
 `;
 
 const Label = styled.label`
   display: block;
   margin-bottom: 5px;
-  font-weight: bold;
+  color: #242d49;
+  font-size: 14px;
 `;
 
 const Input = styled.input`
   width: 100%;
-  padding: 8px;
+  padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+  box-sizing: border-box;
+  background-color: #eaeefe;
+  color: #242d49;
+
+  &:focus {
+    outline: none;
+    border-color: var(--pink, #ff919d);
+    box-shadow: 0 0 0 2px rgba(255, 0, 149, 0.2);
+  }
 `;
 
 const TextArea = styled.textarea`
   width: 100%;
-  padding: 8px;
+  padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
   min-height: 100px;
+  box-sizing: border-box;
+  resize: vertical;
+  background-color: #eaeefe;
+  color: #242d49;
+
+  &:focus {
+    outline: none;
+    border-color: var(--pink, #ff919d);
+    box-shadow: 0 0 0 2px rgba(255, 0, 149, 0.2);
+  }
 `;
 
 const Select = styled.select`
   width: 100%;
-  padding: 8px;
+  padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+  box-sizing: border-box;
+  background-color: #eaeefe;
+
+  &:focus {
+    outline: none;
+    border-color: var(--pink, #ff919d);
+    box-shadow: 0 0 0 2px rgba(255, 0, 149, 0.2);
+  }
 `;
 
 const ButtonContainer = styled.div`
@@ -77,27 +131,32 @@ const ButtonContainer = styled.div`
   justify-content: flex-end;
   gap: 10px;
   margin-top: 20px;
+  position: sticky;
+  bottom: 0;
+  background: #eaeefe;
+  padding: 10px 0 0;
 `;
 
 const Button = styled.button`
-  padding: 8px 16px;
+  padding: 10px 20px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
+  transition: all 0.2s ease;
 `;
 
 const CancelButton = styled(Button)`
-  background-color: #f0f0f0;
+  background-color: #e0e0e0;
   color: #333;
 
   &:hover {
-    background-color: #e0e0e0;
+    background-color: #eaeefe;
   }
 `;
 
 const SubmitButton = styled(Button)`
-  background-color: var(--pink);
+  background-color: var(--pink, #ff0095);
   color: white;
 
   &:hover {

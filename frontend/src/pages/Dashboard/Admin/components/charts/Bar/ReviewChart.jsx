@@ -8,92 +8,103 @@ const ReviewChart = ({ productReviews }) => {
   const colors = tokens(theme.palette.mode);
 
   if (!productReviews || productReviews.length === 0)
-    return <Typography>Loading...</Typography>;
+    return <Typography>No review data available</Typography>;
 
   // Aggregate product reviews count by productId
   const productCounts = productReviews.reduce((acc, review) => {
     const productId = review.productId;
     if (productId) {
-      acc[productId] = (acc[productId] || 0) + 1;
+      // Store the shortest version of productId to make it more readable
+      // This takes just the first part of the MongoDB ID if it's a long string
+      const displayId =
+        productId.length > 8 ? productId.substring(0, 8) + "..." : productId;
+      acc[displayId] = (acc[displayId] || 0) + 1;
     }
     return acc;
   }, {});
 
   // Prepare data for the bar chart
-  const chartData = Object.keys(productCounts).map((productId) => ({
-    product: productId,
-    count: productCounts[productId],
+  const chartData = Object.keys(productCounts).map((displayId) => ({
+    product: displayId,
+    count: productCounts[displayId],
   }));
+
+  // Sort data by review count (descending) and limit to top 8 products
+  chartData.sort((a, b) => b.count - a.count);
+  const topProducts = chartData.slice(0, 8);
 
   return (
     <Box
       sx={{
-        width: "100%", // Take up full width of the parent container
-         // Take up full height of the parent container
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-              }}
-            >
-              <Typography variant="h4" gutterBottom sx={{ color: "black", fontWeight: "bold" }}>
-          Most Popular Products by Reviews
-              </Typography>
+        width: "100%",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Typography
+        variant="h4"
+        gutterBottom
+        sx={{ color: "black", fontWeight: "bold" }}
+      >
+        Most Reviewed Products
+      </Typography>
       <Box
         sx={{
           width: "100%",
-          height: "200px", // Adjust height as needed
+          height: "200px",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
         }}
       >
         <ResponsiveBar
-          data={chartData}
+          data={topProducts}
           keys={["count"]}
           indexBy="product"
-          margin={{ top: 20, right: 20, bottom: 50, left: 50 }} // Adjust margins
+          margin={{ top: 20, right: 20, bottom: 50, left: 50 }}
           padding={0.3}
           colors={[colors.blueAccent[400]]}
           theme={{
             text: {
-              fill: "black", // Set text color to black
+              fill: "black",
               fontSize: 14,
             },
             axis: {
               domain: {
                 line: {
-                  stroke: "black", // Set axis line color to black
+                  stroke: "black",
                 },
               },
               legend: {
                 text: {
-                  fill: "black", // Set axis legend text color to black
+                  fill: "black",
                 },
               },
               ticks: {
                 line: {
-                  stroke: "black", // Set axis tick line color to black
+                  stroke: "black",
                   strokeWidth: 1,
                 },
                 text: {
-                  fill: "black", // Set axis tick text color to black
+                  fill: "black",
                 },
               },
             },
             legends: {
               text: {
-                fill: "black", // Set legend text color to black
+                fill: "black",
               },
             },
           }}
           axisBottom={{
             tickSize: 5,
             tickPadding: 5,
-            tickRotation: 0,
+            tickRotation: 45,
             legend: "Product ID",
             legendPosition: "middle",
-            legendOffset: 32,
+            legendOffset: 40,
           }}
           axisLeft={{
             tickSize: 5,
@@ -103,12 +114,25 @@ const ReviewChart = ({ productReviews }) => {
             legendPosition: "middle",
             legendOffset: -40,
           }}
-          tooltip={({ id, value }) => (
-            <strong style={{ color: "black" }}>
-              {id}: {value}
-            </strong>
+          tooltip={({ indexValue, value }) => (
+            <div
+              style={{
+                background: "white",
+                padding: "9px 12px",
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              }}
+            >
+              <strong>Product: {indexValue}</strong>
+              <br />
+              <span>Reviews: {value}</span>
+            </div>
           )}
-          enableLabel={false}
+          enableLabel={true}
+          labelSkipWidth={12}
+          labelSkipHeight={12}
+          labelTextColor={{ from: "color", modifiers: [["darker", 1.6]] }}
         />
       </Box>
     </Box>

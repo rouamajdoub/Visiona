@@ -33,15 +33,15 @@ const Topbar = () => {
         <Tooltip
           title={
             theme.palette.mode === "dark"
-              ? "Switch to Light Mode"
-              : "Switch to Dark Mode"
+              ? "Switch to Dark Mode"
+              : "Switch to Light Mode"
           }
         >
           <IconButton onClick={colorMode.toggleColorMode}>
             {theme.palette.mode === "dark" ? (
-              <DarkModeOutlinedIcon />
-            ) : (
               <LightModeOutlinedIcon />
+            ) : (
+              <DarkModeOutlinedIcon />
             )}
           </IconButton>
         </Tooltip>

@@ -30,7 +30,6 @@ const UserManagement = () => {
 
   // Define the columns for the DataGrid
   const columns = [
-    { field: "id", headerName: "ID", flex: 1 },
     {
       field: "pseudo",
       headerName: "Name",

@@ -49,14 +49,13 @@ import {
   Close as CloseIcon,
 } from "@mui/icons-material";
 import AddProjects from "./AddProject";
-import ProjectDetails from "./ProjectDetails"; // Import the ProjectDetails component
-import EditProject from "./EditProject"; // Import the EditProject component
+import ProjectDetails from "./ProjectDetails";
+import EditProject from "./EditProject";
 
 const ProjectsTable = () => {
   const dispatch = useDispatch();
-  const { projects, isLoading, error, success, message } = useSelector(
-    (state) => state.projects
-  );
+  const { projects, searchResults, isLoading, error, success, message } =
+    useSelector((state) => state.projects);
   const { user } = useSelector((state) => state.auth);
 
   // Local state
@@ -69,19 +68,31 @@ const ProjectsTable = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [addProjectDialogOpen, setAddProjectDialogOpen] = useState(false);
 
+  // State to track if filters are applied
+  const [isFiltered, setIsFiltered] = useState(false);
+  // State to store filtered projects locally if API filtering doesn't work
+  const [filteredProjects, setFilteredProjects] = useState([]);
+
   // New state for view and edit dialogs
   const [viewProjectDialogOpen, setViewProjectDialogOpen] = useState(false);
   const [editProjectDialogOpen, setEditProjectDialogOpen] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
 
+  const clearSearch = () => {
+    setSearchTerm("");
+    setCategoryFilter("");
+    setStatusFilter("");
+    setIsFiltered(false);
+    setFilteredProjects([]);
+    dispatch(resetProjectState());
+    dispatch(fetchAllProjects());
+  };
+
   // Fetch projects on component mount
   useEffect(() => {
     // If we need to fetch architect-specific projects, we can use the user ID
     if (user && user.role === "architect") {
-      // Assuming user ID is used to identify the architect's projects
       dispatch(fetchAllProjects());
-      // Alternatively, if there's a specific endpoint for architect projects:
-      // dispatch(fetchProjectsByClient(user._id));
     } else {
       dispatch(fetchAllProjects());
     }
@@ -104,7 +115,7 @@ const ProjectsTable = () => {
     }
   }, [success, message, dispatch]);
 
-  // Handle search
+  // Handle search with server-side API
   const handleSearch = (e) => {
     if (e) e.preventDefault();
     const searchParams = {};
@@ -113,7 +124,47 @@ const ProjectsTable = () => {
     if (categoryFilter) searchParams.category = categoryFilter;
     if (statusFilter) searchParams.status = statusFilter;
 
-    dispatch(searchProjects(searchParams));
+    // Only dispatch if we have at least one search parameter
+    if (Object.keys(searchParams).length > 0) {
+      dispatch(searchProjects(searchParams));
+      setIsFiltered(true);
+    } else {
+      // If no search params, fetch all projects
+      dispatch(fetchAllProjects());
+      setIsFiltered(false);
+      setFilteredProjects([]);
+    }
+    setFilterDialogOpen(false);
+  };
+
+  // Fallback client-side filtering if server-side filtering doesn't work
+  const handleLocalFilter = () => {
+    if (!projects || projects.length === 0) return;
+
+    let results = [...projects];
+
+    if (searchTerm) {
+      const lowercaseSearch = searchTerm.toLowerCase();
+      results = results.filter(
+        (project) =>
+          project.title.toLowerCase().includes(lowercaseSearch) ||
+          (project.description &&
+            project.description.toLowerCase().includes(lowercaseSearch))
+      );
+    }
+
+    if (categoryFilter) {
+      results = results.filter(
+        (project) => project.category === categoryFilter
+      );
+    }
+
+    if (statusFilter) {
+      results = results.filter((project) => project.status === statusFilter);
+    }
+
+    setFilteredProjects(results);
+    setIsFiltered(true);
     setFilterDialogOpen(false);
   };
 
@@ -122,6 +173,8 @@ const ProjectsTable = () => {
     setSearchTerm("");
     setCategoryFilter("");
     setStatusFilter("");
+    setIsFiltered(false);
+    setFilteredProjects([]);
     dispatch(fetchAllProjects());
     setFilterDialogOpen(false);
   };
@@ -185,6 +238,19 @@ const ProjectsTable = () => {
     setAddProjectDialogOpen(!addProjectDialogOpen);
   };
 
+  // Determine which projects to display based on filters and search
+  const displayProjects = () => {
+    if (isFiltered) {
+      if (searchResults && searchResults.length > 0) {
+        return searchResults; // Use API results if available
+      } else if (filteredProjects.length > 0) {
+        return filteredProjects; // Use local filtering results as fallback
+      }
+      return []; // No results found
+    }
+    return projects || []; // Default to all projects
+  };
+
   return (
     <Box sx={{ width: "100%" }} className="projects-container">
       {/* Header section */}
@@ -203,11 +269,42 @@ const ProjectsTable = () => {
             placeholder="Search projects..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === "Enter") {
+                handleSearch(e);
+                // Fallback to client-side filtering if needed
+                if (!searchResults || searchResults.length === 0) {
+                  handleLocalFilter();
+                }
+              }
+            }}
             InputProps={{
               endAdornment: (
-                <IconButton onClick={handleSearch} size="small">
-                  <SearchIcon />
-                </IconButton>
+                <>
+                  <IconButton
+                    onClick={() => {
+                      handleSearch();
+                      // Fallback to client-side filtering if needed
+                      if (!searchResults || searchResults.length === 0) {
+                        handleLocalFilter();
+                      }
+                    }}
+                    size="small"
+                  >
+                    <SearchIcon />
+                  </IconButton>
+                  {searchTerm && (
+                    <IconButton
+                      onClick={() => {
+                        setSearchTerm("");
+                        clearSearch();
+                      }}
+                      size="small"
+                    >
+                      <ClearIcon />
+                    </IconButton>
+                  )}
+                </>
               ),
             }}
           />
@@ -230,6 +327,42 @@ const ProjectsTable = () => {
         </Box>
       </Box>
 
+      {/* Active filters display */}
+      {(statusFilter || categoryFilter) && (
+        <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
+          <Typography variant="body2">Active filters:</Typography>
+          {statusFilter && (
+            <Chip
+              label={`Status: ${statusFilter}`}
+              size="small"
+              onDelete={() => {
+                setStatusFilter("");
+                handleSearch();
+              }}
+            />
+          )}
+          {categoryFilter && (
+            <Chip
+              label={`Category: ${categoryFilter}`}
+              size="small"
+              onDelete={() => {
+                setCategoryFilter("");
+                handleSearch();
+              }}
+            />
+          )}
+          {(statusFilter || categoryFilter) && (
+            <Button
+              size="small"
+              onClick={handleResetFilters}
+              startIcon={<ClearIcon />}
+            >
+              Clear all
+            </Button>
+          )}
+        </Box>
+      )}
+
       {/* Error message */}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -244,7 +377,7 @@ const ProjectsTable = () => {
         </Box>
       ) : (
         <>
-          {projects && projects.length > 0 ? (
+          {displayProjects().length > 0 ? (
             <TableContainer
               component={Paper}
               sx={{ mb: 4 }}
@@ -265,7 +398,7 @@ const ProjectsTable = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {projects.map((project) => (
+                  {displayProjects().map((project) => (
                     <TableRow
                       key={project._id}
                       component={motion.tr}
@@ -319,7 +452,10 @@ const ProjectsTable = () => {
                       </TableCell>
                       <TableCell align="right">
                         <Box
-                          sx={{ display: "flex", justifyContent: "flex-end" }}
+                          sx={{
+                            display: "flex",
+                            justifyContent: "flex-end",
+                          }}
                         >
                           <Tooltip title="View">
                             <IconButton
@@ -362,7 +498,9 @@ const ProjectsTable = () => {
           ) : (
             <Box sx={{ textAlign: "center", py: 5 }}>
               <Typography variant="body1" color="text.secondary">
-                No projects found. Create a new project to get started.
+                {isFiltered
+                  ? "No matching projects found for your filter criteria."
+                  : "No projects found. Create a new project to get started."}
               </Typography>
               <Button
                 variant="contained"
@@ -374,6 +512,16 @@ const ProjectsTable = () => {
               >
                 Create Project
               </Button>
+              {isFiltered && (
+                <Button
+                  variant="outlined"
+                  startIcon={<ClearIcon />}
+                  sx={{ mt: 2, ml: 2 }}
+                  onClick={handleResetFilters}
+                >
+                  Clear Filters
+                </Button>
+              )}
             </Box>
           )}
         </>
@@ -506,7 +654,8 @@ const ProjectsTable = () => {
               <MenuItem value="Urban Planning">Urban Planning</MenuItem>
             </Select>
           </FormControl>
-          <FormControl fullWidth margin="dense">
+
+          {/*<FormControl fullWidth margin="dense">
             <InputLabel id="status-label">Status</InputLabel>
             <Select
               labelId="status-label"
@@ -520,7 +669,7 @@ const ProjectsTable = () => {
               <MenuItem value="completed">Completed</MenuItem>
               <MenuItem value="canceled">Canceled</MenuItem>
             </Select>
-          </FormControl>
+          </FormControl> */}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleResetFilters} startIcon={<ClearIcon />}>
@@ -528,7 +677,11 @@ const ProjectsTable = () => {
           </Button>
           <Button onClick={() => setFilterDialogOpen(false)}>Cancel</Button>
           <Button
-            onClick={handleSearch}
+            onClick={() => {
+              handleSearch();
+              // Also try client-side filtering as fallback
+              handleLocalFilter();
+            }}
             variant="contained"
             startIcon={<SearchIcon />}
           >

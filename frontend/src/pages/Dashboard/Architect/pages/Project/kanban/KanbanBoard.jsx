@@ -9,7 +9,7 @@ import {
 import Column from "./Column";
 import TaskForm from "./TaskForm.jsx";
 import { Button, Box, Typography } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add"; // If using Material UI icons
+import AddIcon from "@mui/icons-material/Add";
 
 export default function KanbanBoard() {
   const dispatch = useDispatch();
@@ -107,7 +107,7 @@ export default function KanbanBoard() {
           variant="contained"
           startIcon={<AddIcon />}
           onClick={handleOpenTaskForm}
-          sx={{ backgroundColor: "var(--pink)" }}
+          sx={{ backgroundColor: "var(--pink, #ff0095)" }}
         >
           New Task
         </Button>
@@ -116,10 +116,12 @@ export default function KanbanBoard() {
       <DragDropContext onDragEnd={handleDragEnd}>
         <Box
           sx={{
-            display: "flex",
-            justifyContent: "space-between",
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
             gap: "20px",
-            flexWrap: "wrap",
+            width: "100%",
+            minWidth: "900px", // Ensures minimal width to show all columns
+            overflowX: "auto", // Enables horizontal scrolling if screen is too small
           }}
         >
           <Column title="To Do" tasks={todoTasks} id={"1"} />

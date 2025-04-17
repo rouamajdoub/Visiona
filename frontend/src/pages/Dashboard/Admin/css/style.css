@@ -1,6 +1,6 @@
 /* General Layout */
 .custom-background {
-  background-color: #2a2e3b;
+  background-color: #f1f4ff;
   width: 100%;
   display: flex;
 }
@@ -22,7 +22,7 @@
 }
 /* il paraniya */
 .stat-card {
-  background-color: #cfc7ba;
+  background-color: #f1f4ff;
   padding: 20px;
   border-radius: 10px;
   display: flex;
@@ -32,19 +32,21 @@
   justify-content: center;
   text-align: center;
   color: black; /* Set text color to black */
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   width: 250px;
   height: 250px;
 }
 
 /* Tables */
 .table-container {
-  background-color: #cfc7ba;
+  background-color: #f1f4ff;
   padding: 20px;
   border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   margin-top: 20px;
   width: 100%;
   margin-right: 10px;
+  color: black;
 }
 
 .table-container table {

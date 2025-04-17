@@ -82,6 +82,21 @@ const UserStatsChart = ({ data }) => {
           enableArea={true}
           areaOpacity={0.1}
           useMesh={true}
+          tooltip={({ point }) => {
+            return (
+              <div
+                style={{
+                  background: "white",
+                  padding: "9px 12px",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                }}
+              >
+                <strong>Users: {point.data.y}</strong>
+              </div>
+            );
+          }}
           legends={[
             {
               anchor: "bottom",
