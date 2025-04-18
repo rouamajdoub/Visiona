@@ -22,15 +22,13 @@ import {
 const menuItems = [
   { title: "Dashboard", icon: faTachometerAlt, view: "dashboard" },
   { title: "Clients", icon: faUsers, view: "client" },
-
-  { title: "Matching requests", icon: faBell, view: "match" },
   { title: "Calendar", icon: faCalendar, view: "calendar" },
   { title: "Projects", icon: faProjectDiagram, view: "projects" },
   { title: "Profile", icon: faUser, view: "profile" },
   { title: "Market", icon: faStore, view: "market" },
   { title: "Invoices", icon: faFileInvoice, view: "invoices" },
   { title: "Quotes", icon: faFileInvoiceDollar, view: "quote" },
-  { title: "Notifications", icon: faBell, view: "notifications" },
+  { title: "Matching requests", icon: faBell, view: "match" },
 ];
 
 const Sidebar = ({ expanded, setExpanded, selectedItem, setSelectedItem }) => {

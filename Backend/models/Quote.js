@@ -50,7 +50,6 @@ const quoteInvoiceSchema = new mongoose.Schema(
       {
         description: {
           type: String,
-          required: true,
         },
         quantity: Number,
         unitPrice: Number,

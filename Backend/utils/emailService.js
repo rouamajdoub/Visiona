@@ -1,11 +1,11 @@
 // utils/emailService.js
 const SibApiV3Sdk = require("sib-api-v3-sdk");
 
-// Initialize Brevo API client
+//  Brevo API client
 const initBrevoClient = () => {
   const defaultClient = SibApiV3Sdk.ApiClient.instance;
   const apiKey = defaultClient.authentications["api-key"];
-  apiKey.apiKey = process.env.BREVO_API_KEY; // Make sure to add this to your .env file
+  apiKey.apiKey = process.env.BREVO_API_KEY;
   return new SibApiV3Sdk.TransactionalEmailsApi();
 };
 

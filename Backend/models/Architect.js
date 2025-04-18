@@ -12,14 +12,26 @@ const architectSchema = new mongoose.Schema(
     },
     firstLogin: { type: Boolean, default: false },
 
+    //personal info
+    profilePicture: { type: String }, // URL to profile image
+    bio: { type: String }, // Paragraph about the architect
+    phoneNumber: { type: String },
+
     //business info
     companyName: { type: String },
+    companyLogo: { type: String }, // URL to company logo
     experienceYears: { type: Number },
-    specialization: { type: [String] },
+    specialization: { type: [String] }, // Array of specializations
+    specialty: { type: String }, // Primary specialty
+    certification: { type: String }, // Primary certification
+    isVerified: { type: Boolean, default: false }, // Verification status
     portfolioURL: { type: String },
     certifications: { type: [String] },
     patenteNumber: { type: String, required: true },
     cin: { type: String, required: true },
+
+    //portfolio
+    portfolio: [{ type: String }], // Array of image URLs showcasing work
 
     education: {
       degree: { type: String },
@@ -30,7 +42,10 @@ const architectSchema = new mongoose.Schema(
     softwareProficiency: [
       {
         name: { type: String },
-        level: { type: String },
+        level: {
+          type: String,
+          enum: ["Beginner", "Intermediate", "Advanced", "Expert"],
+        },
       },
     ],
 
@@ -56,9 +71,34 @@ const architectSchema = new mongoose.Schema(
     socialMedia: {
       linkedin: String,
       instagram: String,
+      facebook: String,
+      twitter: String,
     },
 
+    // Languages spoken
+    languages: [
+      {
+        language: String,
+        proficiency: {
+          type: String,
+          enum: ["Basic", "Intermediate", "Fluent", "Native"],
+        },
+      },
+    ],
+
+    // Project types
+    projectTypes: [{ type: String }], // e.g., Residential, Commercial, Industrial, etc.
+
+    // Service offerings
+    services: [{ type: String }], // e.g., Interior Design, Renovation, New Construction, etc.
+
     //for the stats
+    stats: {
+      projects: { type: Number, default: 0 }, // Number of completed projects
+      reviews: { type: Number, default: 0 }, // Number of reviews
+      earnings: { type: Number, default: 0 }, // Earnings in USD
+      views: { type: Number, default: 0 }, // Profile views
+    },
     rating: {
       average: { type: Number, default: 0 },
       count: { type: Number, default: 0 },

@@ -4,6 +4,32 @@ const { StatusCodes } = require("http-status-codes");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 
+// Utility functions to avoid code duplication
+const calculateFinancials = (items, taxRate, discount) => {
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.quantity * item.unitPrice,
+    0
+  );
+  const taxAmount = subtotal * (taxRate / 100);
+  const totalAmount = subtotal + taxAmount - discount;
+
+  // Add calculated item totals
+  const itemsWithTotals = items.map((item) => ({
+    ...item,
+    total: item.quantity * item.unitPrice,
+  }));
+
+  return { subtotal, taxAmount, totalAmount, itemsWithTotals };
+};
+
+const handleError = (res, error) => {
+  const statusCode = error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
+  return res.status(statusCode).json({
+    success: false,
+    error: error.message,
+  });
+};
+
 // ============== QUOTE FUNCTIONS ==============
 
 // Create a new quote
@@ -11,19 +37,12 @@ const createQuote = async (req, res) => {
   try {
     const { client, project, items, taxRate, discount } = req.body;
 
-    // Calculate financials
-    const subtotal = items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0
-    );
-    const taxAmount = subtotal * (taxRate / 100);
-    const totalAmount = subtotal + taxAmount - discount;
+    if (!client || !items || items.length === 0) {
+      throw new BadRequestError("Client and at least one item are required");
+    }
 
-    // Add calculated item totals
-    const itemsWithTotals = items.map((item) => ({
-      ...item,
-      total: item.quantity * item.unitPrice,
-    }));
+    const { subtotal, taxAmount, totalAmount, itemsWithTotals } =
+      calculateFinancials(items, taxRate || 0, discount || 0);
 
     const newQuote = await Quote.create({
       ...req.body,
@@ -41,10 +60,7 @@ const createQuote = async (req, res) => {
       data: newQuote,
     });
   } catch (error) {
-    res.status(StatusCodes.BAD_REQUEST).json({
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
@@ -71,10 +87,7 @@ const getAllQuotes = async (req, res) => {
       data: quotes,
     });
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
@@ -96,10 +109,7 @@ const getQuoteById = async (req, res) => {
       data: quote,
     });
   } catch (error) {
-    res.status(StatusCodes.NOT_FOUND).json({
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
@@ -123,19 +133,8 @@ const updateQuote = async (req, res) => {
       const newDiscount =
         discount !== undefined ? discount : existingQuote.discount;
 
-      const subtotal = newItems.reduce(
-        (sum, item) => sum + item.quantity * item.unitPrice,
-        0
-      );
-
-      const taxAmount = subtotal * (newTaxRate / 100);
-      const totalAmount = subtotal + taxAmount - newDiscount;
-
-      // Add calculated totals to each item
-      const itemsWithTotals = newItems.map((item) => ({
-        ...item,
-        total: item.quantity * item.unitPrice,
-      }));
+      const { subtotal, taxAmount, totalAmount, itemsWithTotals } =
+        calculateFinancials(newItems, newTaxRate, newDiscount);
 
       updateData = {
         ...req.body,
@@ -165,10 +164,7 @@ const updateQuote = async (req, res) => {
       data: updatedQuote,
     });
   } catch (error) {
-    res.status(StatusCodes.BAD_REQUEST).json({
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
@@ -191,10 +187,7 @@ const deleteQuote = async (req, res) => {
       data: {},
     });
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
@@ -239,10 +232,7 @@ const convertToInvoice = async (req, res) => {
       data: invoice,
     });
   } catch (error) {
-    res.status(StatusCodes.BAD_REQUEST).json({
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
@@ -253,19 +243,12 @@ const createInvoice = async (req, res) => {
   try {
     const { client, project, items, taxRate, discount, dueDate } = req.body;
 
-    // Calculate financials
-    const subtotal = items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0
-    );
-    const taxAmount = subtotal * (taxRate / 100);
-    const totalAmount = subtotal + taxAmount - discount;
+    if (!client || !items || items.length === 0) {
+      throw new BadRequestError("Client and at least one item are required");
+    }
 
-    // Add calculated item totals
-    const itemsWithTotals = items.map((item) => ({
-      ...item,
-      total: item.quantity * item.unitPrice,
-    }));
+    const { subtotal, taxAmount, totalAmount, itemsWithTotals } =
+      calculateFinancials(items, taxRate || 0, discount || 0);
 
     // Default due date is 30 days from now if not provided
     const invoiceDueDate =
@@ -289,10 +272,7 @@ const createInvoice = async (req, res) => {
       data: newInvoice,
     });
   } catch (error) {
-    res.status(StatusCodes.BAD_REQUEST).json({
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
@@ -320,10 +300,7 @@ const getAllInvoices = async (req, res) => {
       data: invoices,
     });
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
@@ -345,10 +322,7 @@ const getInvoiceById = async (req, res) => {
       data: invoice,
     });
   } catch (error) {
-    res.status(StatusCodes.NOT_FOUND).json({
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
@@ -373,20 +347,8 @@ const updateInvoice = async (req, res) => {
       const newDiscount =
         discount !== undefined ? discount : existingInvoice.discount;
 
-      // Calculate new subtotal and item totals
-      const subtotal = newItems.reduce(
-        (sum, item) => sum + item.quantity * item.unitPrice,
-        0
-      );
-
-      const taxAmount = subtotal * (newTaxRate / 100);
-      const totalAmount = subtotal + taxAmount - newDiscount;
-
-      // Add calculated totals to each item
-      const itemsWithTotals = newItems.map((item) => ({
-        ...item,
-        total: item.quantity * item.unitPrice,
-      }));
+      const { subtotal, taxAmount, totalAmount, itemsWithTotals } =
+        calculateFinancials(newItems, newTaxRate, newDiscount);
 
       updateData = {
         ...req.body,
@@ -427,10 +389,7 @@ const updateInvoice = async (req, res) => {
       data: updatedInvoice,
     });
   } catch (error) {
-    res.status(StatusCodes.BAD_REQUEST).json({
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
@@ -453,10 +412,7 @@ const deleteInvoice = async (req, res) => {
       data: {},
     });
   } catch (error) {
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
@@ -516,10 +472,7 @@ const recordPayment = async (req, res) => {
       data: updatedInvoice,
     });
   } catch (error) {
-    res.status(StatusCodes.BAD_REQUEST).json({
-      success: false,
-      error: error.message,
-    });
+    handleError(res, error);
   }
 };
 
@@ -529,7 +482,7 @@ const recordPayment = async (req, res) => {
 const generatePDF = async (req, res) => {
   try {
     const document = await Quote.findById(req.params.id)
-      .populate("client", "name email address")
+      .populate("client", "name email country address")
       .populate("architect", "companyName phone")
       .populate("project", "title");
 
@@ -537,162 +490,177 @@ const generatePDF = async (req, res) => {
       throw new NotFoundError("Document not found");
     }
 
-    // Create PDF document
-    const doc = new PDFDocument();
+    const doc = new PDFDocument({ margin: 50 });
     const buffers = [];
 
-    // Collect PDF chunks
     doc.on("data", buffers.push.bind(buffers));
-    doc.on("end", () => {
+    doc.on("end", async () => {
       const pdfBuffer = Buffer.concat(buffers);
 
-      // Save to filesystem (or cloud storage)
       const folderPath =
         document.type === "invoice" ? "./storage/invoices" : "./storage/quotes";
-
-      // Create directory if it doesn't exist
       if (!fs.existsSync(folderPath)) {
         fs.mkdirSync(folderPath, { recursive: true });
       }
 
       const pdfPath = `${folderPath}/${document._id}.pdf`;
       fs.writeFileSync(pdfPath, pdfBuffer);
+
+      const pdfUrl =
+        document.type === "invoice"
+          ? `/invoices/${document._id}.pdf`
+          : `/quotes/${document._id}.pdf`;
+
+      await Quote.findByIdAndUpdate(document._id, {
+        $addToSet: { attachments: pdfUrl },
+      });
+
+      res.set({
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${document.type}_${document._id}.pdf"`,
+      });
+      res.send(pdfBuffer);
     });
 
-    // Build PDF content
-    // ----------------- Header -----------------
+    const formatCurrency = (num) =>
+      `${num
+        .toFixed(2)
+        .replace(/\B(?=(\d{3})+(?!\d))/g, " ")
+        .replace(".", ",")} TND`;
+
+    const customInvoiceId = `${document.type.toUpperCase()}-${new Date(
+      document.issueDate
+    ).getFullYear()}/${document._id.toString().slice(-6).toUpperCase()}`;
+
+    // ----------- STATUS COLOR ----------
+    let statusColor = "#000000";
+    if (document.type === "invoice") {
+      switch (document.paymentStatus) {
+        case "paid":
+          statusColor = "green";
+          break;
+        case "partial":
+          statusColor = "orange";
+          break;
+        case "unpaid":
+        default:
+          statusColor = "red";
+          break;
+      }
+    }
+
+    // ----------- HEADER ----------
     doc
-      .image("./public/logo.png", 50, 45, { width: 50 }) // Add your logo
-      .fillColor("#444444")
       .fontSize(20)
-      .text(`${document.type.toUpperCase()} #${document._id}`, 110, 57)
+      .text(document.type.toUpperCase(), 50, 45)
       .fontSize(10)
-      .text(document.architect.companyName, 200, 50, { align: "right" })
-      .text(document.architect.phone, 200, 65, { align: "right" })
-      .moveDown();
+      .text(customInvoiceId, 50, 70);
 
-    // ----------------- Client Info -----------------
-    doc
-      .fontSize(12)
-      .text(`Client: ${document.clientName}`)
-      .text(`Project: ${document.projectTitle}`)
-      .text(`Date: ${document.issueDate.toLocaleDateString()}`);
-
-    // Add due date for invoices
-    if (document.type === "invoice" && document.dueDate) {
-      doc.text(`Due Date: ${document.dueDate.toLocaleDateString()}`);
+    if (document.type === "invoice" && document.paymentStatus) {
+      doc
+        .fillColor(statusColor)
+        .text(document.paymentStatus.toUpperCase(), 450, 45, { align: "right" })
+        .fillColor("black");
     }
 
     doc.moveDown();
 
-    // ----------------- Items Table -----------------
-    const tableTop = 180;
-    let yPosition = tableTop;
+    // ----------- ARCHITECT INFO ----------
+    doc
+      .font("Helvetica-Bold")
+      .text(
+        document.architect.companyName || "Dundill S.A.R.L au capital 40 000 DT"
+      )
+      .font("Helvetica")
+      .text("RUE DE LA REPUBLIQUE")
+      .text("Akouda, Sousse, 4022")
+      .text("VAT Number: 1781912/K/A/M/000")
+      .moveDown();
 
-    // Table Header
+    // ----------- CLIENT INFO ----------
+    doc
+      .font("Helvetica-Bold")
+      .text("Bill To:")
+      .font("Helvetica")
+      .text(document.client.name)
+      .text(document.client.country || "TN")
+      .moveDown();
+
+    // ----------- DATES ----------
+    doc.text(`Date: ${new Date(document.issueDate).toLocaleDateString()}`);
+
+    if (document.type === "invoice") {
+      doc.text(
+        `Due Date: ${
+          document.dueDate
+            ? new Date(document.dueDate).toLocaleDateString()
+            : new Date(
+                Date.now() + 30 * 24 * 60 * 60 * 1000
+              ).toLocaleDateString()
+        }`
+      );
+    }
+
+    doc.moveDown();
+
+    // ----------- TABLE HEADERS ----------
+    const tableTop = 250;
+    let y = tableTop;
+
     doc
       .font("Helvetica-Bold")
       .fontSize(10)
-      .text("Description", 50, yPosition)
-      .text("Qty", 280, yPosition)
-      .text("Price", 350, yPosition)
-      .text("Total", 450, yPosition)
+      .text("#", 40, y)
+      .text("Item", 70, y)
+      .text("Qty", 280, y)
+      .text("Rate", 350, y)
+      .text("Amount", 450, y)
       .font("Helvetica");
 
-    // Table Rows
-    document.items.forEach((item, index) => {
-      yPosition = tableTop + 25 + index * 25;
+    // ----------- TABLE ROWS ----------
+    document.items.forEach((item, i) => {
+      const posY = y + 25 + i * 25;
       doc
         .fontSize(10)
-        .text(item.description, 50, yPosition)
-        .text(item.quantity.toString(), 280, yPosition)
-        .text(`$${item.unitPrice.toFixed(2)}`, 350, yPosition)
-        .text(
-          `$${(item.quantity * item.unitPrice).toFixed(2)}`,
-          450,
-          yPosition
-        );
+        .text(i + 1, 40, posY)
+        .text(item.description, 70, posY)
+        .text(item.quantity.toString(), 280, posY)
+        .text(formatCurrency(item.unitPrice), 350, posY)
+        .text(formatCurrency(item.total), 450, posY);
     });
 
-    // ----------------- Totals -----------------
-    yPosition += 40;
+    y += 30 + document.items.length * 25;
+
+    // ----------- TOTALS ----------
     doc
       .font("Helvetica-Bold")
-      .text("Subtotal:", 350, yPosition)
-      .text(`$${document.subtotal.toFixed(2)}`, 450, yPosition)
-      .text(`Tax (${document.taxRate}%):`, 350, yPosition + 20)
-      .text(`$${document.taxAmount.toFixed(2)}`, 450, yPosition + 20)
-      .text("Discount:", 350, yPosition + 40)
-      .text(`-$${document.discount.toFixed(2)}`, 450, yPosition + 40)
-      .text("TOTAL:", 350, yPosition + 60)
-      .text(`$${document.totalAmount.toFixed(2)}`, 450, yPosition + 60)
-      .font("Helvetica");
+      .text("Sub Total", 350, y)
+      .text(formatCurrency(document.subtotal), 450, y)
+      .text("Total", 350, y + 20)
+      .text(formatCurrency(document.totalAmount), 450, y + 20);
 
-    // Add payment info for invoices
-    if (
-      document.type === "invoice" &&
-      document.payments &&
-      document.payments.length > 0
-    ) {
-      const totalPaid = document.payments.reduce(
-        (sum, payment) => sum + payment.amount,
-        0
-      );
-      const balance = document.totalAmount - totalPaid;
-
-      yPosition += 80;
+    if (document.type === "invoice") {
       doc
-        .font("Helvetica-Bold")
-        .text("Amount Paid:", 350, yPosition)
-        .text(`$${totalPaid.toFixed(2)}`, 450, yPosition)
-        .text("Balance Due:", 350, yPosition + 20)
-        .text(`$${balance.toFixed(2)}`, 450, yPosition + 20)
-        .font("Helvetica");
+        .text("Amount Due", 350, y + 40)
+        .text(formatCurrency(document.totalAmount), 450, y + 40);
     }
 
-    // ----------------- Footer -----------------
+    y += 80;
+
+    // ----------- BANK PAYMENT INFO ----------
     doc
-      .fontSize(10)
-      .text(document.termsConditions || "Payment due within 30 days", 50, 700, {
-        width: 500,
-        align: "center",
-      });
-
-    if (document.notes) {
-      doc
-        .moveDown()
-        .text("Notes:", 50, 730, { underline: true })
-        .text(document.notes, 50, 750, {
-          width: 500,
-        });
-    }
+      .font("Helvetica-Bold")
+      .text("Offline Payment:", 50, y)
+      .font("Helvetica")
+      .text("Banque : Biat", 50, y + 15)
+      .text("Titulaire : STE DUNDILL", 50, y + 30)
+      .text("IBAN : TN59 0813 0030 0159 0001 0293", 50, y + 45)
+      .text("BIC : BIATTNTT", 50, y + 60);
 
     doc.end();
-
-    // Update document with PDF path
-    const pdfUrl =
-      document.type === "invoice"
-        ? `/invoices/${document._id}.pdf`
-        : `/quotes/${document._id}.pdf`;
-
-    const updatedDoc = await Quote.findByIdAndUpdate(
-      document._id,
-      { $addToSet: { attachments: pdfUrl } },
-      { new: true }
-    );
-
-    // Send PDF as response
-    res.set({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${document.type}_${document._id}.pdf"`,
-    });
-    res.send(Buffer.concat(buffers));
   } catch (error) {
     console.error("PDF generation error:", error);
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      error: "Failed to generate PDF",
-    });
+    handleError(res, error);
   }
 };
 

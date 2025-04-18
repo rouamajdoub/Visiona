@@ -8,6 +8,25 @@ import {
   selectAuthError,
   resetStatus,
 } from "../../redux/slices/authSlice";
+import {
+  FaUser,
+  FaEnvelope,
+  FaLock,
+  FaBuilding,
+  FaMapMarkerAlt,
+  FaGlobe,
+  FaGraduationCap,
+  FaTools,
+  FaIdCard,
+  FaFileAlt,
+  FaCheck,
+  FaClock,
+  FaCode,
+  FaLink,
+  FaCertificate,
+  FaLinkedin,
+  FaInstagram,
+} from "react-icons/fa";
 import "./styles/Auth.css";
 
 const Signup = () => {
@@ -38,6 +57,7 @@ const Signup = () => {
     if (authStatus === "succeeded") {
       if (userType === "architect") {
         setIsSubmitted(true);
+        setStep(3); // Move to the confirmation step
       } else {
         const timer = setTimeout(() => {
           navigate("/login");
@@ -135,16 +155,6 @@ const Signup = () => {
     return null;
   };
 
-  const resetForm = () => {
-    reset();
-    setStep(1);
-    setUserType(null);
-    setIsSubmitted(false);
-    setEducationFields([{ degree: "", institution: "", graduationYear: "" }]);
-    setSoftwareFields([{ name: "", level: "" }]);
-    dispatch(resetStatus());
-  };
-
   return (
     <div className="signup-wrapper">
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -152,6 +162,9 @@ const Signup = () => {
           <div className="form-step">
             <h2>Step 1: Basic Details</h2>
             <div className="form-group">
+              <label>
+                <FaUser className="input-icon" /> Role
+              </label>
               <select
                 {...register("role", { required: "Role is required" })}
                 onChange={(e) => setUserType(e.target.value)}
@@ -165,6 +178,9 @@ const Signup = () => {
               )}
             </div>
             <div className="form-group">
+              <label>
+                <FaUser className="input-icon" /> Username
+              </label>
               <input
                 {...register("pseudo", {
                   required: "Username is required",
@@ -180,6 +196,9 @@ const Signup = () => {
               )}
             </div>
             <div className="form-group">
+              <label>
+                <FaUser className="input-icon" /> Last Name
+              </label>
               <input
                 {...register("nomDeFamille", {
                   required: "Last name is required",
@@ -191,6 +210,9 @@ const Signup = () => {
               )}
             </div>
             <div className="form-group">
+              <label>
+                <FaUser className="input-icon" /> First Name
+              </label>
               <input
                 {...register("prenom", { required: "First name is required" })}
                 placeholder="First Name"
@@ -200,6 +222,9 @@ const Signup = () => {
               )}
             </div>
             <div className="form-group">
+              <label>
+                <FaEnvelope className="input-icon" /> Email
+              </label>
               <input
                 {...register("email", {
                   required: "Email is required",
@@ -216,6 +241,9 @@ const Signup = () => {
               )}
             </div>
             <div className="form-group">
+              <label>
+                <FaLock className="input-icon" /> Password
+              </label>
               <input
                 {...register("password", {
                   required: "Password is required",
@@ -248,6 +276,9 @@ const Signup = () => {
           <div className="form-step">
             <h2>Step 2: Location Details</h2>
             <div className="form-group">
+              <label>
+                <FaGlobe className="input-icon" /> Country
+              </label>
               <input
                 {...register("location.country", {
                   required: "Country is required",
@@ -261,6 +292,9 @@ const Signup = () => {
               )}
             </div>
             <div className="form-group">
+              <label>
+                <FaMapMarkerAlt className="input-icon" /> Region
+              </label>
               <input
                 {...register("location.region", {
                   required: "Region is required",
@@ -274,6 +308,9 @@ const Signup = () => {
               )}
             </div>
             <div className="form-group">
+              <label>
+                <FaMapMarkerAlt className="input-icon" /> City
+              </label>
               <input
                 {...register("location.city")}
                 placeholder="City (Optional)"
@@ -293,6 +330,9 @@ const Signup = () => {
             <div className="form-section">
               <h3>Personal Information</h3>
               <div className="form-group">
+                <label>
+                  <FaIdCard className="input-icon" /> CIN
+                </label>
                 <input
                   {...register("cin", { required: "CIN is required" })}
                   placeholder="CIN"
@@ -302,6 +342,9 @@ const Signup = () => {
                 )}
               </div>
               <div className="form-group">
+                <label>
+                  <FaFileAlt className="input-icon" /> Patente Number
+                </label>
                 <input
                   {...register("patenteNumber", {
                     required: "Patente number is required",
@@ -320,6 +363,9 @@ const Signup = () => {
             <div className="form-section">
               <h3>Business Information</h3>
               <div className="form-group">
+                <label>
+                  <FaBuilding className="input-icon" /> Company Name
+                </label>
                 <input
                   {...register("companyName", {
                     required: "Company name is required",
@@ -331,6 +377,9 @@ const Signup = () => {
                 )}
               </div>
               <div className="form-group">
+                <label>
+                  <FaClock className="input-icon" /> Years of Experience
+                </label>
                 <input
                   {...register("experienceYears", {
                     required: "Years of experience is required",
@@ -349,6 +398,9 @@ const Signup = () => {
                 )}
               </div>
               <div className="form-group">
+                <label>
+                  <FaCode className="input-icon" /> Specialization
+                </label>
                 <input
                   {...register("specialization", {
                     required: "Specialization is required",
@@ -362,6 +414,9 @@ const Signup = () => {
                 )}
               </div>
               <div className="form-group">
+                <label>
+                  <FaLink className="input-icon" /> Portfolio URL
+                </label>
                 <input
                   {...register("portfolioURL", {
                     required: "Portfolio URL is required",
@@ -378,6 +433,9 @@ const Signup = () => {
                 )}
               </div>
               <div className="form-group">
+                <label>
+                  <FaCertificate className="input-icon" /> Certifications
+                </label>
                 <input
                   {...register("certifications")}
                   placeholder="Certifications (comma separated)"
@@ -391,6 +449,9 @@ const Signup = () => {
               {educationFields.map((field, index) => (
                 <div key={index} className="education-field-group">
                   <div className="form-group">
+                    <label>
+                      <FaGraduationCap className="input-icon" /> Degree
+                    </label>
                     <input
                       value={field.degree}
                       onChange={(e) => {
@@ -402,6 +463,9 @@ const Signup = () => {
                     />
                   </div>
                   <div className="form-group">
+                    <label>
+                      <FaBuilding className="input-icon" /> Institution
+                    </label>
                     <input
                       value={field.institution}
                       onChange={(e) => {
@@ -413,6 +477,9 @@ const Signup = () => {
                     />
                   </div>
                   <div className="form-group">
+                    <label>
+                      <FaClock className="input-icon" /> Graduation Year
+                    </label>
                     <input
                       value={field.graduationYear}
                       onChange={(e) => {
@@ -450,6 +517,9 @@ const Signup = () => {
               {softwareFields.map((field, index) => (
                 <div key={index} className="software-field-group">
                   <div className="form-group">
+                    <label>
+                      <FaTools className="input-icon" /> Software Name
+                    </label>
                     <input
                       value={field.name}
                       onChange={(e) => {
@@ -461,6 +531,9 @@ const Signup = () => {
                     />
                   </div>
                   <div className="form-group">
+                    <label>
+                      <FaTools className="input-icon" /> Proficiency Level
+                    </label>
                     <select
                       value={field.level}
                       onChange={(e) => {
@@ -500,12 +573,21 @@ const Signup = () => {
             <div className="form-section">
               <h3>Location</h3>
               <div className="form-group">
+                <label>
+                  <FaGlobe className="input-icon" /> Country
+                </label>
                 <input {...register("pays")} placeholder="Country" />
               </div>
               <div className="form-group">
+                <label>
+                  <FaMapMarkerAlt className="input-icon" /> Region
+                </label>
                 <input {...register("region")} placeholder="Region" />
               </div>
               <div className="form-group">
+                <label>
+                  <FaMapMarkerAlt className="input-icon" /> City
+                </label>
                 <input {...register("city")} placeholder="City" />
               </div>
             </div>
@@ -514,6 +596,9 @@ const Signup = () => {
             <div className="form-section">
               <h3>Contact Information</h3>
               <div className="form-group">
+                <label>
+                  <FaGlobe className="input-icon" /> Website
+                </label>
                 <input
                   {...register("website")}
                   placeholder="Website (Optional)"
@@ -521,6 +606,9 @@ const Signup = () => {
                 />
               </div>
               <div className="form-group">
+                <label>
+                  <FaLinkedin className="input-icon" /> LinkedIn
+                </label>
                 <input
                   {...register("socialMedia.linkedin")}
                   placeholder="LinkedIn URL (Optional)"
@@ -528,6 +616,9 @@ const Signup = () => {
                 />
               </div>
               <div className="form-group">
+                <label>
+                  <FaInstagram className="input-icon" /> Instagram
+                </label>
                 <input
                   {...register("socialMedia.instagram")}
                   placeholder="Instagram URL (Optional)"
@@ -537,32 +628,50 @@ const Signup = () => {
             </div>
 
             <button type="submit" className="btn">
-              Finish Registration
+              Submit Registration Request
             </button>
           </div>
         )}
 
-        {isSubmitted && userType === "architect" && (
-          <div className="form-step">
-            <h2>Registration Successful</h2>
+        {step === 3 && userType === "architect" && (
+          <div className="form-step success-step">
+            <div className="success-icon">
+              <FaCheck size={50} className="check-icon" />
+            </div>
+            <h2>Registration Request Submitted!</h2>
             <p>
-              Your registration request has been sent successfully. Please wait
-              for admin approval. You will receive a confirmation email shortly.
-              Be sure to check your inbox!
+              Thank you for your interest in joining our platform as an
+              architect. Your registration request has been sent successfully
+              and is now pending admin approval.
             </p>
-            <button type="button" onClick={resetForm} className="btn reset-btn">
-              Start Over
+            <p>
+              You will receive a confirmation email shortly with further details
+              about the approval process. Please check your email inbox
+              (including spam/junk folders).
+            </p>
+            <p>
+              Once approved, you'll receive login credentials and can start
+              using our platform's professional features.
+            </p>
+            <div className="next-steps">
+              <h3>What's Next?</h3>
+              <ul>
+                <li>Check your email for confirmation</li>
+                <li>Prepare your portfolio materials</li>
+                <li>Wait for admin approval (typically 1-3 business days)</li>
+              </ul>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="btn login-btn"
+            >
+              Go to Login Page
             </button>
           </div>
         )}
 
         {renderRegistrationStatus()}
-
-        {(authStatus === "succeeded" || authStatus === "failed") && (
-          <button type="button" onClick={resetForm} className="btn reset-btn">
-            Start Over
-          </button>
-        )}
       </form>
     </div>
   );

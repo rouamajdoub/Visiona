@@ -6,7 +6,7 @@ export const fetchQuotes = createAsyncThunk(
   "quotes/fetchAll",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get("/api/quotes");
+      const response = await axios.get("/api/quotes-invoices/quotes");
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || "Failed to fetch quotes");
@@ -18,7 +18,7 @@ export const fetchInvoices = createAsyncThunk(
   "invoices/fetchAll",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get("/api/invoices");
+      const response = await axios.get("/api/quotes-invoices/invoices");
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -32,7 +32,10 @@ export const createQuote = createAsyncThunk(
   "quotes/create",
   async (quoteData, { rejectWithValue }) => {
     try {
-      const response = await axios.post("/api/quotes", quoteData);
+      const response = await axios.post(
+        "/api/quotes-invoices/quotes",
+        quoteData
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || "Failed to create quote");
@@ -44,7 +47,10 @@ export const createInvoice = createAsyncThunk(
   "invoices/create",
   async (invoiceData, { rejectWithValue }) => {
     try {
-      const response = await axios.post("/api/invoices", invoiceData);
+      const response = await axios.post(
+        "/api/quotes-invoices/invoices",
+        invoiceData
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -58,7 +64,10 @@ export const updateQuote = createAsyncThunk(
   "quotes/update",
   async ({ id, quoteData }, { rejectWithValue }) => {
     try {
-      const response = await axios.patch(`/api/quotes/${id}`, quoteData);
+      const response = await axios.patch(
+        `/api/quotes-invoices/quotes/${id}`,
+        quoteData
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || "Failed to update quote");
@@ -70,7 +79,10 @@ export const updateInvoice = createAsyncThunk(
   "invoices/update",
   async ({ id, invoiceData }, { rejectWithValue }) => {
     try {
-      const response = await axios.patch(`/api/invoices/${id}`, invoiceData);
+      const response = await axios.patch(
+        `/api/quotes-invoices/invoices/${id}`,
+        invoiceData
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -84,7 +96,7 @@ export const deleteQuote = createAsyncThunk(
   "quotes/delete",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await axios.delete(`/api/quotes/${id}`);
+      const response = await axios.delete(`/api/quotes-invoices/quotes/${id}`);
       return { id, ...response.data };
     } catch (error) {
       return rejectWithValue(error.response?.data || "Failed to delete quote");
@@ -96,7 +108,9 @@ export const deleteInvoice = createAsyncThunk(
   "invoices/delete",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await axios.delete(`/api/invoices/${id}`);
+      const response = await axios.delete(
+        `/api/quotes-invoices/invoices/${id}`
+      );
       return { id, ...response.data };
     } catch (error) {
       return rejectWithValue(
@@ -110,7 +124,9 @@ export const convertToInvoice = createAsyncThunk(
   "quotes/convert",
   async (id, { rejectWithValue }) => {
     try {
-      const response = await axios.patch(`/api/quotes/${id}/convert`);
+      const response = await axios.patch(
+        `/api/quotes-invoices/quotes/${id}/convert`
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -125,7 +141,7 @@ export const recordPayment = createAsyncThunk(
   async ({ id, paymentData }, { rejectWithValue }) => {
     try {
       const response = await axios.post(
-        `/api/invoices/${id}/payment`,
+        `/api/quotes-invoices/invoices/${id}/payment`,
         paymentData
       );
       return response.data;
@@ -141,9 +157,12 @@ export const generatePDF = createAsyncThunk(
   "documents/generatePDF",
   async ({ type, id }, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`/api/${type}s/${id}/pdf`, {
-        responseType: "blob",
-      });
+      const response = await axios.get(
+        `/api/quotes-invoices/${type}s/${id}/pdf`,
+        {
+          responseType: "blob",
+        }
+      );
 
       // Create a download link
       const url = window.URL.createObjectURL(new Blob([response.data]));

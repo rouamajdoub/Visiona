@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Header from "./Global/Header";
-import Projects from "./section/Projects/Projects";
+import Projects from "./ProjectListingPage";
 const Home = () => {
   const [showProject, setshowProject] = useState(true);
 
