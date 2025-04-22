@@ -1,15 +1,16 @@
-/* heroSlider.css - Prefixed classes to avoid conflicts */
-.vs_wrapper {
-  width: 100%;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #d3dbf5;
-  padding: 1rem;
+/* Reset some browser defaults */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-.vs_container {
+body {
+  background-color: #efefef;
+  font-family: sans-serif;
+}
+
+.container {
   position: absolute;
   width: 900px;
   height: 600px;
@@ -19,9 +20,10 @@
   transform: translate(-50%, -50%);
   background-color: #fff;
   border-radius: 40px;
+  overflow: hidden;
 }
 
-.vs_background-rotate {
+.background-rotate {
   width: 500px;
   height: 500px;
   position: absolute;
@@ -29,7 +31,7 @@
   border-top-left-radius: 40px;
 }
 
-.vs_bg-rotate {
+.bg-rotate {
   position: absolute;
   top: -64px;
   left: -130px;
@@ -42,8 +44,8 @@
   transition: 1s;
 }
 
-/* Menu Styles */
-.vs_menu {
+/* Menu styles */
+.menu {
   position: absolute;
   background-color: #fff;
   border: 1px solid #00000011;
@@ -51,49 +53,49 @@
   left: 50%;
   bottom: 20px;
   transform: translate(-50%);
+  z-index: 10;
 }
 
-.vs_menu ul {
+.menu ul {
   padding: 0;
   margin: 0;
+  display: flex;
 }
 
-.vs_menu li {
+.menu li {
   list-style: none;
   width: 50px;
-  padding: 25px 10px;
+  padding: 15px 10px;
   display: inline-block;
   border-radius: 15px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease;
 }
-.vs_menu li:nth-child(4) {
+
+.menu li:hover {
+  background-color: #f5f5f5;
+}
+
+.menu li#next,
+.menu li#prev {
   background-color: #2c393b;
   color: #fff;
 }
-.vs_menu li:hover {
-  background-color: #ff919d;
+
+.menu li#next:hover,
+.menu li#prev:hover {
+  background-color: #3a4b4e;
 }
 
-.vs_menu li#vs_next {
-  background-color: #2c393b;
-  color: #fff;
-}
-
-.vs_menu li#vs_next.vs_disabled {
-  opacity: 0.7;
-  pointer-events: none;
-}
-
-/* Slide begin */
-.vs_list {
+/* Slide styles */
+.list {
   position: absolute;
   width: 100%;
   height: 600px;
 }
 
-.vs_item {
+.item {
   position: absolute;
   top: 0;
   left: 0;
@@ -103,32 +105,36 @@
   transition: 0.5s;
   opacity: 0;
 }
-.vs_item .vs_images,
-.vs_item .vs_content {
+
+.item .images,
+.item .content {
   width: 50%;
+  height: 100%;
 }
 
-.vs_content {
-  width: 100%;
-  padding: 20px;
+.content {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px;
 }
 
-.vs_content p {
-  margin: 0;
-  background-color: #f9f9f9;
-
+.content p {
+  max-width: 400px;
   padding: 20px;
+  background-color: #f9f9f9;
   border-radius: 10px;
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
   line-height: 1.6;
-  max-width: 400px;
+  font-size: 16px;
+  color: #333;
+  transition: 2s;
+  transform: translate(100%, 0);
+  opacity: 0;
 }
 
-/* Item Image Styles */
-.vs_item_img {
+/* Item image styles */
+.item .images .item_img {
   position: absolute;
   width: 550px;
   height: 550px;
@@ -138,87 +144,149 @@
   transition: 2s ease-in-out;
   transform: rotate(-50deg);
 }
-.vs_item .vs_images .vs_item_img:nth-child(3) {
+
+.item .images .item_img:nth-child(3) {
   transform: rotate(-100deg);
 }
-.vs_item_img img {
+
+.item .images img {
   position: absolute;
   width: 140px;
-  transition: transform 2s;
+  transition: 2s;
 }
 
-.vs_item_img.vs_main-img img {
+.item .images .item_img:nth-child(1) img {
+  width: 140px;
+  filter: blur(3px);
+}
+
+.item .images .item_img:nth-child(2) img {
   width: 170px;
   position: relative;
 }
 
-.vs_small-img {
-  width: 100px !important;
-  filter: blur(1px);
+.item .images .item_img:nth-child(3) img {
+  width: 100px;
+  filter: blur(5px);
 }
 
-.vs_blur-effect {
+.item .images .item_img:nth-child(2)::before {
   position: absolute;
   top: 0;
   left: 0;
   width: 170px;
   height: 50px;
+  content: "";
   background-image: var(--background-rotate);
   background-size: 100% 100%;
   filter: blur(20px);
+  transition: 1s;
+  transition-delay: 1s;
   opacity: 0;
 }
 
-/* Responsive adjustments */
-@media (min-width: 768px) {
-  .vs_item {
-    flex-direction: row;
-  }
+/* Active item styles */
+.item.active {
+  opacity: 1;
 }
 
-@media (min-width: 768px) {
-  .vs_images,
-  .vs_content {
-    width: 50%;
-    height: 100%;
-  }
-
-  .vs_content {
-    padding: 40px;
-  }
+.item.active .content p {
+  opacity: 1;
+  transform: translate(0, 0);
 }
-@media (max-width: 767px) {
-  .vs_container {
+
+.item.active .images .item_img:nth-child(1) {
+  transform: rotate(120deg);
+}
+
+.item.active .images .item_img:nth-child(2) {
+  transform: rotate(170deg);
+}
+
+.item.active .images .item_img:nth-child(3) {
+  transform: rotate(200deg);
+}
+
+.item.active .images .item_img:nth-child(1) img {
+  transform: rotate(-108deg);
+}
+
+.item.active .images .item_img:nth-child(2) img {
+  transform: rotate(-188deg);
+}
+
+.item.active .images .item_img:nth-child(3) img {
+  transform: rotate(-108deg) translate(-130px);
+}
+
+.item.active .images .item_img:nth-child(2)::before {
+  opacity: 1;
+}
+
+/* Hidden item styles */
+.item.hide {
+  transition-delay: 2s;
+  opacity: 0;
+}
+
+.item.hide .images .item_img:nth-child(2)::before {
+  opacity: 0;
+  transition-delay: 0s !important;
+}
+
+.item.hide .images .item_img {
+  transform: rotate(300deg) !important;
+  filter: blur(10px);
+}
+
+.item.hide .content p {
+  transform: translate(-100%);
+  opacity: 0;
+}
+
+/* Responsive styles */
+@media (max-width: 992px) {
+  .container {
+    width: 90%;
     height: 500px;
   }
 
-  .vs_item_img {
-    transform-origin: center top;
-    left: -180px;
-    top: -40px;
-    width: 400px;
-    height: 400px;
+  .content p {
+    font-size: 14px;
+    max-width: 90%;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    height: 80vh;
   }
 
-  .vs_item_img img {
-    width: 100px;
+  .item {
+    flex-direction: column;
   }
 
-  .vs_item_img.vs_main-img img {
-    width: 120px;
+  .item .images,
+  .item .content {
+    width: 100%;
+    height: 50%;
   }
 
-  .vs_small-img {
-    width: 80px !important;
+  .background-rotate {
+    width: 100%;
+    height: 50%;
   }
 
-  .vs_blur-effect {
-    width: 120px;
-    height: 40px;
+  .bg-rotate {
+    width: 140%;
+    height: 140%;
+    top: -40%;
+    left: -20%;
   }
 
-  .vs_menu li {
-    width: 40px;
-    padding: 15px 5px;
+  .item .images .item_img {
+    left: calc(50% - 275px);
+    top: -150px;
+    transform-origin: center;
   }
 }
