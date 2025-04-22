@@ -1,12 +1,11 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { FaHome, FaUser, FaArrowRight } from "react-icons/fa";
-import Plant from "./img/plant-pot.png";
+import { FaHome, FaUser, FaArrowRight, FaArrowLeft } from "react-icons/fa";
+import "./heroSlider.css";
+
+// Import your images
 import Sofa from "./img/sofa.png";
-import White from "./img/white.png";
-import Chaire from "./img/chaire.png";
-// Component-specific styles to avoid global CSS conflicts
-import "./heroSlider.css"; // Create this file with the CSS below
+import furniture from "./img/furniture.png";
+import paint from "./img/Paint.png";
 
 const slides = [
   {
@@ -15,7 +14,7 @@ const slides = [
   },
   {
     id: 1,
-    text: "Our platform connects visionary clients with talented architects to create meaningful, sustainable, and personalized living spaces.",
+    text: "What sets Visiona apart is its commitment to craftsmanship and attention to detail. Each project is carefully curated using premium materials to ensure durability and longevity. Whether you're looking for a statement piece or subtle accents, Visiona has something for everyone.",
   },
   {
     id: 2,
@@ -31,6 +30,7 @@ const HeroSlider = () => {
   const [rotate, setRotate] = useState(0);
   const [colorIndex, setColorIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [imageSet, setImageSet] = useState([Sofa, furniture, paint]);
 
   const handleNext = () => {
     if (isAnimating) return;
@@ -39,158 +39,113 @@ const HeroSlider = () => {
 
     const total = slides.length;
     setRotate(rotate + 100);
-    setColorIndex(colorIndex + 1 >= colors.length ? 0 : colorIndex + 1);
+    setColorIndex((colorIndex + 1) % colors.length);
 
-    const newActive = active + 1 >= total ? 0 : active + 1;
-    setActive(newActive);
-
+    const newActive = (active + 1) % total;
     const newHide = active;
+
+    // Rotate images forward
+    setImageSet((prev) => {
+      const newOrder = [...prev.slice(1), prev[0]];
+      return newOrder;
+    });
+
+    setActive(newActive);
     setHide(newHide);
 
-    // Re-enable button after animation completes
     setTimeout(() => {
       setIsAnimating(false);
     }, 1700);
   };
 
-  const getItemClass = (index) => {
-    if (index === active) return "vs_item vs_active";
-    if (index === hide) return "vs_item vs_hide";
-    return "vs_item";
+  const handlePrev = () => {
+    if (isAnimating) return;
+
+    setIsAnimating(true);
+
+    const total = slides.length;
+    setRotate(rotate - 100);
+    setColorIndex((colorIndex - 1 + colors.length) % colors.length);
+
+    const newActive = (active - 1 + total) % total;
+    const newHide = active;
+
+    // Rotate images backward
+    setImageSet((prev) => {
+      const newOrder = [
+        prev[prev.length - 1],
+        ...prev.slice(0, prev.length - 1),
+      ];
+      return newOrder;
+    });
+
+    setActive(newActive);
+    setHide(newHide);
+
+    setTimeout(() => {
+      setIsAnimating(false);
+    }, 1700);
   };
 
   return (
-    <div className="vs_wrapper">
-      <div className="vs_container">
-        <div className="vs_background-rotate">
-          <motion.div
-            className="vs_bg-rotate"
-            animate={{
-              rotate: rotate,
+    <div className="abt_wrapper">
+      <div className="abt_container">
+        <div className="abt_background-rotate">
+          <div
+            className="abt_bg-rotate"
+            style={{
+              transform: `rotate(${rotate}deg)`,
               backgroundColor: colors[colorIndex],
+              transition: "1s",
             }}
-            transition={{ duration: 1 }}
           />
         </div>
 
-        <div className="vs_list">
+        <div className="abt_list">
           {slides.map((slide, index) => (
-            <motion.div
+            <div
               key={index}
-              className={getItemClass(index)}
-              initial={{ opacity: index === 1 ? 1 : 0 }}
-              animate={{
-                opacity: index === active ? 1 : 0,
-                transition: { duration: 0.5 },
-              }}
+              className={`abt_item ${index === active ? "active" : ""} ${
+                index === hide ? "hide" : ""
+              }`}
             >
-              <div className="vs_images">
-                {/* First image circle */}
-                <motion.div
-                  className="vs_item_img"
-                  animate={{
-                    rotate: index === active ? 120 : index === hide ? 300 : -50,
-                    filter: index === hide ? "blur(10px)" : "none",
-                  }}
-                  transition={{ duration: 2, ease: "easeInOut" }}
-                >
-                  <motion.img
-                    src={Sofa}
-                    alt="Design element 1"
-                    animate={{
-                      rotate: index === active ? -108 : 0,
-                    }}
-                    transition={{ duration: 2 }}
-                  />
-                </motion.div>
-
-                {/* Second image circle (main) */}
-                <motion.div
-                  className="vs_item_img vs_main-img"
-                  animate={{
-                    rotate: index === active ? 170 : index === hide ? 300 : -50,
-                    filter: index === hide ? "blur(10px)" : "none",
-                  }}
-                  transition={{ duration: 2, ease: "easeInOut" }}
-                  style={{
-                    "--background-rotate": `url(/api/placeholder/170/170)`,
-                  }}
-                >
-                  <motion.img
-                    src={Chaire}
-                    alt="Main visual"
-                    animate={{
-                      rotate: index === active ? -188 : 0,
-                    }}
-                    transition={{ duration: 2 }}
-                  />
-                  <motion.div
-                    className="vs_blur-effect"
-                    animate={{
-                      opacity: index === active ? 1 : 0,
-                    }}
-                    transition={{
-                      duration: 1,
-                      delay: index === active ? 1 : 0,
-                    }}
-                  />
-                </motion.div>
-
-                {/* Third image circle */}
-                <motion.div
-                  className="vs_item_img"
-                  animate={{
-                    rotate:
-                      index === active ? 200 : index === hide ? 300 : -100,
-                    filter: index === hide ? "blur(10px)" : "none",
-                  }}
-                  transition={{ duration: 2, ease: "easeInOut" }}
-                >
-                  <motion.img
-                    src={White}
-                    alt="Design element 2"
-                    className="vs_small-img"
-                    animate={{
-                      rotate: index === active ? -108 : 0,
-                      x: index === active ? -130 : 0,
-                    }}
-                    transition={{ duration: 2 }}
-                  />
-                </motion.div>
+              <div className="abt_images">
+                {imageSet.map((img, idx) => (
+                  <div className="abt_item_img" key={idx}>
+                    <img src={img} alt={`Design element ${idx + 1}`} />
+                  </div>
+                ))}
               </div>
-
-              <div className="vs_content">
-                <motion.p
-                  initial={{ opacity: 0, x: 100 }}
-                  animate={{
-                    opacity: index === active ? 1 : 0,
-                    x: index === active ? 0 : index === hide ? -100 : 100,
-                  }}
-                  transition={{ duration: 2 }}
-                >
-                  {slide.text}
-                </motion.p>
+              <div className="abt_content">
+                <p>{slide.text}</p>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
 
-        <div className="vs_menu">
+        <div className="abt_menu">
           <ul>
             <li>
-              <a href="/home">
+              <a href="http://localhost:3001/">
                 <FaHome />
               </a>
             </li>
             <li>
-              <a href="/login">
+              <a href="login">
                 <FaUser />
               </a>
             </li>
             <li
-              id="vs_next"
+              id="prev"
+              onClick={handlePrev}
+              style={{ pointerEvents: isAnimating ? "none" : "unset" }}
+            >
+              <FaArrowLeft />
+            </li>
+            <li
+              id="next"
               onClick={handleNext}
-              className={isAnimating ? "vs_disabled" : ""}
+              style={{ pointerEvents: isAnimating ? "none" : "unset" }}
             >
               <FaArrowRight />
             </li>
