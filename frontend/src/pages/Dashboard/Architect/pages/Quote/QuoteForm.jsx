@@ -4,68 +4,39 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   createQuote,
   updateQuote,
-} from "../../../../../redux/slices/quotesInvoicesSlice";
+  fetchQuoteById,
+  clearCurrentQuote,
+  convertToInvoice,
+  generatePDF,
+} from "../../../../../redux/slices/quotesSlice";
 import { fetchClients } from "../../../../../redux/slices/clientsSlice";
 import { fetchAllProjects } from "../../../../../redux/slices/ProjectSlice";
-
-// Components for the form
 import {
-  Box,
-  Button,
-  Container,
-  FormControl,
-  FormHelperText,
-  Grid,
-  InputLabel,
-  MenuItem,
-  Select,
-  TextField,
-  Typography,
-  IconButton,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  FormLabel,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  CircularProgress,
-} from "@mui/material";
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Save as SaveIcon,
-  ArrowBack as ArrowBackIcon,
-} from "@mui/icons-material";
+  FaSave,
+  FaFileInvoice,
+  FaFileDownload,
+  FaTimes,
+  FaPaperPlane,
+  FaPlus,
+  FaTrash,
+  FaSpinner,
+} from "react-icons/fa";
 
 const QuoteForm = () => {
+  const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { id } = useParams(); // For editing existing quotes
-  const currentUser = useSelector((state) => state.auth.user);
-  // Get data from Redux store
+
+  const { currentQuote, loading, error, success } = useSelector(
+    (state) => state.quotes
+  );
   const { clients } = useSelector((state) => state.clients);
   const { projects } = useSelector((state) => state.projects);
-  const { quotes } = useSelector((state) => state.quotesInvoices);
-  const currentQuote = useSelector(
-    (state) => state.quotesInvoices.quotes.currentQuote
-  );
-  const loading = useSelector((state) => state.quotesInvoices.quotes.loading);
 
-  // Format date for HTML date input (YYYY-MM-DD)
-  const formatDateForInput = (date) => {
-    if (!date) return "";
-    const d = new Date(date);
-    return d.toISOString().split("T")[0];
-  };
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [showSendModal, setShowSendModal] = useState(false);
 
-  // Form state - Make sure architect is initialized with currentUser._id when available
   const [formData, setFormData] = useState({
-    type: "quote",
     client: "",
     clientName: "",
     clientAddress: {
@@ -73,8 +44,6 @@ const QuoteForm = () => {
       city: "",
       zipCode: "",
     },
-    // Initialize with currentUser._id if available
-    architect: currentUser?._id || "",
     project: "",
     projectTitle: "",
     projectDescription: "",
@@ -87,134 +56,270 @@ const QuoteForm = () => {
         category: "design",
       },
     ],
-    subtotal: 0,
-    taxRate: 19, // Default tax rate for Tunisia (19% VAT)
-    taxAmount: 0,
+    taxRate: 0,
     discount: 0,
+    subtotal: 0,
+    taxAmount: 0,
     totalAmount: 0,
-    issueDate: formatDateForInput(new Date()),
-    expirationDate: formatDateForInput(
-      new Date(new Date().setDate(new Date().getDate() + 30))
-    ), // 30 days from now
     status: "draft",
-    termsConditions: "Standard terms and conditions apply.",
+    termsConditions: "",
     notes: "",
   });
 
-  const [errors, setErrors] = useState({});
+  // Format currency utility function
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
+  };
 
-  // Set current user as architect when component mounts or when currentUser changes
-  useEffect(() => {
-    if (currentUser?._id) {
-      setFormData((prevData) => ({
-        ...prevData,
-        architect: currentUser._id,
-      }));
-      console.log("Quotes: Setting architect ID to:", currentUser._id);
-    }
-  }, [currentUser]);
+  // Spinner component
+  const Spinner = () => (
+    <div className="text-center my-5">
+      <FaSpinner className="fa-spin me-2" />
+      <span>Loading...</span>
+    </div>
+  );
 
-  // Fetch clients and projects on component mount
+  // Confirm modal component
+  const ConfirmModal = ({ show, title, message, onHide, onConfirm }) => {
+    if (!show) return null;
+
+    return (
+      <div
+        className="modal show d-block"
+        tabIndex="-1"
+        style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+      >
+        <div className="modal-dialog">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">{title}</h5>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={onHide}
+              ></button>
+            </div>
+            <div className="modal-body">
+              <p>{message}</p>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={onHide}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={onConfirm}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Fetch necessary data
   useEffect(() => {
     dispatch(fetchClients());
     dispatch(fetchAllProjects());
 
-    // If we have an ID, we're editing an existing quote
     if (id) {
-      const existingQuote = quotes.items.find((quote) => quote._id === id);
-
-      if (existingQuote) {
-        // When editing, preserve the existing architect ID or use currentUser._id as fallback
-        setFormData({
-          ...existingQuote,
-          architect: existingQuote.architect || currentUser?._id || "",
-          issueDate: formatDateForInput(existingQuote.issueDate),
-          expirationDate: existingQuote.expirationDate
-            ? formatDateForInput(existingQuote.expirationDate)
-            : "",
-        });
-      }
+      dispatch(fetchQuoteById(id));
     }
-  }, [dispatch, id, quotes.items, currentUser]);
 
-  // Update form when currentQuote changes (for editing)
+    return () => {
+      dispatch(clearCurrentQuote());
+    };
+  }, [dispatch, id]);
+
+  // Populate form when editing
   useEffect(() => {
-    if (id && currentQuote && currentQuote._id === id) {
-      // When getting the current quote, preserve the architect ID
+    if (currentQuote && id) {
       setFormData({
         ...currentQuote,
-        architect: currentQuote.architect || currentUser?._id || "",
-        issueDate: formatDateForInput(currentQuote.issueDate),
-        expirationDate: currentQuote.expirationDate
-          ? formatDateForInput(currentQuote.expirationDate)
-          : "",
+        client: currentQuote.client?._id || currentQuote.client,
+        project: currentQuote.project?._id || currentQuote.project,
       });
     }
-  }, [currentQuote, id, currentUser]);
+  }, [currentQuote, id]);
 
-  // Calculate totals when items, taxRate, or discount changes
+  // Handle client selection
   useEffect(() => {
-    calculateTotals();
-  }, [formData.items, formData.taxRate, formData.discount]);
+    if (formData.client && clients.length > 0) {
+      const selectedClient = clients.find(
+        (client) => client._id === formData.client
+      );
+      if (selectedClient) {
+        setFormData((prevData) => ({
+          ...prevData,
+          clientName: selectedClient.name,
+          clientAddress: {
+            street: selectedClient.address?.street || "",
+            city: selectedClient.address?.city || "",
+            zipCode: selectedClient.address?.zipCode || "",
+          },
+        }));
+      }
+    }
+  }, [formData.client, clients]);
 
-  // Update client info when client changes
-  const handleClientChange = (e) => {
-    const clientId = e.target.value;
-    const selectedClient = clients.find((client) => client._id === clientId);
+  // Handle project selection
+  useEffect(() => {
+    if (formData.project && projects.length > 0) {
+      const selectedProject = projects.find(
+        (project) => project._id === formData.project
+      );
+      if (selectedProject) {
+        setFormData((prevData) => ({
+          ...prevData,
+          projectTitle: selectedProject.title,
+          projectDescription: selectedProject.description || "",
+        }));
+      }
+    }
+  }, [formData.project, projects]);
 
-    if (selectedClient) {
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name.includes(".")) {
+      const [parent, child] = name.split(".");
       setFormData({
         ...formData,
-        client: clientId,
-        clientName: selectedClient.name,
-        clientAddress: {
-          street: selectedClient.address?.street || "",
-          city: selectedClient.address?.city || "",
-          zipCode: selectedClient.address?.zipCode || "",
-        },
+        [parent]: { ...formData[parent], [child]: value },
       });
+    } else {
+      setFormData({ ...formData, [name]: value });
     }
   };
 
-  // Update project info when project changes
-  const handleProjectChange = (e) => {
-    const projectId = e.target.value;
-    const selectedProject = projects.find(
-      (project) => project._id === projectId
+  // Handle quote items changes
+  const handleItemsChange = (updatedItems) => {
+    // Calculate financial values
+    const subtotal = updatedItems.reduce(
+      (sum, item) => sum + (item.total || 0),
+      0
     );
 
-    if (selectedProject) {
-      setFormData({
-        ...formData,
-        project: projectId,
-        projectTitle: selectedProject.title,
-        projectDescription: selectedProject.description || "",
-      });
-    }
-  };
-
-  // Handle item changes
-  const handleItemChange = (index, field, value) => {
-    const updatedItems = [...formData.items];
-    updatedItems[index][field] = value;
-
-    // Calculate item total
-    if (field === "quantity" || field === "unitPrice") {
-      updatedItems[index].total =
-        updatedItems[index].quantity * updatedItems[index].unitPrice;
-    }
+    const discount = parseFloat(formData.discount) || 0;
+    const taxRate = parseFloat(formData.taxRate) || 0;
+    const taxAmount = ((subtotal - discount) * (taxRate / 100)).toFixed(2);
+    const totalAmount = (subtotal - discount + parseFloat(taxAmount)).toFixed(
+      2
+    );
 
     setFormData({
       ...formData,
       items: updatedItems,
+      subtotal,
+      taxAmount: parseFloat(taxAmount),
+      totalAmount: parseFloat(totalAmount),
     });
   };
 
-  // Add new item
-  const addItem = () => {
-    setFormData({
-      ...formData,
-      items: [
+  // Handle financial values changes
+  const handleFinancialChange = (e) => {
+    const { name, value } = e.target;
+    const numValue = parseFloat(value) || 0;
+
+    let updatedFormData = { ...formData, [name]: numValue };
+
+    const subtotal = formData.subtotal;
+    const discount = name === "discount" ? numValue : formData.discount;
+    const taxRate = name === "taxRate" ? numValue : formData.taxRate;
+
+    const taxAmount = ((subtotal - discount) * (taxRate / 100)).toFixed(2);
+    const totalAmount = (subtotal - discount + parseFloat(taxAmount)).toFixed(
+      2
+    );
+
+    updatedFormData = {
+      ...updatedFormData,
+      taxAmount: parseFloat(taxAmount),
+      totalAmount: parseFloat(totalAmount),
+    };
+
+    setFormData(updatedFormData);
+  };
+
+  // Submit form
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (id) {
+      dispatch(updateQuote({ id, quoteData: formData })).then((result) => {
+        if (!result.error) {
+          navigate(`/quotes/${id}`);
+        }
+      });
+    } else {
+      dispatch(createQuote(formData)).then((result) => {
+        if (!result.error) {
+          navigate(`/quotes/${result.payload.data._id}`);
+        }
+      });
+    }
+  };
+
+  // Handle quote status change
+  const handleStatusChange = (newStatus) => {
+    if (newStatus === "sent") {
+      setShowSendModal(true);
+    } else {
+      updateStatus(newStatus);
+    }
+  };
+
+  // Update status after confirmation
+  const updateStatus = (newStatus) => {
+    setFormData({ ...formData, status: newStatus });
+    if (id) {
+      dispatch(
+        updateQuote({
+          id,
+          quoteData: { status: newStatus },
+        })
+      );
+    }
+    setShowSendModal(false);
+  };
+
+  // Handle convert to invoice
+  const handleConvertToInvoice = () => {
+    setShowConvertModal(true);
+  };
+
+  // Confirm conversion to invoice
+  const confirmConversion = () => {
+    dispatch(convertToInvoice(id)).then((result) => {
+      if (!result.error) {
+        navigate(`/invoices/${result.payload.data._id}`);
+      }
+      setShowConvertModal(false);
+    });
+  };
+
+  // Generate PDF for the quote
+  const handleGeneratePDF = () => {
+    if (id) {
+      dispatch(generatePDF(id));
+    }
+  };
+
+  // Quote Items Table component
+  const QuoteItemsTable = () => {
+    const handleAddItem = () => {
+      const newItems = [
         ...formData.items,
         {
           description: "",
@@ -223,665 +328,539 @@ const QuoteForm = () => {
           total: 0,
           category: "design",
         },
-      ],
-    });
-  };
-
-  // Remove item
-  const removeItem = (index) => {
-    const updatedItems = [...formData.items];
-    updatedItems.splice(index, 1);
-
-    setFormData({
-      ...formData,
-      items: updatedItems,
-    });
-  };
-
-  // Calculate subtotal, tax amount, and total
-  const calculateTotals = () => {
-    const subtotal = formData.items.reduce(
-      (sum, item) => sum + (item.total || 0),
-      0
-    );
-    const taxAmount = subtotal * (formData.taxRate / 100);
-    const totalAmount = subtotal + taxAmount - formData.discount;
-
-    setFormData((prev) => ({
-      ...prev,
-      subtotal,
-      taxAmount,
-      totalAmount,
-    }));
-  };
-
-  // Handle form submission - Fixed to ensure architect is always included
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    // Validate form
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
-
-    // Make sure the architect ID is definitely set
-    const architectId = currentUser?._id || "";
-
-    // Check if architect ID is available
-    if (!formData.architect && !architectId) {
-      setErrors({
-        form: "Architect information is missing. Please try logging in again.",
-      });
-      return;
-    }
-
-    // Prepare data for submission with guaranteed architect field
-    const submissionData = {
-      ...formData,
-      // Use existing architect or fallback to currentUser._id
-      architect: formData.architect || architectId,
-      issueDate: new Date(formData.issueDate),
-      expirationDate: formData.expirationDate
-        ? new Date(formData.expirationDate)
-        : null,
+      ];
+      handleItemsChange(newItems);
     };
 
-    // Log the submission data to debug
-    console.log("Submitting quote with data:", submissionData);
+    const handleRemoveItem = (index) => {
+      const newItems = [...formData.items];
+      newItems.splice(index, 1);
+      handleItemsChange(newItems);
+    };
 
-    try {
-      if (id) {
-        // Update existing quote
-        await dispatch(updateQuote({ id, quoteData: submissionData })).unwrap();
-      } else {
-        // Create new quote
-        await dispatch(createQuote(submissionData)).unwrap();
+    const handleItemChange = (index, field, value) => {
+      const newItems = [...formData.items];
+      newItems[index][field] = value;
+
+      // Calculate item total
+      if (field === "quantity" || field === "unitPrice") {
+        const quantity =
+          field === "quantity" ? value : newItems[index].quantity;
+        const unitPrice =
+          field === "unitPrice" ? value : newItems[index].unitPrice;
+        newItems[index].total = Number((quantity * unitPrice).toFixed(2));
       }
 
-      // Navigate to quotes list
-      navigate("/architect");
-    } catch (error) {
-      console.error("Error saving quote:", error);
-      setErrors({
-        form: error.message || "Failed to save quote. Please try again.",
-      });
-    }
+      handleItemsChange(newItems);
+    };
+
+    return (
+      <div className="quote-items-table">
+        <div className="table-responsive">
+          <table className="table table-bordered">
+            <thead className="table-light">
+              <tr>
+                <th style={{ width: "40%" }}>Description</th>
+                <th style={{ width: "15%" }}>Category</th>
+                <th style={{ width: "10%" }}>Quantity</th>
+                <th style={{ width: "15%" }}>Unit Price</th>
+                <th style={{ width: "15%" }}>Total</th>
+                <th style={{ width: "5%" }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {formData.items.map((item, index) => (
+                <tr key={index}>
+                  <td>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={item.description || ""}
+                      onChange={(e) =>
+                        handleItemChange(index, "description", e.target.value)
+                      }
+                      placeholder="Item description"
+                    />
+                  </td>
+                  <td>
+                    <select
+                      className="form-select"
+                      value={item.category || "design"}
+                      onChange={(e) =>
+                        handleItemChange(index, "category", e.target.value)
+                      }
+                    >
+                      <option value="design">Design</option>
+                      <option value="materials">Materials</option>
+                      <option value="labor">Labor</option>
+                      <option value="furniture">Furniture</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={item.quantity || 0}
+                      onChange={(e) =>
+                        handleItemChange(
+                          index,
+                          "quantity",
+                          parseFloat(e.target.value) || 0
+                        )
+                      }
+                      min="0"
+                      step="1"
+                    />
+                  </td>
+                  <td>
+                    <div className="input-group">
+                      <span className="input-group-text">$</span>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={item.unitPrice || 0}
+                        onChange={(e) =>
+                          handleItemChange(
+                            index,
+                            "unitPrice",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                  </td>
+                  <td>
+                    <div className="input-group">
+                      <span className="input-group-text">$</span>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={item.total || 0}
+                        readOnly
+                      />
+                    </div>
+                  </td>
+                  <td className="text-center">
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger btn-sm"
+                      onClick={() => handleRemoveItem(index)}
+                      disabled={formData.items.length === 1}
+                    >
+                      <FaTrash />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan="6">
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary"
+                    onClick={handleAddItem}
+                  >
+                    <FaPlus className="me-1" /> Add Item
+                  </button>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    );
   };
 
-  // Form validation
-  const validateForm = () => {
-    const errors = {};
+  // Quote Summary component
+  const QuoteSummary = () => {
+    return (
+      <div className="card mb-4">
+        <div className="card-header">Quote Summary</div>
+        <div className="card-body">
+          <div className="quote-summary">
+            <div className="row mb-2">
+              <div className="col-6 text-end fw-bold">Subtotal:</div>
+              <div className="col-6 text-end">
+                {formatCurrency(formData.subtotal)}
+              </div>
+            </div>
 
-    if (!formData.client) errors.client = "Client is required";
-    if (!formData.project) errors.project = "Project is required";
-    if (!formData.issueDate) errors.issueDate = "Issue date is required";
-    // Explicitly check for architect - this is critical
-    if (!formData.architect && !currentUser?._id)
-      errors.architect = "Architect is required";
-    if (!formData.expirationDate)
-      errors.expirationDate = "Expiration date is required";
+            <div className="row mb-2">
+              <div className="col-6 text-end fw-bold">Discount:</div>
+              <div className="col-6">
+                <div className="input-group">
+                  <span className="input-group-text">$</span>
+                  <input
+                    type="number"
+                    className="form-control text-end"
+                    name="discount"
+                    value={formData.discount || 0}
+                    onChange={handleFinancialChange}
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+            </div>
 
-    // Validate items
-    const itemErrors = [];
-    formData.items.forEach((item, idx) => {
-      const error = {};
-      if (!item.description) error.description = "Description is required";
-      if (!item.quantity || item.quantity <= 0)
-        error.quantity = "Valid quantity is required";
-      if (!item.unitPrice || item.unitPrice < 0)
-        error.unitPrice = "Valid unit price is required";
-      if (Object.keys(error).length > 0) itemErrors[idx] = error;
-    });
+            <div className="row mb-2">
+              <div className="col-6 text-end fw-bold">Tax Rate:</div>
+              <div className="col-6">
+                <div className="input-group">
+                  <input
+                    type="number"
+                    className="form-control text-end"
+                    name="taxRate"
+                    value={formData.taxRate || 0}
+                    onChange={handleFinancialChange}
+                    min="0"
+                    max="100"
+                    step="0.1"
+                  />
+                  <span className="input-group-text">%</span>
+                </div>
+              </div>
+            </div>
 
-    if (itemErrors.length > 0) errors.items = itemErrors;
+            <div className="row mb-2">
+              <div className="col-6 text-end fw-bold">Tax Amount:</div>
+              <div className="col-6 text-end">
+                {formatCurrency(formData.taxAmount)}
+              </div>
+            </div>
 
-    return errors;
+            <hr />
+
+            <div className="row">
+              <div className="col-6 text-end fw-bold">TOTAL:</div>
+              <div className="col-6 text-end fw-bold fs-5">
+                {formatCurrency(formData.totalAmount)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
-  // Generic input change handler
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  // Check if status is "sent" or above to enable convert button
+  const canConvert =
+    currentQuote && ["sent", "accepted"].includes(currentQuote.status);
 
-    // Handle nested properties
-    if (name.includes(".")) {
-      const [parent, child] = name.split(".");
-      setFormData({
-        ...formData,
-        [parent]: {
-          ...formData[parent],
-          [child]: value,
-        },
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value,
-      });
-    }
-  };
+  // Check if already converted
+  const isConverted = currentQuote && currentQuote.convertedToInvoice;
 
-  // Add a debug section to display current architect value (you can remove this in production)
-  const debugInfo = process.env.NODE_ENV === "development" && (
-    <div
-      style={{
-        margin: "10px 0",
-        padding: "10px",
-        background: "#f5f5f5",
-        borderRadius: "4px",
-      }}
-    >
-      <Typography variant="body2">
-        Current Architect ID: {formData.architect || "Not set"}
-      </Typography>
-      <Typography variant="body2">
-        Current User ID: {currentUser?._id || "Not available"}
-      </Typography>
-    </div>
-  );
+  if (loading && !formData.client) {
+    return <Spinner />;
+  }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ mt: 4, mb: 2 }}>
-        <Button
-          variant="outlined"
-          startIcon={<ArrowBackIcon />}
-          onClick={() => navigate(-1)}
-          sx={{ mb: 2 }}
-        >
-          Back
-        </Button>
-
-        <Typography variant="h4" gutterBottom>
-          {id ? "Edit Quote" : "Create New Quote"}
-        </Typography>
-
-        {process.env.NODE_ENV === "development" && debugInfo}
-
-        {/* Hidden architect field to ensure it's always submitted */}
-        <input
-          type="hidden"
-          name="architect"
-          value={formData.architect || currentUser?._id || ""}
-        />
-
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              {/* Client and Project Section */}
-              <Grid item xs={12}>
-                <Paper sx={{ p: 3, mb: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Client & Project Details
-                  </Typography>
-
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <FormControl fullWidth error={!!errors.client}>
-                        <InputLabel>Client</InputLabel>
-                        <Select
-                          name="client"
-                          value={formData.client}
-                          onChange={handleClientChange}
-                          label="Client"
-                        >
-                          {clients?.map((client) => (
-                            <MenuItem key={client._id} value={client._id}>
-                              {client.name}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {errors.client && (
-                          <FormHelperText>{errors.client}</FormHelperText>
-                        )}
-                      </FormControl>
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <FormControl fullWidth error={!!errors.project}>
-                        <InputLabel>Project</InputLabel>
-                        <Select
-                          name="project"
-                          value={formData.project}
-                          onChange={handleProjectChange}
-                          label="Project"
-                        >
-                          {projects?.map((project) => (
-                            <MenuItem key={project._id} value={project._id}>
-                              {project.title}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {errors.project && (
-                          <FormHelperText>{errors.project}</FormHelperText>
-                        )}
-                      </FormControl>
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Project Description"
-                        name="projectDescription"
-                        value={formData.projectDescription}
-                        onChange={handleChange}
-                        multiline
-                        rows={2}
-                      />
-                    </Grid>
-                  </Grid>
-                </Paper>
-              </Grid>
-
-              {/* Quote Details Section */}
-              <Grid item xs={12}>
-                <Paper sx={{ p: 3, mb: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Quote Details
-                  </Typography>
-
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Issue Date"
-                        type="date"
-                        name="issueDate"
-                        value={formData.issueDate}
-                        onChange={handleChange}
-                        error={!!errors.issueDate}
-                        helperText={errors.issueDate}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Expiration Date"
-                        type="date"
-                        name="expirationDate"
-                        value={formData.expirationDate}
-                        onChange={handleChange}
-                        error={!!errors.expirationDate}
-                        helperText={errors.expirationDate}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={4}>
-                      <FormControl component="fieldset">
-                        <FormLabel component="legend">Status</FormLabel>
-                        <RadioGroup
-                          row
-                          name="status"
-                          value={formData.status}
-                          onChange={handleChange}
-                        >
-                          <FormControlLabel
-                            value="draft"
-                            control={<Radio />}
-                            label="Draft"
-                          />
-                          <FormControlLabel
-                            value="sent"
-                            control={<Radio />}
-                            label="Sent"
-                          />
-                          <FormControlLabel
-                            value="accepted"
-                            control={<Radio />}
-                            label="Accepted"
-                          />
-                          <FormControlLabel
-                            value="rejected"
-                            control={<Radio />}
-                            label="Rejected"
-                          />
-                        </RadioGroup>
-                      </FormControl>
-                    </Grid>
-                  </Grid>
-                </Paper>
-              </Grid>
-
-              {/* Quote Items Section */}
-              <Grid item xs={12}>
-                <Paper sx={{ p: 3, mb: 3 }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      mb: 2,
-                    }}
-                  >
-                    <Typography variant="h6">Quote Items</Typography>
-                    <Button
-                      variant="outlined"
-                      startIcon={<AddIcon />}
-                      onClick={addItem}
-                    >
-                      Add Item
-                    </Button>
-                  </Box>
-
-                  <TableContainer>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Description</TableCell>
-                          <TableCell>Category</TableCell>
-                          <TableCell align="right">Quantity</TableCell>
-                          <TableCell align="right">Unit Price (TND)</TableCell>
-                          <TableCell align="right">Total (TND)</TableCell>
-                          <TableCell align="center">Actions</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {formData.items.map((item, index) => (
-                          <TableRow key={index}>
-                            <TableCell>
-                              <TextField
-                                fullWidth
-                                value={item.description}
-                                onChange={(e) =>
-                                  handleItemChange(
-                                    index,
-                                    "description",
-                                    e.target.value
-                                  )
-                                }
-                                error={
-                                  !!errors.items &&
-                                  !!errors.items[index]?.description
-                                }
-                                helperText={
-                                  errors.items &&
-                                  errors.items[index]?.description
-                                }
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <FormControl fullWidth>
-                                <Select
-                                  value={item.category}
-                                  onChange={(e) =>
-                                    handleItemChange(
-                                      index,
-                                      "category",
-                                      e.target.value
-                                    )
-                                  }
-                                >
-                                  <MenuItem value="design">Design</MenuItem>
-                                  <MenuItem value="materials">
-                                    Materials
-                                  </MenuItem>
-                                  <MenuItem value="labor">Labor</MenuItem>
-                                  <MenuItem value="furniture">
-                                    Furniture
-                                  </MenuItem>
-                                  <MenuItem value="other">Other</MenuItem>
-                                </Select>
-                              </FormControl>
-                            </TableCell>
-                            <TableCell align="right">
-                              <TextField
-                                type="number"
-                                value={item.quantity}
-                                onChange={(e) =>
-                                  handleItemChange(
-                                    index,
-                                    "quantity",
-                                    Number(e.target.value)
-                                  )
-                                }
-                                inputProps={{ min: 1, step: 1 }}
-                                error={
-                                  !!errors.items &&
-                                  !!errors.items[index]?.quantity
-                                }
-                                helperText={
-                                  errors.items && errors.items[index]?.quantity
-                                }
-                              />
-                            </TableCell>
-                            <TableCell align="right">
-                              <TextField
-                                type="number"
-                                value={item.unitPrice}
-                                onChange={(e) =>
-                                  handleItemChange(
-                                    index,
-                                    "unitPrice",
-                                    Number(e.target.value)
-                                  )
-                                }
-                                inputProps={{ min: 0, step: 0.1 }}
-                                error={
-                                  !!errors.items &&
-                                  !!errors.items[index]?.unitPrice
-                                }
-                                helperText={
-                                  errors.items && errors.items[index]?.unitPrice
-                                }
-                                InputProps={{
-                                  endAdornment: (
-                                    <Typography variant="body2">TND</Typography>
-                                  ),
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell align="right">
-                              {item.total.toFixed(2)} TND
-                            </TableCell>
-                            <TableCell align="center">
-                              <IconButton
-                                color="error"
-                                onClick={() => removeItem(index)}
-                                disabled={formData.items.length === 1}
-                              >
-                                <DeleteIcon />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Paper>
-              </Grid>
-
-              {/* Quote Summary Section */}
-              <Grid item xs={12}>
-                <Paper sx={{ p: 3, mb: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Quote Summary
-                  </Typography>
-
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={4}
-                        label="Terms & Conditions"
-                        name="termsConditions"
-                        value={formData.termsConditions}
-                        onChange={handleChange}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={4}
-                        label="Notes"
-                        name="notes"
-                        value={formData.notes}
-                        onChange={handleChange}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "flex-end",
-                          mt: 2,
-                        }}
-                      >
-                        <Grid
-                          container
-                          spacing={2}
-                          justifyContent="flex-end"
-                          alignItems="center"
-                        >
-                          <Grid item xs={4} md={2}>
-                            <Typography variant="body1">Subtotal:</Typography>
-                          </Grid>
-                          <Grid item xs={8} md={3}>
-                            <Typography variant="body1" align="right">
-                              {formData.subtotal.toFixed(2)} TND
-                            </Typography>
-                          </Grid>
-                        </Grid>
-
-                        <Grid
-                          container
-                          spacing={2}
-                          justifyContent="flex-end"
-                          alignItems="center"
-                        >
-                          <Grid item xs={4} md={2}>
-                            <Typography variant="body1">Tax Rate:</Typography>
-                          </Grid>
-                          <Grid item xs={8} md={3}>
-                            <TextField
-                              type="number"
-                              value={formData.taxRate}
-                              onChange={handleChange}
-                              name="taxRate"
-                              inputProps={{ min: 0, max: 100, step: 0.1 }}
-                              InputProps={{
-                                endAdornment: (
-                                  <Typography variant="body2">%</Typography>
-                                ),
-                              }}
-                              size="small"
-                            />
-                          </Grid>
-                        </Grid>
-
-                        <Grid
-                          container
-                          spacing={2}
-                          justifyContent="flex-end"
-                          alignItems="center"
-                        >
-                          <Grid item xs={4} md={2}>
-                            <Typography variant="body1">Tax Amount:</Typography>
-                          </Grid>
-                          <Grid item xs={8} md={3}>
-                            <Typography variant="body1" align="right">
-                              {formData.taxAmount.toFixed(2)} TND
-                            </Typography>
-                          </Grid>
-                        </Grid>
-
-                        <Grid
-                          container
-                          spacing={2}
-                          justifyContent="flex-end"
-                          alignItems="center"
-                        >
-                          <Grid item xs={4} md={2}>
-                            <Typography variant="body1">Discount:</Typography>
-                          </Grid>
-                          <Grid item xs={8} md={3}>
-                            <TextField
-                              type="number"
-                              value={formData.discount}
-                              onChange={handleChange}
-                              name="discount"
-                              inputProps={{ min: 0, step: 0.1 }}
-                              InputProps={{
-                                endAdornment: (
-                                  <Typography variant="body2">TND</Typography>
-                                ),
-                              }}
-                              size="small"
-                            />
-                          </Grid>
-                        </Grid>
-
-                        <Grid
-                          container
-                          spacing={2}
-                          justifyContent="flex-end"
-                          alignItems="center"
-                        >
-                          <Grid item xs={4} md={2}>
-                            <Typography variant="h6">Total:</Typography>
-                          </Grid>
-                          <Grid item xs={8} md={3}>
-                            <Typography variant="h6" align="right">
-                              {formData.totalAmount.toFixed(2)} TND
-                            </Typography>
-                          </Grid>
-                        </Grid>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                </Paper>
-              </Grid>
-
-              {/* Form actions */}
-              <Grid item xs={12}>
-                <Box
-                  sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}
+    <div className="quote-form-container p-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1>{id ? "Edit Quote" : "Create New Quote"}</h1>
+        <div className="action-buttons">
+          {id && (
+            <>
+              <button
+                type="button"
+                className="btn btn-outline-secondary me-2"
+                onClick={handleGeneratePDF}
+                disabled={loading}
+              >
+                <FaFileDownload className="me-1" /> Download PDF
+              </button>
+              {!isConverted && (
+                <button
+                  type="button"
+                  className="btn btn-outline-success me-2"
+                  onClick={handleConvertToInvoice}
+                  disabled={!canConvert || loading}
                 >
-                  <Button variant="outlined" onClick={() => navigate(-1)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    color="primary"
-                    startIcon={<SaveIcon />}
-                    disabled={loading}
-                  >
-                    {loading
-                      ? "Saving..."
-                      : id
-                      ? "Update Quote"
-                      : "Create Quote"}
-                  </Button>
-                </Box>
+                  <FaFileInvoice className="me-1" /> Convert to Invoice
+                </button>
+              )}
+              {formData.status === "draft" && (
+                <button
+                  type="button"
+                  className="btn btn-outline-primary me-2"
+                  onClick={() => handleStatusChange("sent")}
+                  disabled={loading}
+                >
+                  <FaPaperPlane className="me-1" /> Send Quote
+                </button>
+              )}
+            </>
+          )}
+          <button
+            type="button"
+            className="btn btn-outline-danger me-2"
+            onClick={() => navigate("/quotes")}
+          >
+            <FaTimes className="me-1" /> Cancel
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            <FaSave className="me-1" /> {id ? "Update" : "Create"} Quote
+          </button>
+        </div>
+      </div>
 
-                {errors.form && (
-                  <Typography color="error" sx={{ mt: 2 }}>
-                    {errors.form}
-                  </Typography>
-                )}
-              </Grid>
-            </Grid>
-          </form>
-        )}
-      </Box>
-    </Container>
+      {error && (
+        <div className="alert alert-danger" role="alert">
+          {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        <div className="row">
+          <div className="col-md-6">
+            <div className="card mb-4">
+              <div className="card-header">Client & Project Information</div>
+              <div className="card-body">
+                <div className="row mb-3">
+                  <div className="col-md-6">
+                    <label htmlFor="client" className="form-label">
+                      Client
+                    </label>
+                    <select
+                      className="form-select"
+                      id="client"
+                      name="client"
+                      value={formData.client}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="">Select Client</option>
+                      {clients.map((client) => (
+                        <option key={client._id} value={client._id}>
+                          {client.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <label htmlFor="project" className="form-label">
+                      Project
+                    </label>
+                    <select
+                      className="form-select"
+                      id="project"
+                      name="project"
+                      value={formData.project}
+                      onChange={handleInputChange}
+                      required
+                    >
+                      <option value="">Select Project</option>
+                      {projects.map((project) => (
+                        <option key={project._id} value={project._id}>
+                          {project.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <label htmlFor="clientName" className="form-label">
+                    Client Name
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="clientName"
+                    name="clientName"
+                    value={formData.clientName}
+                    onChange={handleInputChange}
+                    readOnly
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Client Address</label>
+                  <input
+                    type="text"
+                    className="form-control mb-2"
+                    name="clientAddress.street"
+                    placeholder="Street"
+                    value={formData.clientAddress.street}
+                    onChange={handleInputChange}
+                    readOnly
+                  />
+                  <div className="row">
+                    <div className="col">
+                      <input
+                        type="text"
+                        className="form-control"
+                        name="clientAddress.city"
+                        placeholder="City"
+                        value={formData.clientAddress.city}
+                        onChange={handleInputChange}
+                        readOnly
+                      />
+                    </div>
+                    <div className="col">
+                      <input
+                        type="text"
+                        className="form-control"
+                        name="clientAddress.zipCode"
+                        placeholder="Zip Code"
+                        value={formData.clientAddress.zipCode}
+                        onChange={handleInputChange}
+                        readOnly
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <label htmlFor="projectTitle" className="form-label">
+                    Project Title
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="projectTitle"
+                    name="projectTitle"
+                    value={formData.projectTitle}
+                    onChange={handleInputChange}
+                    readOnly
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label htmlFor="projectDescription" className="form-label">
+                    Project Description
+                  </label>
+                  <textarea
+                    className="form-control"
+                    id="projectDescription"
+                    name="projectDescription"
+                    rows="3"
+                    value={formData.projectDescription}
+                    onChange={handleInputChange}
+                    readOnly
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-md-6">
+            <div className="card mb-4">
+              <div className="card-header">Quote Information</div>
+              <div className="card-body">
+                <div className="row mb-3">
+                  <div className="col">
+                    <label htmlFor="status" className="form-label">
+                      Status
+                    </label>
+                    <div className="input-group">
+                      <select
+                        className="form-select"
+                        id="status"
+                        name="status"
+                        value={formData.status}
+                        onChange={(e) => handleStatusChange(e.target.value)}
+                        disabled={isConverted}
+                      >
+                        <option value="draft">Draft</option>
+                        <option value="sent">Sent</option>
+                        <option value="viewed">Viewed</option>
+                        <option value="accepted">Accepted</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                      {isConverted && (
+                        <span className="input-group-text bg-success text-white">
+                          Converted to Invoice
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <label htmlFor="termsConditions" className="form-label">
+                    Terms & Conditions
+                  </label>
+                  <textarea
+                    className="form-control"
+                    id="termsConditions"
+                    name="termsConditions"
+                    rows="3"
+                    value={formData.termsConditions || ""}
+                    onChange={handleInputChange}
+                    placeholder="Terms and conditions for this quote"
+                  ></textarea>
+                </div>
+
+                <div className="mb-3">
+                  <label htmlFor="notes" className="form-label">
+                    Notes
+                  </label>
+                  <textarea
+                    className="form-control"
+                    id="notes"
+                    name="notes"
+                    rows="2"
+                    value={formData.notes || ""}
+                    onChange={handleInputChange}
+                    placeholder="Additional notes or comments"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            <QuoteSummary />
+          </div>
+        </div>
+
+        <div className="card mb-4">
+          <div className="card-header">Quote Items</div>
+          <div className="card-body">
+            <QuoteItemsTable />
+          </div>
+        </div>
+
+        <div className="text-end mb-4">
+          <button
+            type="button"
+            className="btn btn-outline-danger me-2"
+            onClick={() => navigate("/quotes")}
+          >
+            <FaTimes className="me-1" /> Cancel
+          </button>
+          <button type="submit" className="btn btn-primary" disabled={loading}>
+            <FaSave className="me-1" /> {id ? "Update" : "Create"} Quote
+          </button>
+        </div>
+      </form>
+
+      {/* Convert to Invoice Confirmation Modal */}
+      <ConfirmModal
+        show={showConvertModal}
+        title="Convert to Invoice"
+        message="Are you sure you want to convert this quote to an invoice? This action cannot be undone."
+        onHide={() => setShowConvertModal(false)}
+        onConfirm={confirmConversion}
+      />
+
+      {/* Send Quote Confirmation Modal */}
+      <ConfirmModal
+        show={showSendModal}
+        title="Send Quote"
+        message="Are you sure you want to mark this quote as sent? This will update the status and can trigger email notifications if enabled."
+        onHide={() => setShowSendModal(false)}
+        onConfirm={() => updateStatus("sent")}
+      />
+    </div>
   );
 };
 

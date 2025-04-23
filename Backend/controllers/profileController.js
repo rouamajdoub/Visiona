@@ -108,6 +108,26 @@ exports.updateMyProfile = async (req, res) => {
   try {
     const updateData = { ...req.body };
 
+    // Parse JSON strings for nested objects
+    const fieldsToParse = [
+      "education",
+      "location",
+      "socialMedia",
+      "softwareProficiency",
+      "languages",
+      "companyHistory",
+    ];
+
+    fieldsToParse.forEach((field) => {
+      if (updateData[field] && typeof updateData[field] === "string") {
+        try {
+          updateData[field] = JSON.parse(updateData[field]);
+        } catch (err) {
+          console.warn(`Failed to parse ${field}:`, err);
+        }
+      }
+    });
+
     // Handle uploaded files
     if (req.files) {
       // Process profile picture
@@ -129,14 +149,8 @@ exports.updateMyProfile = async (req, res) => {
         );
         console.log("Portfolio URLs:", portfolioUrls);
 
-        // If we're adding to an existing portfolio
         const architect = await Architect.findById(req.user.id);
-
-        if (
-          updateData.updatePortfolio === "add" &&
-          architect &&
-          architect.portfolio
-        ) {
+        if (updateData.updatePortfolio === "add" && architect?.portfolio) {
           updateData.portfolio = [...architect.portfolio, ...portfolioUrls];
         } else {
           updateData.portfolio = portfolioUrls;
@@ -151,12 +165,7 @@ exports.updateMyProfile = async (req, res) => {
         console.log("Document URLs:", documentUrls);
 
         const architect = await Architect.findById(req.user.id);
-
-        if (
-          updateData.updateDocuments === "add" &&
-          architect &&
-          architect.documents
-        ) {
+        if (updateData.updateDocuments === "add" && architect?.documents) {
           updateData.documents = [...architect.documents, ...documentUrls];
         } else {
           updateData.documents = documentUrls;
@@ -168,24 +177,34 @@ exports.updateMyProfile = async (req, res) => {
       delete updateData.updateDocuments;
     }
 
-    // Properly parse JSON strings (rest of the function remains the same)
-    // ... existing JSON parsing code ...
-
     const updatedArchitect = await Architect.findByIdAndUpdate(
       req.user.id,
       updateData,
       { new: true, runValidators: true }
-    );
+    ).lean();
 
-    if (!updatedArchitect)
+    if (!updatedArchitect) {
       return res.status(404).json({ error: "Architect not found" });
+    }
+
+    // Convert ObjectId to string for nested populated fields
+    if (updatedArchitect.subscription) {
+      updatedArchitect.subscription = updatedArchitect.subscription.toString();
+    }
 
     res.json(updatedArchitect);
   } catch (error) {
     console.error("Profile update error:", error.message, error.stack);
-    res
-      .status(500)
-      .json({ error: `Failed to update profile: ${error.message}` });
+
+    const statusCode = error.name === "ValidationError" ? 400 : 500;
+    const response = {
+      error: error.message.replace(/ValidationError: /, ""),
+      ...(error.errors && {
+        details: Object.values(error.errors).map((err) => err.message),
+      }),
+    };
+
+    res.status(statusCode).json(response);
   }
 };
 

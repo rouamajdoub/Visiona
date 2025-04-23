@@ -5,10 +5,13 @@ const API_URL = "http://localhost:5000/api/profile";
 const getToken = () => localStorage.getItem("token");
 
 // Helper function for authenticated requests
-const configureHeaders = (formData = false) => {
-  const headers = { Authorization: `Bearer ${getToken()}` };
-  if (!formData) headers["Content-Type"] = "application/json";
-  return { headers };
+const configureHeaders = () => {
+  return {
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      // Let browser set Content-Type for FormData
+    },
+  };
 };
 
 // Fetch architect profile
@@ -32,12 +35,10 @@ export const updateArchitectProfile = createAsyncThunk(
   async (profileData, { rejectWithValue }) => {
     try {
       // Check if we're sending form data (for file uploads)
-      const isFormData = profileData instanceof FormData;
-
       const response = await axios.put(
         `${API_URL}/me`,
         profileData,
-        configureHeaders(isFormData)
+        configureHeaders()
       );
 
       return response.data;

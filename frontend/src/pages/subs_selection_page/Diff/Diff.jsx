@@ -1,74 +1,133 @@
 import React from "react";
-import "./Diff.css"; // Import the CSS file
+import "./Diff.css";
 
 const Diff = () => {
   const plans = [
     {
-      name: "Free Plan (Basic Access)",
-      price: "$0/month",
-      audience: "Clients & Architects (Limited Features)",
-      features: [
-        "✅ Browse available architects and projects",
-        "✅ Post project requests (limited to 1 per month)",
-        "❌ No priority support",
-        "❌ Limited visibility in search results (for architects)",
-      ],
+      name: "Free",
+      description:
+        "For beginners or testers - Ideal for architects exploring the platform",
+      features: {
+        projects: "Up to 3 projects",
+        marketplace: "Cannot add products",
+        clients: "Cannot add manually",
+        quotesInvoices: "No access",
+        dashboard: "No access",
+        recommendation: "Low priority",
+        team: "No team support",
+        analytics: "No advanced tools",
+      },
     },
     {
-      name: "Premium Plan",
-      price: "$X/month",
-      audience: "Professional architects looking to expand their reach",
-      features: [
-        "✅ Unlimited project proposals & bids",
-        "✅ Higher visibility in search results",
-        "✅ Access to premium analytics (track profile views, project engagement, etc.)",
-        "✅ Ability to showcase a portfolio with up to 10 projects",
-        "✅ Priority customer support",
-      ],
+      name: "VIP",
+      description: "For independent professionals - Best for solo architects",
+      features: {
+        projects: "Unlimited",
+        marketplace: "Limited uploads",
+        clients: "Can add clients",
+        quotesInvoices: "Create & manage",
+        dashboard: "Full access",
+        recommendation: "Standard priority",
+        team: "No team support",
+        analytics: "Basic analytics",
+      },
     },
     {
-      name: "Enterprise Plan",
-      price: "Custom Pricing",
-      audience:
-        "Architecture firms or teams that need advanced collaboration tools",
-      features: [
-        "✅ All Premium Plan features",
-        "✅ Dedicated account manager",
-        "✅ Team collaboration tools",
-        "✅ API access for integrating with internal systems",
-        "✅ Featured spot in the Visiona marketplace",
-      ],
+      name: "Premium",
+      description: "For growing teams - Advanced operations support",
+      features: {
+        projects: "Unlimited",
+        marketplace: "Higher limits",
+        clients: "Advanced management",
+        quotesInvoices: "Advanced options",
+        dashboard: "Full access",
+        recommendation: "Top priority",
+        team: "Team collaboration",
+        analytics: "Advanced tools",
+      },
     },
   ];
 
   return (
-    <div className="diff-table">
-      <h2 className="table-title">Subscription Plans Comparison</h2>
-      <table>
+    <div className="diff-comparison-table">
+      <h2>Architect Subscription Plans Comparison</h2>
+      <table className="diff-table">
         <thead>
-          <tr>
-            <th>Plan</th>
-            <th>Price</th>
-            <th>For</th>
-            <th>Features</th>
+          <tr className="diff-row">
+            <th className="diff-th">Feature</th>
+            {plans.map((plan) => (
+              <th className="diff-th" key={plan.name}>
+                <h3>{plan.name}</h3>
+                <p className="diff-description">{plan.description}</p>
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {plans.map((plan, index) => (
-            <tr key={index}>
-              <td>{plan.name}</td>
-              <td>{plan.price}</td>
-              <td>{plan.audience}</td>
-              <td>
-                <ul>
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx}>{feature}</li>
-                  ))}
-                  <li className="best-for">{plan.bestFor}</li>
-                </ul>
+          <tr className="diff-row">
+            <td className="diff-td">Project Uploads</td>
+            {plans.map((plan) => (
+              <td className="diff-td" key={plan.name}>
+                {plan.features.projects}
               </td>
-            </tr>
-          ))}
+            ))}
+          </tr>
+          <tr className="diff-row">
+            <td className="diff-td">Marketplace Products</td>
+            {plans.map((plan) => (
+              <td className="diff-td" key={plan.name}>
+                {plan.features.marketplace}
+              </td>
+            ))}
+          </tr>
+          <tr className="diff-row">
+            <td className="diff-td">Client Management</td>
+            {plans.map((plan) => (
+              <td className="diff-td" key={plan.name}>
+                {plan.features.clients}
+              </td>
+            ))}
+          </tr>
+          <tr className="diff-row">
+            <td className="diff-td">Quotes & Invoices</td>
+            {plans.map((plan) => (
+              <td className="diff-td" key={plan.name}>
+                {plan.features.quotesInvoices}
+              </td>
+            ))}
+          </tr>
+          <tr className="diff-row">
+            <td className="diff-td">Dashboard Access</td>
+            {plans.map((plan) => (
+              <td className="diff-td" key={plan.name}>
+                {plan.features.dashboard}
+              </td>
+            ))}
+          </tr>
+          <tr className="diff-row">
+            <td className="diff-td">Recommendation Priority</td>
+            {plans.map((plan) => (
+              <td className="diff-td" key={plan.name}>
+                {plan.features.recommendation}
+              </td>
+            ))}
+          </tr>
+          <tr className="diff-row">
+            <td className="diff-td">Team Collaboration</td>
+            {plans.map((plan) => (
+              <td className="diff-td" key={plan.name}>
+                {plan.features.team}
+              </td>
+            ))}
+          </tr>
+          <tr className="diff-row">
+            <td className="diff-td">Analytics & Tools</td>
+            {plans.map((plan) => (
+              <td className="diff-td" key={plan.name}>
+                {plan.features.analytics}
+              </td>
+            ))}
+          </tr>
         </tbody>
       </table>
     </div>

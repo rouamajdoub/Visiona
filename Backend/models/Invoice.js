@@ -1,7 +1,7 @@
-// models/Quote.js
+// models/Invoice.js
 const mongoose = require("mongoose");
 
-const quoteSchema = new mongoose.Schema(
+const invoiceSchema = new mongoose.Schema(
   {
     // Client Information
     client: {
@@ -38,7 +38,7 @@ const quoteSchema = new mongoose.Schema(
     },
     projectDescription: String,
 
-    // Quote Items
+    // Invoice Items
     items: [
       {
         description: {
@@ -74,12 +74,29 @@ const quoteSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Dates & Validity
+    // Dates
     issueDate: {
       type: Date,
       default: Date.now,
     },
-    expirationDate: Date,
+    dueDate: Date,
+
+    // Payment Information
+    paymentStatus: {
+      type: String,
+      enum: ["unpaid", "partial", "paid", "overdue"],
+      default: "unpaid",
+    },
+    payments: [
+      {
+        amount: Number,
+        date: Date,
+        method: {
+          type: String,
+          enum: ["credit_card", "bank_transfer", "check", "cash"],
+        },
+      },
+    ],
 
     // Document Status
     status: {
@@ -100,20 +117,20 @@ const quoteSchema = new mongoose.Schema(
       },
     ],
 
-    // Reference to invoice if converted
-    convertedToInvoice: {
+    // Reference to original quote if converted
+    convertedFromQuote: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Invoice",
+      ref: "Quote",
     },
   },
   { timestamps: true }
 );
 
 // Add text index for search
-quoteSchema.index({
+invoiceSchema.index({
   projectTitle: "text",
   clientName: "text",
   "items.description": "text",
 });
 
-module.exports = mongoose.model("Quote", quoteSchema);
+module.exports = mongoose.model("Invoice", invoiceSchema);

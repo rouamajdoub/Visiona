@@ -1,17 +1,15 @@
 "use client";
 import Image from "next/image";
 import logo from "@/assets/logo.png";
-import SocialX from "@/assets/social-x.svg";
 import SocialInsta from "@/assets/social-insta.svg";
-import SocialLinkedIn from "@/assets/social-linkedin.svg";
-import SocialPin from "@/assets/social-pin.svg";
-import SocialYoutube from "@/assets/social-youtube.svg";
-import { useState } from "react";
+import SocialF from "@/assets/social-f.svg";
+import { useRef } from "react";
 
 // Define types for our link structure
 type FooterLink = {
   name: string;
   href: string;
+  onClick?: () => void;
 };
 
 type FooterLinksType = {
@@ -19,41 +17,34 @@ type FooterLinksType = {
 };
 
 export const Footer = () => {
-  const [email, setEmail] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Add newsletter subscription logic here
-    console.log("Subscribing email:", email);
-    setEmail("");
-    alert("Thanks for subscribing!");
+  const handleLearnMoreClick = () => {
+    window.location.href = "http://localhost:3000/about";
   };
-
+  const handleTrendClick = () => {
+    window.location.href = "http://localhost:3000/trending";
+  };
+  const handlePolicyClick = () => {
+    window.location.href = "http://localhost:3000/policy";
+  };
   // Footer navigation links organized by categories
   const footerLinks: FooterLinksType = {
     Company: [
       { name: "About", href: "#hero" },
-      { name: "Careers", href: "#" },
-      { name: "News", href: "#" },
-      { name: "Contact", href: "#" },
+      { name: "Learn More", href: "#", onClick: handleLearnMoreClick },
     ],
     Products: [
       { name: "Features", href: "#productShowcase" },
       { name: "Pricing", href: "#pricing" },
       { name: "Showcase", href: "#productShowcase" },
-      { name: "What's New", href: "#" },
+      { name: "What's New", href: "#", onClick: handleTrendClick },
     ],
     Support: [
-      { name: "Help Center", href: "#" },
       { name: "FAQ", href: "#faq" },
       { name: "Customers", href: "#testimonials" },
-      { name: "Documentation", href: "#" },
     ],
     Legal: [
-      { name: "Privacy Policy", href: "#" },
+      { name: "Privacy Policy", href: "#", onClick: handlePolicyClick },
       { name: "Terms of Service", href: "#" },
-      { name: "Cookie Policy", href: "#" },
-      { name: "Compliance", href: "#" },
     ],
   };
 
@@ -81,17 +72,29 @@ export const Footer = () => {
               </div>
               <span className="ml-3 text-xl font-semibold">Visiona</span>
             </div>
-            <p className="text-gray-400 mb-6 max-w-sm">
-              Enhance Your Space, Elevate Your Style. We create beautiful
-              furniture with premium quality materials designed to last.
+            <p className="text-gray-400 mb-4 max-w-sm">
+              Visiona is your smart gateway to exceptional interior design. We
+              connect clients with talented architects through a seamless,
+              AI-powered platform. Discover, collaborate, and bring your dream
+              space to life with Visiona.
             </p>
+            <div className="mb-8 text-gray-400">
+              Contact us at:
+              <a
+                href="mailto:visiona407@gmail.com"
+                className="text-white underline ml-1 hover:text-blue-400 transition-colors"
+              >
+                visiona407@gmail.com
+              </a>
+            </div>
+
             <div className="flex space-x-4 mb-8">
               <a
                 href="#"
-                aria-label="X Social Media"
+                aria-label="Facebook"
                 className="text-gray-400 hover:text-white transition-colors"
               >
-                <SocialX className="h-5 w-5" />
+                <SocialF className="h-5 w-5" />
               </a>
               <a
                 href="#"
@@ -99,27 +102,6 @@ export const Footer = () => {
                 className="text-gray-400 hover:text-white transition-colors"
               >
                 <SocialInsta className="h-5 w-5" />
-              </a>
-              <a
-                href="#"
-                aria-label="LinkedIn"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <SocialLinkedIn className="h-5 w-5" />
-              </a>
-              <a
-                href="#"
-                aria-label="Pinterest"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <SocialPin className="h-5 w-5" />
-              </a>
-              <a
-                href="#"
-                aria-label="YouTube"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <SocialYoutube className="h-5 w-5" />
               </a>
             </div>
           </div>
@@ -133,6 +115,7 @@ export const Footer = () => {
                   <li key={link.name}>
                     <a
                       href={link.href}
+                      onClick={link.onClick}
                       className="text-gray-400 hover:text-white transition-colors"
                     >
                       {link.name}
@@ -142,37 +125,6 @@ export const Footer = () => {
               </ul>
             </div>
           ))}
-        </div>
-
-        {/* Newsletter subscription */}
-        <div className="border-t border-gray-800 pt-8 mb-8">
-          <div className="max-w-md mx-auto lg:mx-0">
-            <h3 className="text-lg font-semibold mb-3">
-              Subscribe to our newsletter
-            </h3>
-            <p className="text-gray-400 mb-4">
-              Get the latest updates on new products and special sales
-            </p>
-            <form
-              onSubmit={handleSubmit}
-              className="flex flex-col sm:flex-row gap-2"
-            >
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Your email address"
-                required
-                className="bg-gray-900 text-white px-4 py-2 rounded-lg flex-grow focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
-              >
-                Subscribe
-              </button>
-            </form>
-          </div>
         </div>
 
         {/* Bottom copyright and attribution */}

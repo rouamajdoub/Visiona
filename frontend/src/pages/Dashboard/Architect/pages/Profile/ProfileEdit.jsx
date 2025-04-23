@@ -17,7 +17,6 @@ import {
   Camera,
   Building,
   Globe,
-  Phone,
   Mail,
   Briefcase,
   Award,
@@ -182,7 +181,7 @@ const ProfileEdit = () => {
   useEffect(() => {
     if (updateSuccess) {
       setTimeout(() => {
-        navigate("/dashboard/profile");
+        navigate(-1);
       }, 2000);
     }
   }, [updateSuccess, navigate]);
@@ -406,7 +405,9 @@ const ProfileEdit = () => {
       // Add basic form data
       for (const key in formData) {
         if (typeof formData[key] === "object" && formData[key] !== null) {
-          formDataToSend.append(key, JSON.stringify(formData[key]));
+          Object.entries(formData.location).forEach(([key, value]) => {
+            formDataToSend.append(`location[${key}]`, value);
+          });
         } else {
           formDataToSend.append(key, formData[key]);
         }
@@ -423,7 +424,7 @@ const ProfileEdit = () => {
 
       // Add portfolio files
       portfolioFiles.forEach((file) => {
-        formDataToSend.append("portfolioFiles", file);
+        formDataToSend.append("portfolio", file);
       });
 
       // Add existing portfolio items
@@ -478,7 +479,7 @@ const ProfileEdit = () => {
 
   // Cancel editing and return to profile
   const handleCancel = () => {
-    navigate("/dashboard/profile");
+    navigate(-1);
   };
 
   if (loading) return <p className="loading">Loading profile data...</p>;

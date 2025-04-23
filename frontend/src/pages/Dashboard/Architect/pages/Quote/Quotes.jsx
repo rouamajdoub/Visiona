@@ -1,313 +1,416 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
 import {
   fetchQuotes,
-  createQuote,
-  updateQuote,
   deleteQuote,
-  convertToInvoice,
+  setFilters,
+  resetFilters,
   generatePDF,
-  setCurrentQuote,
-} from "../../../../../redux/slices/quotesInvoicesSlice";
-import QuoteForm from "./QuoteForm";
-import QuoteDetails from "./QuoteDetails";
-// Define the formatting functions directly in this file
-const formatCurrency = (amount, locale = "en-US", currency = "USD") => {
-  if (!amount && amount !== 0) return "—";
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-};
+} from "../../../../../redux/slices/quotesSlice";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Button,
+  Typography,
+  Box,
+  Chip,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Card,
+  CardContent,
+  Grid,
+  CircularProgress,
+  Alert,
+  Collapse,
+  Tooltip,
+} from "@mui/material";
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  PictureAsPdf as PdfIcon,
+  Add as AddIcon,
+  FilterAlt as FilterIcon,
+  Close as CloseIcon,
+  Visibility as VisibilityIcon,
+} from "@mui/icons-material";
+import FileDownload from "js-file-download";
+import axios from "axios";
 
-const formatDate = (date, locale = "en-US") => {
-  if (!date) return "—";
-  try {
-    const dateObj = typeof date === "string" ? new Date(date) : date;
-    if (isNaN(dateObj.getTime())) return "—";
-    return new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
-      dateObj
-    );
-  } catch (error) {
-    return "—";
-  }
-};
 const Quotes = () => {
   const dispatch = useDispatch();
-  const {
-    items: quotes,
-    loading,
-    error,
-    currentQuote,
-  } = useSelector((state) => state.quotesInvoices.quotes);
-
-  const [showForm, setShowForm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const navigate = useNavigate();
+  const { quotes, loading, error, filters } = useSelector(
+    (state) => state.quotes
+  );
+  const [showFilters, setShowFilters] = useState(false);
+  const [quoteToDelete, setQuoteToDelete] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchQuotes());
-  }, [dispatch]);
+    dispatch(fetchQuotes(filters));
+  }, [dispatch, filters]);
 
-  const handleCreateQuote = (quoteData) => {
-    dispatch(createQuote(quoteData)).then(() => {
-      setShowForm(false);
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    dispatch(setFilters({ [name]: value }));
+  };
+
+  const handleResetFilters = () => {
+    dispatch(resetFilters());
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    dispatch(fetchQuotes(filters));
+  };
+
+  const handleDelete = (quote) => {
+    setQuoteToDelete(quote);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    dispatch(deleteQuote(quoteToDelete._id)).then(() => {
+      setShowDeleteModal(false);
+      setQuoteToDelete(null);
     });
   };
 
-  const handleUpdateQuote = (quoteData) => {
-    dispatch(updateQuote({ id: currentQuote._id, quoteData })).then(() => {
-      setShowForm(false);
-      setIsEditing(false);
-    });
-  };
+  // Modify the PDF generation function to download the file instead of opening in a new tab
+  const handleGeneratePDF = async (id) => {
+    try {
+      setPdfLoading(true);
+      const response = await axios.get(`/api/quotes/${id}/pdf`, {
+        responseType: "blob",
+      });
 
-  const handleDeleteQuote = (id) => {
-    if (window.confirm("Are you sure you want to delete this quote?")) {
-      dispatch(deleteQuote(id));
+      // Use the quote ID or better yet, get the actual filename from headers if available
+      const filename = `quote-${id.substring(id.length - 8)}.pdf`;
+      FileDownload(response.data, filename);
+      setPdfLoading(false);
+    } catch (error) {
+      console.error("Error downloading PDF:", error);
+      setPdfLoading(false);
     }
   };
 
-  const handleConvertToInvoice = (id) => {
-    if (window.confirm("Convert this quote to an invoice?")) {
-      dispatch(convertToInvoice(id));
-    }
+  // Format currency utility function
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount);
   };
 
-  const handleViewQuote = (quote) => {
-    dispatch(setCurrentQuote(quote));
-    setShowDetails(true);
+  // Format date utility function
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(date);
   };
 
-  const handleEditQuote = (quote) => {
-    dispatch(setCurrentQuote(quote));
-    setIsEditing(true);
-    setShowForm(true);
+  // Quote status badge component
+  const QuoteStatusBadge = ({ status }) => {
+    const getStatusColor = () => {
+      switch (status) {
+        case "draft":
+          return "default";
+        case "sent":
+          return "primary";
+        case "accepted":
+          return "success";
+        case "rejected":
+          return "error";
+        case "revised":
+          return "warning";
+        case "archived":
+          return "secondary";
+        default:
+          return "default";
+      }
+    };
+
+    return (
+      <Chip
+        label={status.charAt(0).toUpperCase() + status.slice(1)}
+        color={getStatusColor()}
+        size="small"
+      />
+    );
   };
 
-  const handleGeneratePDF = (id) => {
-    dispatch(generatePDF({ type: "quote", id }));
-  };
+  // Filter panel component
+  const FilterPanel = () => (
+    <Card variant="outlined" sx={{ mb: 4 }}>
+      <CardContent>
+        <Box component="form" onSubmit={handleSearchSubmit}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel id="status-label">Status</InputLabel>
+                <Select
+                  labelId="status-label"
+                  id="status"
+                  name="status"
+                  value={filters.status}
+                  onChange={handleFilterChange}
+                  label="Status"
+                >
+                  <MenuItem value="">All Statuses</MenuItem>
+                  <MenuItem value="draft">Draft</MenuItem>
+                  <MenuItem value="sent">Sent</MenuItem>
+                  <MenuItem value="accepted">Accepted</MenuItem>
+                  <MenuItem value="rejected">Rejected</MenuItem>
+                  <MenuItem value="revised">Revised</MenuItem>
+                  <MenuItem value="archived">Archived</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
 
-  // Filter quotes based on search term and status
-  const filteredQuotes = quotes.filter((quote) => {
-    const matchesSearch =
-      searchTerm === "" ||
-      quote.projectTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      quote.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      quote._id.toLowerCase().includes(searchTerm.toLowerCase());
+            <Grid item xs={12} md={3}>
+              <TextField
+                fullWidth
+                size="small"
+                id="client"
+                name="client"
+                label="Client"
+                value={filters.client}
+                onChange={handleFilterChange}
+                placeholder="Filter by client"
+              />
+            </Grid>
 
-    const matchesStatus = statusFilter === "" || quote.status === statusFilter;
+            <Grid item xs={12} md={3}>
+              <TextField
+                fullWidth
+                size="small"
+                id="project"
+                name="project"
+                label="Project"
+                value={filters.project}
+                onChange={handleFilterChange}
+                placeholder="Filter by project"
+              />
+            </Grid>
 
-    return matchesSearch && matchesStatus;
-  });
+            <Grid item xs={12} md={3}>
+              <TextField
+                fullWidth
+                size="small"
+                id="search"
+                name="search"
+                label="Search"
+                value={filters.search}
+                onChange={handleFilterChange}
+                placeholder="Search quotes"
+              />
+            </Grid>
 
-  if (loading && quotes.length === 0) {
-    return <div className="flex justify-center p-8">Loading quotes...</div>;
-  }
+            <Grid item xs={12}>
+              <Box display="flex" justifyContent="flex-end">
+                <Button
+                  variant="outlined"
+                  onClick={handleResetFilters}
+                  sx={{ mr: 1 }}
+                >
+                  Reset
+                </Button>
+                <Button type="submit" variant="contained">
+                  Apply Filters
+                </Button>
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+      </CardContent>
+    </Card>
+  );
+
+  // Delete confirmation dialog
+  const DeleteConfirmationDialog = () => (
+    <Dialog
+      open={showDeleteModal}
+      onClose={() => setShowDeleteModal(false)}
+      aria-labelledby="alert-dialog-title"
+      aria-describedby="alert-dialog-description"
+    >
+      <DialogTitle id="alert-dialog-title">Delete Quote</DialogTitle>
+      <DialogContent>
+        <DialogContentText id="alert-dialog-description">
+          Are you sure you want to delete quote for {quoteToDelete?.clientName}?
+          This action cannot be undone.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setShowDeleteModal(false)}>Cancel</Button>
+        <Button onClick={confirmDelete} color="error" autoFocus>
+          Delete
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
 
   if (error) {
     return (
-      <div className="text-red-500 p-4">
-        Error:{" "}
-        {typeof error === "string"
-          ? error
-          : error?.error || "An unknown error occurred"}
-      </div>
+      <Alert severity="error" sx={{ mt: 2 }}>
+        Error: {error}
+      </Alert>
     );
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Quotes</h1>
-        <button
-          onClick={() => {
-            dispatch(setCurrentQuote(null));
-            setIsEditing(false);
-            setShowForm(true);
-          }}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Create Quote
-        </button>
-      </div>
-
-      {/* Search and Filter Controls */}
-      <div className="flex mb-6 gap-4">
-        <div className="flex-grow">
-          <input
-            type="text"
-            placeholder="Search quotes..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full p-2 border rounded"
-          />
-        </div>
-        <div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="p-2 border rounded"
+    <Box sx={{ p: 3 }}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+      >
+        <Typography variant="h4" component="h1">
+          Quotes
+        </Typography>
+        <Box>
+          <Button
+            variant="outlined"
+            startIcon={showFilters ? <CloseIcon /> : <FilterIcon />}
+            onClick={() => setShowFilters(!showFilters)}
+            sx={{ mr: 1 }}
           >
-            <option value="">All Statuses</option>
-            <option value="draft">Draft</option>
-            <option value="sent">Sent</option>
-            <option value="accepted">Accepted</option>
-            <option value="rejected">Rejected</option>
-            <option value="revised">Revised</option>
-            <option value="archived">Archived</option>
-          </select>
-        </div>
-      </div>
+            {showFilters ? "Hide Filters" : "Show Filters"}
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => navigate("/quotes/new")}
+          >
+            New Quote
+          </Button>
+        </Box>
+      </Box>
 
-      {/* Quotes List */}
-      {filteredQuotes.length === 0 ? (
-        <div className="text-center p-8 bg-gray-50 rounded">
-          No quotes found. Create your first quote!
-        </div>
+      <Collapse in={showFilters}>
+        <FilterPanel />
+      </Collapse>
+
+      {loading ? (
+        <Box display="flex" justifyContent="center" my={5}>
+          <CircularProgress />
+        </Box>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-200">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="py-2 px-4 border text-left">Quote ID</th>
-                <th className="py-2 px-4 border text-left">Client</th>
-                <th className="py-2 px-4 border text-left">Project</th>
-                <th className="py-2 px-4 border text-left">Issue Date</th>
-                <th className="py-2 px-4 border text-left">Amount</th>
-                <th className="py-2 px-4 border text-left">Status</th>
-                <th className="py-2 px-4 border text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredQuotes.map((quote) => (
-                <tr key={quote._id} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border">{quote._id.slice(-6)}</td>
-                  <td className="py-2 px-4 border">{quote.clientName}</td>
-                  <td className="py-2 px-4 border">{quote.projectTitle}</td>
-                  <td className="py-2 px-4 border">
-                    {formatDate(quote.issueDate)}
-                  </td>
-                  <td className="py-2 px-4 border">
-                    {formatCurrency(quote.totalAmount)}
-                  </td>
-                  <td className="py-2 px-4 border">
-                    <span
-                      className={`inline-block px-2 py-1 rounded text-xs ${
-                        quote.status === "draft"
-                          ? "bg-gray-200"
-                          : quote.status === "sent"
-                          ? "bg-blue-200 text-blue-800"
-                          : quote.status === "accepted"
-                          ? "bg-green-200 text-green-800"
-                          : quote.status === "rejected"
-                          ? "bg-red-200 text-red-800"
-                          : quote.status === "revised"
-                          ? "bg-yellow-200 text-yellow-800"
-                          : "bg-gray-200"
-                      }`}
-                    >
-                      {quote.status.charAt(0).toUpperCase() +
-                        quote.status.slice(1)}
-                    </span>
-                  </td>
-                  <td className="py-2 px-4 border">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleViewQuote(quote)}
-                        className="text-blue-600 hover:underline"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => handleEditQuote(quote)}
-                        className="text-green-600 hover:underline"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteQuote(quote._id)}
-                        className="text-red-600 hover:underline"
-                      >
-                        Delete
-                      </button>
-                      <button
-                        onClick={() => handleGeneratePDF(quote._id)}
-                        className="text-purple-600 hover:underline"
-                      >
-                        PDF
-                      </button>
-                      <button
-                        onClick={() => handleConvertToInvoice(quote._id)}
-                        className="text-orange-600 hover:underline"
-                      >
-                        Convert
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {quotes.length === 0 ? (
+            <Alert severity="info">
+              No quotes found. Create your first quote!
+            </Alert>
+          ) : (
+            <TableContainer component={Paper} elevation={2}>
+              <Table aria-label="quotes table">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Quote #</TableCell>
+                    <TableCell>Client</TableCell>
+                    <TableCell>Project</TableCell>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Amount</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {quotes.map((quote) => (
+                    <TableRow key={quote._id} hover>
+                      <TableCell>
+                        <Link
+                          to={`/quotes/${quote._id}`}
+                          style={{
+                            textDecoration: "none",
+                            fontWeight: "bold",
+                            color: "#1976d2",
+                          }}
+                        >
+                          {quote._id.substring(quote._id.length - 8)}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{quote.clientName}</TableCell>
+                      <TableCell>{quote.projectTitle}</TableCell>
+                      <TableCell>{formatDate(quote.issueDate)}</TableCell>
+                      <TableCell>{formatCurrency(quote.totalAmount)}</TableCell>
+                      <TableCell>
+                        <QuoteStatusBadge status={quote.status} />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Tooltip title="View Details">
+                          <IconButton
+                            size="small"
+                            onClick={() => navigate(`/quotes/${quote._id}`)}
+                          >
+                            <VisibilityIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Edit Quote">
+                          <IconButton
+                            size="small"
+                            onClick={() =>
+                              navigate(`/quotes/${quote._id}/edit`)
+                            }
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete Quote">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDelete(quote)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Download PDF">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleGeneratePDF(quote._id)}
+                            disabled={pdfLoading}
+                          >
+                            {pdfLoading ? (
+                              <CircularProgress size={20} />
+                            ) : (
+                              <PdfIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </>
       )}
 
-      {/* Quote Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-11/12 max-w-3xl max-h-screen overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">
-              {isEditing ? "Edit Quote" : "Create New Quote"}
-            </h2>
-            <QuoteForm
-              initialData={isEditing ? currentQuote : null}
-              onSubmit={isEditing ? handleUpdateQuote : handleCreateQuote}
-              onCancel={() => {
-                setShowForm(false);
-                setIsEditing(false);
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Quote Details Modal */}
-      {showDetails && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-11/12 max-w-3xl max-h-screen overflow-y-auto">
-            <div className="flex justify-between mb-4">
-              <h2 className="text-xl font-bold">Quote Details</h2>
-              <button
-                onClick={() => setShowDetails(false)}
-                className="text-gray-600 hover:text-gray-800"
-              >
-                Close
-              </button>
-            </div>
-            <QuoteDetails
-              quote={currentQuote}
-              onEdit={() => {
-                setShowDetails(false);
-                setIsEditing(true);
-                setShowForm(true);
-              }}
-              onConvert={() => {
-                handleConvertToInvoice(currentQuote._id);
-                setShowDetails(false);
-              }}
-              onGeneratePdf={() => {
-                handleGeneratePDF(currentQuote._id);
-              }}
-            />
-          </div>
-        </div>
-      )}
-    </div>
+      <DeleteConfirmationDialog />
+    </Box>
   );
 };
 

@@ -56,16 +56,10 @@ export const Header = () => {
                 About
               </button>
               <button
-                onClick={() => scrollToSection("productShowcase")}
+                onClick={() => scrollToSection("features")}
                 className="hover:text-black cursor-pointer"
               >
                 Features
-              </button>
-              <button
-                onClick={() => scrollToSection("testimonials")}
-                className="hover:text-black cursor-pointer"
-              >
-                Customers
               </button>
               <button
                 onClick={() => scrollToSection("pricing")}
@@ -73,6 +67,13 @@ export const Header = () => {
               >
                 Pricing
               </button>
+              <button
+                onClick={() => scrollToSection("testimonials")}
+                className="hover:text-black cursor-pointer"
+              >
+                Customers
+              </button>
+
               <button
                 onClick={() => scrollToSection("faq")}
                 className="hover:text-black cursor-pointer"

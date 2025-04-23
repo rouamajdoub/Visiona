@@ -8,6 +8,8 @@ import Calender from "./pages/Dashboard/Architect/pages/Calendar/Calendar.jsx";
 import Clients from "./pages/client_page/Home.jsx";
 import { Pricing } from "./pages/subs_selection_page/Pricing.jsx";
 import About from "./pages/About/HeroSlider.jsx";
+import InteriorDesignTrends from "./pages/landing/trending/Trending.jsx";
+import Policy from "./pages/landing/P-Policy/Policy.jsx";
 function App() {
   return (
     <>
@@ -20,7 +22,9 @@ function App() {
         <Route path="/calender" element={<Calender />} />
         <Route path="/subs" element={<Pricing />} />
         <Route path="/about" element={<About />} />
+        <Route path="/policy" element={<Policy />} />
 
+        <Route path="/trending" element={<InteriorDesignTrends />} />
         <Route path="*" element={<Clients />} />
       </Routes>
     </>

@@ -82,7 +82,7 @@ app.use("/api/arch-req", architectRoutes);
 //archi dash
 app.use("/api/stats", statsRoutes);
 app.use("/api/marketplace", marketplaceRoutes);
-app.use("/api/quotes-invoices", quoteRoutes);
+app.use("/api/quotes", quoteRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/client-arch", clientRoutes);

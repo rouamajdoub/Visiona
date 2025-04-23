@@ -1,34 +1,86 @@
-.diff-table {
-  width: 90%;
-  max-width: 1200px;
-  margin: 2rem auto; /* Center the table */
-  border-collapse: collapse;
-  font-family: Arial, sans-serif;
+/* Diff.css */
+.diff-comparison-table {
+  margin: 2rem;
+  overflow-x: auto;
 }
 
-.table-title {
+.diff-comparison-table h2 {
   text-align: center;
-  font-size: 2rem;
-  margin-bottom: 1.5rem;
+  color: #2c3e50;
+  margin-bottom: 2rem;
 }
 
-table {
+.diff-table {
   width: 100%;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  overflow: hidden;
+  border-collapse: collapse;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  background: white;
 }
 
-th,
-td {
-  padding: 1rem;
+.diff-th,
+.diff-td {
+  padding: 1.2rem;
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #ecf0f1;
 }
 
-th {
+.diff-th {
+  background-color: #785dc8;
+  color: white;
+  font-weight: 600;
+}
+
+.diff-th h3 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.diff-price {
+  font-size: 1.2rem;
+  margin: 0.5rem 0;
   font-weight: bold;
 }
 
+.diff-description {
+  font-size: 0.9rem;
+  margin: 0;
+  opacity: 0.9;
+  line-height: 1.4;
+}
 
+.diff-row:nth-child(even) {
+  background-color: #f8f9fa;
+}
 
+.diff-td {
+  color: #2c3e50;
+  min-width: 200px;
+}
+
+.diff-row:hover {
+  background-color: #f1f5f7;
+}
+
+@media (max-width: 768px) {
+  .diff-comparison-table {
+    margin: 1rem;
+  }
+
+  .diff-th,
+  .diff-td {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .diff-th h3 {
+    font-size: 1.1rem;
+  }
+
+  .diff-price {
+    font-size: 1rem;
+  }
+
+  .diff-description {
+    font-size: 0.8rem;
+  }
+}

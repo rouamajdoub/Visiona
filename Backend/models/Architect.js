@@ -81,7 +81,8 @@ const architectSchema = new mongoose.Schema(
         language: String,
         proficiency: {
           type: String,
-          enum: ["Basic", "Intermediate", "Fluent", "Native"],
+          enum: ["Basic", "Intermediate", "Fluent", "Native", "Professional"],
+          default: "Intermediate",
         },
       },
     ],
