@@ -1,12 +1,16 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
+// Constants for localStorage keys (shared with Next.js app)
+const TOKEN_KEY = "token";
+const AUTH_STORAGE_KEY = "visiona_auth";
+
 axios.defaults.baseURL =
   process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
 
 const initialState = {
   user: null,
-  token: localStorage.getItem("token") || null,
+  token: localStorage.getItem(TOKEN_KEY) || null,
   isAuthenticated: false,
   status: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
   authMethod: null, // 'local' | 'google' | 'auth0'
@@ -50,7 +54,12 @@ export const loginUser = createAsyncThunk(
       const response = await axios.post("/api/auth/login", { email, password });
       const { token, user, isFirstLogin } = response.data;
 
-      localStorage.setItem("token", token);
+      // Store token in localStorage
+      localStorage.setItem(TOKEN_KEY, token);
+
+      // Store user data for Next.js app
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+
       setupAuthInterceptor(token);
 
       // Additional verification for architects
@@ -74,7 +83,12 @@ export const googleLogin = createAsyncThunk(
       });
       const { token, user } = response.data;
 
-      localStorage.setItem("token", token);
+      // Store token in localStorage
+      localStorage.setItem(TOKEN_KEY, token);
+
+      // Store user data for Next.js app
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+
       setupAuthInterceptor(token);
 
       return { token, user };
@@ -91,9 +105,27 @@ export const logoutUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await axios.post("/api/auth/logout");
-      localStorage.removeItem("token");
+
+      // Clear all localStorage items related to auth
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+
+      // If Next.js app is open in another tab, notify it of logout
+      const event = new StorageEvent("storage", {
+        key: AUTH_STORAGE_KEY,
+        oldValue: localStorage.getItem(AUTH_STORAGE_KEY),
+        newValue: null,
+        url: window.location.href,
+      });
+
+      window.dispatchEvent(event);
+
       return null;
     } catch (error) {
+      // Even if API call fails, clear localStorage
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+
       return rejectWithValue(error.response?.data?.error || "Logout failed");
     }
   }
@@ -103,7 +135,7 @@ export const checkAuthStatus = createAsyncThunk(
   "auth/checkStatus",
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem(TOKEN_KEY);
       if (!token) {
         return { isAuthenticated: false, user: null };
       }
@@ -112,9 +144,20 @@ export const checkAuthStatus = createAsyncThunk(
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // If authenticated, update localStorage for Next.js app
+      if (response.data.isAuthenticated && response.data.user) {
+        localStorage.setItem(
+          AUTH_STORAGE_KEY,
+          JSON.stringify(response.data.user)
+        );
+      }
+
       return response.data;
     } catch (error) {
-      localStorage.removeItem("token");
+      // Clear localStorage on authentication error
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(AUTH_STORAGE_KEY);
+
       return { isAuthenticated: false, user: null };
     }
   }
@@ -125,6 +168,10 @@ export const fetchUserProfile = createAsyncThunk(
   async (userId, { rejectWithValue }) => {
     try {
       const response = await axios.get(`/api/auth/profile/${userId}`);
+
+      // Update localStorage for Next.js app
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(response.data));
+
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -245,5 +292,6 @@ export const selectAuthMethod = (state) => state.auth.authMethod;
 export const selectSubscriptionStatus = (state) =>
   state.auth.user?.subscription?.status;
 export const selectIsFirstLogin = (state) => state.auth.isFirstLogin;
+export const selectToken = (state) => state.auth.token;
 
 export default authSlice.reducer;

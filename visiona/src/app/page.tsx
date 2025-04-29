@@ -8,6 +8,7 @@ import { CallToAction } from "@/sections/CallToAction";
 import { Footer } from "@/sections/Footer";
 import FAQ from "@/sections/FAQ";
 import Features from "@/sections/Features";
+
 export default function Home() {
   return (
     <>

@@ -26,6 +26,10 @@ import {
   FaCertificate,
   FaLinkedin,
   FaInstagram,
+  FaArrowRight,
+  FaArrowLeft,
+  FaBriefcase,
+  FaUserTie,
 } from "react-icons/fa";
 import "./styles/Auth.css";
 
@@ -36,8 +40,10 @@ const Signup = () => {
     formState: { errors },
     reset,
     watch,
+    setValue,
     control,
   } = useForm();
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const authStatus = useSelector(selectAuthStatus);
@@ -53,11 +59,15 @@ const Signup = () => {
     { name: "", level: "" },
   ]);
 
+  // Form data state to hold all data across steps
+  const [formData, setFormData] = useState({});
+
   useEffect(() => {
     if (authStatus === "succeeded") {
       if (userType === "architect") {
         setIsSubmitted(true);
-        setStep(3); // Move to the confirmation step
+        // Skip to confirmation step
+        setStep(userType === "architect" ? 8 : 4);
       } else {
         const timer = setTimeout(() => {
           navigate("/login");
@@ -97,44 +107,71 @@ const Signup = () => {
   };
 
   const onSubmit = (data) => {
-    let formData = { ...data, role: userType };
+    // Handle form submission based on current step
+    const updatedFormData = { ...formData, ...data };
+    setFormData(updatedFormData);
+
+    // If not at final step, go to next step
+    if (
+      (userType === "client" && step < 3) ||
+      (userType === "architect" && step < 7)
+    ) {
+      handleNextStep();
+      return;
+    }
+
+    // At final step, prepare data for submission
+    let submitData = { ...updatedFormData, role: userType };
 
     if (userType === "client") {
-      formData = {
-        ...formData,
-        pays: data.location?.country,
-        region: data.location?.region,
-        city: data.location?.city || "",
+      submitData = {
+        ...submitData,
+        pays: updatedFormData.location?.country,
+        region: updatedFormData.location?.region,
+        city: updatedFormData.location?.city || "",
       };
-      delete formData.location;
+      delete submitData.location;
     } else if (userType === "architect") {
-      formData = {
-        ...formData,
+      submitData = {
+        ...submitData,
         education: educationFields.filter(
           (edu) => edu.degree && edu.institution && edu.graduationYear
         ),
         softwareProficiency: softwareFields.filter(
           (soft) => soft.name && soft.level
         ),
-        certifications: data.certifications
-          ? data.certifications.split(",").map((item) => item.trim())
+        certifications: updatedFormData.certifications
+          ? updatedFormData.certifications.split(",").map((item) => item.trim())
           : [],
-        experienceYears: parseInt(data.experienceYears, 10),
-        pays: data.pays || "",
-        region: data.region || "",
-        city: data.city || "",
+        experienceYears: parseInt(updatedFormData.experienceYears, 10),
+        pays: updatedFormData.pays || "",
+        region: updatedFormData.region || "",
+        city: updatedFormData.city || "",
         coordinates: [0, 0],
       };
     }
 
-    console.log("Submitting registration data:", formData);
-    dispatch(registerUser(formData));
+    console.log("Submitting registration data:", submitData);
+    dispatch(registerUser(submitData));
   };
 
   const handleNextStep = () => {
-    if ((userType === "client" || userType === "architect") && step < 2) {
-      setStep(step + 1);
-    }
+    // Save current form data before moving to next step
+    const currentFormData = watch();
+    setFormData({ ...formData, ...currentFormData });
+    setStep(step + 1);
+    window.scrollTo(0, 0);
+  };
+
+  const handlePrevStep = () => {
+    setStep(step - 1);
+    window.scrollTo(0, 0);
+  };
+
+  const selectUserRole = (role) => {
+    setUserType(role);
+    setValue("role", role);
+    handleNextStep();
   };
 
   const renderRegistrationStatus = () => {
@@ -155,28 +192,69 @@ const Signup = () => {
     return null;
   };
 
+  // Progress indicator based on user type and current step
+  const renderProgressIndicator = () => {
+    const totalSteps = userType === "architect" ? 7 : 3;
+    const steps = Array.from({ length: totalSteps }, (_, i) => i + 1);
+
+    return (
+      <div className="step-indicator">
+        {steps.map((s) => (
+          <div key={s} className={`step-circle ${s === step ? "active" : ""}`}>
+            {s}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="signup-wrapper">
+      {/* Render progress indicator for steps after role selection */}
+      {step > 1 && renderProgressIndicator()}
+
       <form onSubmit={handleSubmit(onSubmit)}>
+        {/* Step 1: Role Selection */}
         {step === 1 && (
-          <div className="form-step">
-            <h2>Step 1: Basic Details</h2>
-            <div className="form-group">
-              <label>
-                <FaUser className="input-icon" /> Role
-              </label>
-              <select
-                {...register("role", { required: "Role is required" })}
-                onChange={(e) => setUserType(e.target.value)}
+          <div className="form-step role-selection-step">
+            <h2>Welcome to Our Platform!</h2>
+            <p className="role-intro">
+              Please select the type of account you want to create:
+            </p>
+
+            <div className="role-buttons">
+              <button
+                type="button"
+                className="role-btn client-btn"
+                onClick={() => selectUserRole("client")}
               >
-                <option value="">Select Role</option>
-                <option value="client">Client</option>
-                <option value="architect">Architect</option>
-              </select>
-              {errors.role && (
-                <p className="error-message">{errors.role.message}</p>
-              )}
+                <FaUser className="role-icon" />
+                <div className="role-label">
+                  <span>Client</span>
+                  <p>Looking for architectural services</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="role-btn architect-btn"
+                onClick={() => selectUserRole("architect")}
+              >
+                <FaUserTie className="role-icon" />
+                <div className="role-label">
+                  <span>Architect</span>
+                  <p>Offering professional architectural services</p>
+                </div>
+              </button>
             </div>
+          </div>
+        )}
+
+        {/* Step 2: Basic Information (for both user types) */}
+        {step === 2 && (
+          <div className="form-step">
+            <h2>Basic Information</h2>
+
             <div className="form-group">
               <label>
                 <FaUser className="input-icon" /> Username
@@ -189,38 +267,48 @@ const Signup = () => {
                     message: "Username must be at least 3 characters",
                   },
                 })}
+                defaultValue={formData.pseudo || ""}
                 placeholder="Username"
               />
               {errors.pseudo && (
                 <p className="error-message">{errors.pseudo.message}</p>
               )}
             </div>
-            <div className="form-group">
-              <label>
-                <FaUser className="input-icon" /> Last Name
-              </label>
-              <input
-                {...register("nomDeFamille", {
-                  required: "Last name is required",
-                })}
-                placeholder="Last Name"
-              />
-              {errors.nomDeFamille && (
-                <p className="error-message">{errors.nomDeFamille.message}</p>
-              )}
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>
+                  <FaUser className="input-icon" /> First Name
+                </label>
+                <input
+                  {...register("prenom", {
+                    required: "First name is required",
+                  })}
+                  defaultValue={formData.prenom || ""}
+                  placeholder="First Name"
+                />
+                {errors.prenom && (
+                  <p className="error-message">{errors.prenom.message}</p>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label>
+                  <FaUser className="input-icon" /> Last Name
+                </label>
+                <input
+                  {...register("nomDeFamille", {
+                    required: "Last name is required",
+                  })}
+                  defaultValue={formData.nomDeFamille || ""}
+                  placeholder="Last Name"
+                />
+                {errors.nomDeFamille && (
+                  <p className="error-message">{errors.nomDeFamille.message}</p>
+                )}
+              </div>
             </div>
-            <div className="form-group">
-              <label>
-                <FaUser className="input-icon" /> First Name
-              </label>
-              <input
-                {...register("prenom", { required: "First name is required" })}
-                placeholder="First Name"
-              />
-              {errors.prenom && (
-                <p className="error-message">{errors.prenom.message}</p>
-              )}
-            </div>
+
             <div className="form-group">
               <label>
                 <FaEnvelope className="input-icon" /> Email
@@ -233,6 +321,7 @@ const Signup = () => {
                     message: "Invalid email address",
                   },
                 })}
+                defaultValue={formData.email || ""}
                 placeholder="Email"
                 type="email"
               />
@@ -240,6 +329,7 @@ const Signup = () => {
                 <p className="error-message">{errors.email.message}</p>
               )}
             </div>
+
             <div className="form-group">
               <label>
                 <FaLock className="input-icon" /> Password
@@ -252,6 +342,7 @@ const Signup = () => {
                     message: "Password must be at least 8 characters",
                   },
                 })}
+                defaultValue={formData.password || ""}
                 placeholder="Password"
                 type="password"
               />
@@ -259,22 +350,29 @@ const Signup = () => {
                 <p className="error-message">{errors.password.message}</p>
               )}
             </div>
+
             <div className="form-buttons">
               <button
                 type="button"
-                onClick={handleNextStep}
-                className="btn next-btn"
-                disabled={!userType}
+                onClick={handlePrevStep}
+                className="btn back-btn"
               >
-                Next
+                <FaArrowLeft /> Back
+              </button>
+              <button type="submit" className="btn next-btn">
+                Next <FaArrowRight />
               </button>
             </div>
           </div>
         )}
 
-        {step === 2 && userType === "client" && (
+        {/* CLIENT STEPS */}
+
+        {/* Step 3 for Client: Location */}
+        {step === 3 && userType === "client" && (
           <div className="form-step">
-            <h2>Step 2: Location Details</h2>
+            <h2>Location Details</h2>
+
             <div className="form-group">
               <label>
                 <FaGlobe className="input-icon" /> Country
@@ -283,6 +381,7 @@ const Signup = () => {
                 {...register("location.country", {
                   required: "Country is required",
                 })}
+                defaultValue={formData.location?.country || ""}
                 placeholder="Country"
               />
               {errors.location?.country && (
@@ -291,6 +390,7 @@ const Signup = () => {
                 </p>
               )}
             </div>
+
             <div className="form-group">
               <label>
                 <FaMapMarkerAlt className="input-icon" /> Region
@@ -299,6 +399,7 @@ const Signup = () => {
                 {...register("location.region", {
                   required: "Region is required",
                 })}
+                defaultValue={formData.location?.region || ""}
                 placeholder="Region"
               />
               {errors.location?.region && (
@@ -307,40 +408,55 @@ const Signup = () => {
                 </p>
               )}
             </div>
+
             <div className="form-group">
               <label>
                 <FaMapMarkerAlt className="input-icon" /> City
               </label>
               <input
                 {...register("location.city")}
+                defaultValue={formData.location?.city || ""}
                 placeholder="City (Optional)"
               />
             </div>
-            <button type="submit" className="btn">
-              Finish Registration
-            </button>
+
+            <div className="form-buttons">
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                className="btn back-btn"
+              >
+                <FaArrowLeft /> Back
+              </button>
+              <button type="submit" className="btn next-btn">
+                Complete Registration <FaCheck />
+              </button>
+            </div>
           </div>
         )}
 
-        {step === 2 && userType === "architect" && (
-          <div className="form-step">
-            <h2>Step 2: Professional Details</h2>
+        {/* ARCHITECT STEPS */}
 
-            {/* Personal Information Section */}
+        {/* Step 3 for Architect: Personal & Legal Information */}
+        {step === 3 && userType === "architect" && (
+          <div className="form-step">
+            <h2>Personal & Legal Information</h2>
+
             <div className="form-section">
-              <h3>Personal Information</h3>
               <div className="form-group">
                 <label>
                   <FaIdCard className="input-icon" /> CIN
                 </label>
                 <input
                   {...register("cin", { required: "CIN is required" })}
+                  defaultValue={formData.cin || ""}
                   placeholder="CIN"
                 />
                 {errors.cin && (
                   <p className="error-message">{errors.cin.message}</p>
                 )}
               </div>
+
               <div className="form-group">
                 <label>
                   <FaFileAlt className="input-icon" /> Patente Number
@@ -349,6 +465,7 @@ const Signup = () => {
                   {...register("patenteNumber", {
                     required: "Patente number is required",
                   })}
+                  defaultValue={formData.patenteNumber || ""}
                   placeholder="Patente Number"
                 />
                 {errors.patenteNumber && (
@@ -357,11 +474,7 @@ const Signup = () => {
                   </p>
                 )}
               </div>
-            </div>
 
-            {/* Business Information Section */}
-            <div className="form-section">
-              <h3>Business Information</h3>
               <div className="form-group">
                 <label>
                   <FaBuilding className="input-icon" /> Company Name
@@ -370,12 +483,36 @@ const Signup = () => {
                   {...register("companyName", {
                     required: "Company name is required",
                   })}
+                  defaultValue={formData.companyName || ""}
                   placeholder="Company Name"
                 />
                 {errors.companyName && (
                   <p className="error-message">{errors.companyName.message}</p>
                 )}
               </div>
+            </div>
+
+            <div className="form-buttons">
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                className="btn back-btn"
+              >
+                <FaArrowLeft /> Back
+              </button>
+              <button type="submit" className="btn next-btn">
+                Next <FaArrowRight />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4 for Architect: Professional Experience */}
+        {step === 4 && userType === "architect" && (
+          <div className="form-step">
+            <h2>Professional Experience</h2>
+
+            <div className="form-section">
               <div className="form-group">
                 <label>
                   <FaClock className="input-icon" /> Years of Experience
@@ -388,6 +525,7 @@ const Signup = () => {
                       message: "Experience years must be a positive number",
                     },
                   })}
+                  defaultValue={formData.experienceYears || ""}
                   placeholder="Years of Experience"
                   type="number"
                 />
@@ -397,6 +535,7 @@ const Signup = () => {
                   </p>
                 )}
               </div>
+
               <div className="form-group">
                 <label>
                   <FaCode className="input-icon" /> Specialization
@@ -405,6 +544,7 @@ const Signup = () => {
                   {...register("specialization", {
                     required: "Specialization is required",
                   })}
+                  defaultValue={formData.specialization || ""}
                   placeholder="Specialization (comma separated)"
                 />
                 {errors.specialization && (
@@ -413,41 +553,55 @@ const Signup = () => {
                   </p>
                 )}
               </div>
-              <div className="form-group">
-                <label>
-                  <FaLink className="input-icon" /> Portfolio URL
-                </label>
-                <input
-                  {...register("portfolioURL", {
-                    required: "Portfolio URL is required",
-                    pattern: {
-                      value: /^(https?:\/\/)?([\w.-]+)(:[0-9]+)?(\/[^\s]*)?$/,
-                      message: "Invalid URL format",
-                    },
-                  })}
-                  placeholder="Portfolio URL"
-                  type="url"
-                />
-                {errors.portfolioURL && (
-                  <p className="error-message">{errors.portfolioURL.message}</p>
-                )}
-              </div>
+
               <div className="form-group">
                 <label>
                   <FaCertificate className="input-icon" /> Certifications
                 </label>
                 <input
                   {...register("certifications")}
+                  defaultValue={formData.certifications || ""}
                   placeholder="Certifications (comma separated)"
                 />
               </div>
             </div>
 
-            {/* Education Section */}
+            <div className="form-buttons">
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                className="btn back-btn"
+              >
+                <FaArrowLeft /> Back
+              </button>
+              <button type="submit" className="btn next-btn">
+                Next <FaArrowRight />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5 for Architect: Education */}
+        {step === 5 && userType === "architect" && (
+          <div className="form-step">
+            <h2>Education</h2>
+
             <div className="form-section">
-              <h3>Education</h3>
               {educationFields.map((field, index) => (
                 <div key={index} className="education-field-group">
+                  <div className="education-field-header">
+                    <h3>Education #{index + 1}</h3>
+                    {educationFields.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeEducationField(index)}
+                        className="btn remove-btn"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
                   <div className="form-group">
                     <label>
                       <FaGraduationCap className="input-icon" /> Degree
@@ -462,6 +616,7 @@ const Signup = () => {
                       placeholder="Degree"
                     />
                   </div>
+
                   <div className="form-group">
                     <label>
                       <FaBuilding className="input-icon" /> Institution
@@ -476,6 +631,7 @@ const Signup = () => {
                       placeholder="Institution"
                     />
                   </div>
+
                   <div className="form-group">
                     <label>
                       <FaClock className="input-icon" /> Graduation Year
@@ -491,17 +647,9 @@ const Signup = () => {
                       type="number"
                     />
                   </div>
-                  {educationFields.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeEducationField(index)}
-                      className="btn remove-btn"
-                    >
-                      Remove
-                    </button>
-                  )}
                 </div>
               ))}
+
               <button
                 type="button"
                 onClick={addEducationField}
@@ -511,11 +659,42 @@ const Signup = () => {
               </button>
             </div>
 
-            {/* Software Proficiency Section */}
+            <div className="form-buttons">
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                className="btn back-btn"
+              >
+                <FaArrowLeft /> Back
+              </button>
+              <button type="submit" className="btn next-btn">
+                Next <FaArrowRight />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 6 for Architect: Software Proficiency */}
+        {step === 6 && userType === "architect" && (
+          <div className="form-step">
+            <h2>Software Proficiency</h2>
+
             <div className="form-section">
-              <h3>Software Proficiency</h3>
               {softwareFields.map((field, index) => (
                 <div key={index} className="software-field-group">
+                  <div className="software-field-header">
+                    <h3>Software #{index + 1}</h3>
+                    {softwareFields.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeSoftwareField(index)}
+                        className="btn remove-btn"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
                   <div className="form-group">
                     <label>
                       <FaTools className="input-icon" /> Software Name
@@ -530,6 +709,7 @@ const Signup = () => {
                       placeholder="Software Name"
                     />
                   </div>
+
                   <div className="form-group">
                     <label>
                       <FaTools className="input-icon" /> Proficiency Level
@@ -549,17 +729,9 @@ const Signup = () => {
                       <option value="Expert">Expert</option>
                     </select>
                   </div>
-                  {softwareFields.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeSoftwareField(index)}
-                      className="btn remove-btn"
-                    >
-                      Remove
-                    </button>
-                  )}
                 </div>
               ))}
+
               <button
                 type="button"
                 onClick={addSoftwareField}
@@ -569,6 +741,26 @@ const Signup = () => {
               </button>
             </div>
 
+            <div className="form-buttons">
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                className="btn back-btn"
+              >
+                <FaArrowLeft /> Back
+              </button>
+              <button type="submit" className="btn next-btn">
+                Next <FaArrowRight />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 7 for Architect: Contact & Portfolio */}
+        {step === 7 && userType === "architect" && (
+          <div className="form-step">
+            <h2>Contact & Portfolio</h2>
+
             {/* Location Section */}
             <div className="form-section">
               <h3>Location</h3>
@@ -576,64 +768,114 @@ const Signup = () => {
                 <label>
                   <FaGlobe className="input-icon" /> Country
                 </label>
-                <input {...register("pays")} placeholder="Country" />
+                <input
+                  {...register("pays")}
+                  defaultValue={formData.pays || ""}
+                  placeholder="Country"
+                />
               </div>
+
               <div className="form-group">
                 <label>
                   <FaMapMarkerAlt className="input-icon" /> Region
                 </label>
-                <input {...register("region")} placeholder="Region" />
+                <input
+                  {...register("region")}
+                  defaultValue={formData.region || ""}
+                  placeholder="Region"
+                />
               </div>
+
               <div className="form-group">
                 <label>
                   <FaMapMarkerAlt className="input-icon" /> City
                 </label>
-                <input {...register("city")} placeholder="City" />
+                <input
+                  {...register("city")}
+                  defaultValue={formData.city || ""}
+                  placeholder="City"
+                />
               </div>
             </div>
 
-            {/* Contact Information Section */}
+            {/* Portfolio & Social Media */}
             <div className="form-section">
-              <h3>Contact Information</h3>
+              <h3>Portfolio & Social Media</h3>
+              <div className="form-group">
+                <label>
+                  <FaLink className="input-icon" /> Portfolio URL
+                </label>
+                <input
+                  {...register("portfolioURL", {
+                    required: "Portfolio URL is required",
+                    pattern: {
+                      value: /^(https?:\/\/)?([\w.-]+)(:[0-9]+)?(\/[^\s]*)?$/,
+                      message: "Invalid URL format",
+                    },
+                  })}
+                  defaultValue={formData.portfolioURL || ""}
+                  placeholder="Portfolio URL"
+                  type="url"
+                />
+                {errors.portfolioURL && (
+                  <p className="error-message">{errors.portfolioURL.message}</p>
+                )}
+              </div>
+
               <div className="form-group">
                 <label>
                   <FaGlobe className="input-icon" /> Website
                 </label>
                 <input
                   {...register("website")}
+                  defaultValue={formData.website || ""}
                   placeholder="Website (Optional)"
                   type="url"
                 />
               </div>
+
               <div className="form-group">
                 <label>
                   <FaLinkedin className="input-icon" /> LinkedIn
                 </label>
                 <input
                   {...register("socialMedia.linkedin")}
+                  defaultValue={formData.socialMedia?.linkedin || ""}
                   placeholder="LinkedIn URL (Optional)"
                   type="url"
                 />
               </div>
+
               <div className="form-group">
                 <label>
                   <FaInstagram className="input-icon" /> Instagram
                 </label>
                 <input
                   {...register("socialMedia.instagram")}
+                  defaultValue={formData.socialMedia?.instagram || ""}
                   placeholder="Instagram URL (Optional)"
                   type="url"
                 />
               </div>
             </div>
 
-            <button type="submit" className="btn">
-              Submit Registration Request
-            </button>
+            <div className="form-buttons">
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                className="btn back-btn"
+              >
+                <FaArrowLeft /> Back
+              </button>
+              <button type="submit" className="btn next-btn">
+                Submit Registration Request <FaCheck />
+              </button>
+            </div>
           </div>
         )}
 
-        {step === 3 && userType === "architect" && (
+        {/* Final Step: Confirmation for Architect */}
+        {step === 8 && userType === "architect" && (
           <div className="form-step success-step">
             <div className="success-icon">
               <FaCheck size={50} className="check-icon" />

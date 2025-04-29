@@ -1,3 +1,4 @@
+/* Base styles already provided */
 * {
   margin: 0;
   padding: 0;
@@ -15,187 +16,445 @@ body {
 }
 
 .signup-wrapper {
-  width: 90%;
-  max-width: 480px;
+  width: 95%;
+  max-width: 600px;
   background: rgba(255, 255, 255, 0.1);
   border: 2px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(15px);
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
   color: #fff;
-  border-radius: 10px;
-  padding: 30px 40px;
-  margin: 20px auto; /* Center the container */
+  border-radius: 12px;
+  padding: 35px 40px;
+  margin: 20px auto;
+  transition: all 0.3s ease;
 }
 
 .signup-wrapper h2 {
-  font-size: 24px;
+  font-size: 28px;
   text-align: center;
-  margin-bottom: 20px;
-  color: #c095e9; /* Green color for headers */
+  margin-bottom: 25px;
+  color: #c095e9;
+  position: relative;
+  padding-bottom: 10px;
 }
 
-.form-group {
-  margin: 15px 0;
+.signup-wrapper h2:after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: #c095e9;
+  border-radius: 2px;
 }
 
-.form-group input {
-  width: 100%;
-  height: 50px;
-  background: transparent;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  border-radius: 40px;
-  font-size: 16px;
-  color: #fff;
-  padding: 10px 20px;
-  outline: none;
-  transition: border-color 0.3s ease;
-}
-/* Styles for select elements */
-.form-group select {
-  width: 100%;
-  height: 50px;
-  background: transparent;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  border-radius: 40px;
-  font-size: 16px;
-  color: #fff;
-  padding: 10px 20px;
-  outline: none;
-  transition: border-color 0.3s ease;
+/* Form Steps Styling */
+.form-step {
+  animation: fadeIn 0.5s ease-in-out;
 }
 
-/* Placeholder color for select */
-.form-group select option {
-  background: transparent;
-  color: #000; /* Light color for options */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Change border color on focus */
-.form-group select:focus {
-  border-color: #c095e9; /* Change border color on focus */
-}
-
-/* Error message styling for select */
-.error-message {
-  color: #e74c3c;
-  margin: 10px 0;
-  text-align: center;
-}
-.form-group input::placeholder {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.form-group input:focus {
-  border-color: #c095e9; /* Change border color on focus */
-}
-
-.error-message {
-  color: #e74c3c;
-  margin: 10px 0;
-  text-align: center;
-}
-
-.form-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px; /* Add spacing between buttons */
-  margin-top: 20px;
-}
-
-/*--------------------------------------------------------*/
-
-.btn {
-  width: 100%;
-  height: 50px;
-  border: none;
-  border-radius: 40px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 600;
-  transition: background 0.3s ease, transform 0.3s ease;
-}
-
-.role-btn {
-  background: rgba(
-    255,
-    255,
-    255,
-    0.1
-  ); /* Default background for role buttons */
-  color: #fff;
-}
-
-.role-btn:hover {
-  background: rgba(255, 255, 255, 0.2); /* Slightly lighter on hover */
-}
-
-.selected-client {
-  background: #c095e9; /* Green for selected Client */
-  color: #fff;
-}
-
-.selected-architect {
-  background: #2196f3; /* Blue for selected Architect */
-  color: #fff;
-}
-
-.next-btn {
-  background: #c095e9; /* Green for Next button */
-  color: #fff;
-}
-
-.next-btn:disabled {
-  background: rgba(255, 255, 255, 0.1); /* Disabled state */
-  cursor: not-allowed;
-}
-
-.next-btn {
-  margin-top: 20px;
-  width: 100%;
-  height: 50px;
-  background: #c095e9; /* Green for Next button */
-  border: none;
-  border-radius: 40px;
-  cursor: pointer;
-  font-size: 16px;
-  color: #fff;
-  font-weight: 600;
-  transition: background 0.3s ease;
-}
-
-.next-btn:disabled {
-  background: rgba(255, 255, 255, 0.1); /* Disabled state */
-  cursor: not-allowed;
-}
-
-/*-----------------------*/
+/* Progress Indicator */
 .step-indicator {
   display: flex;
   justify-content: center;
-  margin: 20px 0;
-  gap: 30px;
-}
-.step-indicator {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
 .step-circle {
   width: 30px;
   height: 30px;
-  border: 2px solid #ccc;
   border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   margin: 0 5px;
-  font-size: 16px;
-  color: #999;
+  font-size: 14px;
+  font-weight: 600;
+  position: relative;
+}
+
+.step-circle:not(:last-child):after {
+  content: "";
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .step-circle.active {
-  background-color: #007bff;
+  background: #c095e9;
+  border-color: #c095e9;
   color: #fff;
-  border-color: #007bff;
+}
+
+/* Role Selection */
+.role-selection-step {
+  text-align: center;
+}
+
+.role-intro {
+  margin-bottom: 30px;
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.role-buttons {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-top: 30px;
+}
+
+.role-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 200px;
+  padding: 25px 20px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.role-btn:hover {
+  background: rgba(192, 149, 233, 0.2);
+  border-color: #c095e9;
+  transform: translateY(-5px);
+}
+
+.role-icon {
+  font-size: 40px;
+  margin-bottom: 15px;
+  color: #c095e9;
+}
+
+.role-label {
+  text-align: center;
+}
+
+.role-label span {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.role-label p {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* Form Groups */
+.form-group {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  margin-right: 8px;
+  color: #c095e9;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 12px 15px 12px 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 15px;
+  transition: all 0.3s ease;
+}
+
+.form-group input::placeholder,
+.form-group select::placeholder,
+.form-group textarea::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: #c095e9;
+  box-shadow: 0 0 8px rgba(192, 149, 233, 0.5);
+  outline: none;
+}
+
+.input-icon {
+  position: absolute;
+  left: 15px;
+  top: 42px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+}
+
+/* Form Row for side-by-side elements */
+.form-row {
+  display: flex;
+  gap: 15px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
+/* Error Message */
+.error-message {
+  color: #ff6b6b;
+  font-size: 13px;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+}
+
+/* Form Sections */
+.form-section {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.form-section h3 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #c095e9;
+}
+
+/* Education & Software Fields */
+.education-field-group,
+.software-field-group {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.education-field-header,
+.software-field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.education-field-header h3,
+.software-field-header h3 {
+  margin-bottom: 0;
+  font-size: 16px;
+}
+
+/* Buttons */
+.btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.form-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+}
+
+.back-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.next-btn {
+  background: #c095e9;
+  color: #fff;
+}
+
+.next-btn:hover {
+  background: #a97cd4;
+  transform: translateY(-2px);
+}
+
+.add-btn {
+  background: rgba(37, 194, 160, 0.2);
+  color: #25c2a0;
+  border: 1px solid rgba(37, 194, 160, 0.3);
+  padding: 8px 15px;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.add-btn:hover {
+  background: rgba(37, 194, 160, 0.3);
+}
+
+.remove-btn {
+  background: rgba(255, 107, 107, 0.2);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.remove-btn:hover {
+  background: rgba(255, 107, 107, 0.3);
+}
+
+.login-btn {
+  background: #25c2a0;
+  color: #fff;
+  margin: 20px auto 0;
+  display: block;
+  width: 200px;
+}
+
+.login-btn:hover {
+  background: #1ca68d;
+}
+
+/* Success Step */
+.success-step {
+  text-align: center;
+}
+
+.success-icon {
+  width: 100px;
+  height: 100px;
+  background: rgba(37, 194, 160, 0.1);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 20px;
+  border: 2px solid #25c2a0;
+}
+
+.check-icon {
+  color: #25c2a0;
+}
+
+.success-step h2 {
+  color: #25c2a0;
+}
+
+.success-step p {
+  margin-bottom: 15px;
+  line-height: 1.6;
+}
+
+.next-steps {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 20px;
+  margin: 25px 0;
+  text-align: left;
+}
+
+.next-steps h3 {
+  color: #c095e9;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.next-steps ul {
+  list-style-position: inside;
+  margin-left: 10px;
+}
+
+.next-steps li {
+  margin-bottom: 8px;
+  position: relative;
+  padding-left: 5px;
+}
+
+/* Registration Status */
+.registration-status {
+  margin-top: 15px;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.text-blue-600 {
+  background: rgba(66, 153, 225, 0.1);
+  color: #4299e1;
+}
+
+.text-red-600 {
+  background: rgba(245, 101, 101, 0.1);
+  color: #f56565;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .signup-wrapper {
+    padding: 25px 20px;
+    margin: 15px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .role-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .role-btn {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .step-circle {
+    width: 25px;
+    height: 25px;
+    font-size: 12px;
+  }
+
+  .step-circle:not(:last-child):after {
+    width: 10px;
+  }
 }
