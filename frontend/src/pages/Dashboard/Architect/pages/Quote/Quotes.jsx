@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useNavigate } from "react-router-dom";
 import {
   fetchQuotes,
   deleteQuote,
   setFilters,
   resetFilters,
-  generatePDF,
+  fetchQuoteById,
+  clearCurrentQuote,
 } from "../../../../../redux/slices/quotesSlice";
 import {
   Table,
@@ -38,6 +38,8 @@ import {
   Alert,
   Collapse,
   Tooltip,
+  AppBar,
+  Toolbar,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -50,11 +52,12 @@ import {
 } from "@mui/icons-material";
 import FileDownload from "js-file-download";
 import axios from "axios";
+import QuoteForm from "./QuoteForm";
+import QuoteDetails from "./QuoteDetails";
 
 const Quotes = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { quotes, loading, error, filters } = useSelector(
+  const { quotes, loading, error, filters, currentQuote } = useSelector(
     (state) => state.quotes
   );
   const [showFilters, setShowFilters] = useState(false);
@@ -62,9 +65,22 @@ const Quotes = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
+  // State for dialogs
+  const [openFormDialog, setOpenFormDialog] = useState(false);
+  const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
+  const [selectedQuoteId, setSelectedQuoteId] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+
   useEffect(() => {
     dispatch(fetchQuotes(filters));
   }, [dispatch, filters]);
+
+  // Clear quote data when dialogs close
+  useEffect(() => {
+    if (!openDetailsDialog && !openFormDialog) {
+      dispatch(clearCurrentQuote());
+    }
+  }, [openDetailsDialog, openFormDialog, dispatch]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -92,7 +108,44 @@ const Quotes = () => {
     });
   };
 
-  // Modify the PDF generation function to download the file instead of opening in a new tab
+  // Open new quote form dialog
+  const handleNewQuote = () => {
+    setSelectedQuoteId(null);
+    setIsEditMode(false);
+    setOpenFormDialog(true);
+  };
+
+  // Open edit quote form dialog
+  const handleEditQuote = (id) => {
+    setSelectedQuoteId(id);
+    setIsEditMode(true);
+    dispatch(fetchQuoteById(id)).then(() => {
+      setOpenFormDialog(true);
+    });
+  };
+
+  // Open quote details dialog
+  const handleViewQuote = (id) => {
+    setSelectedQuoteId(id);
+    dispatch(fetchQuoteById(id)).then(() => {
+      setOpenDetailsDialog(true);
+    });
+  };
+
+  // Close form dialog
+  const handleCloseFormDialog = () => {
+    setOpenFormDialog(false);
+    setTimeout(() => {
+      dispatch(fetchQuotes(filters));
+    }, 500);
+  };
+
+  // Close details dialog
+  const handleCloseDetailsDialog = () => {
+    setOpenDetailsDialog(false);
+  };
+
+  // Generate PDF for the quote
   const handleGeneratePDF = async (id) => {
     try {
       setPdfLoading(true);
@@ -270,6 +323,91 @@ const Quotes = () => {
     </Dialog>
   );
 
+  // Form Dialog
+  const FormDialog = () => (
+    <Dialog
+      open={openFormDialog}
+      onClose={handleCloseFormDialog}
+      fullScreen
+      aria-labelledby="form-dialog-title"
+    >
+      <AppBar sx={{ position: "relative" }}>
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            onClick={handleCloseFormDialog}
+            aria-label="close"
+          >
+            <CloseIcon />
+          </IconButton>
+          <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
+            {isEditMode ? "Edit Quote" : "Create New Quote"}
+          </Typography>
+        </Toolbar>
+      </AppBar>
+      <DialogContent sx={{ padding: 0 }}>
+        <QuoteForm
+          id={selectedQuoteId}
+          onClose={handleCloseFormDialog}
+          isDialog={true}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+
+  // Details Dialog
+  const DetailsDialog = () => (
+    <Dialog
+      open={openDetailsDialog}
+      onClose={handleCloseDetailsDialog}
+      fullScreen
+      aria-labelledby="details-dialog-title"
+    >
+      <AppBar sx={{ position: "relative" }}>
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            onClick={handleCloseDetailsDialog}
+            aria-label="close"
+          >
+            <CloseIcon />
+          </IconButton>
+          <Typography sx={{ ml: 2, flex: 1 }} variant="h6" component="div">
+            Quote Details
+          </Typography>
+          {currentQuote && (
+            <>
+              <Button
+                color="inherit"
+                onClick={() => {
+                  handleCloseDetailsDialog();
+                  handleEditQuote(currentQuote._id);
+                }}
+              >
+                Edit
+              </Button>
+              <Button
+                color="inherit"
+                onClick={() => handleGeneratePDF(currentQuote._id)}
+              >
+                PDF
+              </Button>
+            </>
+          )}
+        </Toolbar>
+      </AppBar>
+      <DialogContent sx={{ padding: 0 }}>
+        <QuoteDetails
+          quote={currentQuote}
+          onClose={handleCloseDetailsDialog}
+          isDialog={true}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+
   if (error) {
     return (
       <Alert severity="error" sx={{ mt: 2 }}>
@@ -302,7 +440,7 @@ const Quotes = () => {
             variant="contained"
             color="primary"
             startIcon={<AddIcon />}
-            onClick={() => navigate("/quotes/new")}
+            onClick={handleNewQuote}
           >
             New Quote
           </Button>
@@ -341,16 +479,18 @@ const Quotes = () => {
                   {quotes.map((quote) => (
                     <TableRow key={quote._id} hover>
                       <TableCell>
-                        <Link
-                          to={`/quotes/${quote._id}`}
-                          style={{
-                            textDecoration: "none",
+                        <Button
+                          onClick={() => handleViewQuote(quote._id)}
+                          sx={{
                             fontWeight: "bold",
                             color: "#1976d2",
+                            padding: "0",
+                            textAlign: "left",
+                            textTransform: "none",
                           }}
                         >
                           {quote._id.substring(quote._id.length - 8)}
-                        </Link>
+                        </Button>
                       </TableCell>
                       <TableCell>{quote.clientName}</TableCell>
                       <TableCell>{quote.projectTitle}</TableCell>
@@ -363,7 +503,7 @@ const Quotes = () => {
                         <Tooltip title="View Details">
                           <IconButton
                             size="small"
-                            onClick={() => navigate(`/quotes/${quote._id}`)}
+                            onClick={() => handleViewQuote(quote._id)}
                           >
                             <VisibilityIcon fontSize="small" />
                           </IconButton>
@@ -371,9 +511,7 @@ const Quotes = () => {
                         <Tooltip title="Edit Quote">
                           <IconButton
                             size="small"
-                            onClick={() =>
-                              navigate(`/quotes/${quote._id}/edit`)
-                            }
+                            onClick={() => handleEditQuote(quote._id)}
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
@@ -410,6 +548,8 @@ const Quotes = () => {
       )}
 
       <DeleteConfirmationDialog />
+      <FormDialog />
+      <DetailsDialog />
     </Box>
   );
 };

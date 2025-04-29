@@ -24,6 +24,22 @@ import {
   FileText,
 } from "lucide-react";
 
+// Configure the base URL for API requests and image paths
+const API_BASE_URL = "http://localhost:5000"; // Update this to match your backend URL
+
+// Helper function to format image URLs
+const formatImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+
+  // If the path already includes the full URL, return it as is
+  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+    return imagePath;
+  }
+
+  // Otherwise, prepend the API base URL
+  return `${API_BASE_URL}${imagePath}`;
+};
+
 const ProfileEdit = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -146,17 +162,28 @@ const ProfileEdit = () => {
 
       // Set profile picture preview if exists
       if (profile.profilePicture) {
-        setProfilePreview(profile.profilePicture);
+        setProfilePreview(formatImageUrl(profile.profilePicture));
       }
 
       // Set company logo preview if exists
       if (profile.companyLogo) {
-        setCompanyLogoPreview(profile.companyLogo);
+        setCompanyLogoPreview(formatImageUrl(profile.companyLogo));
       }
 
       // Set portfolio items if exist
       if (profile.portfolio && profile.portfolio.length > 0) {
-        setPortfolioItems(profile.portfolio);
+        // Process portfolio items to ensure they have properly formatted URLs
+        const formattedPortfolioItems = profile.portfolio.map((item) => {
+          if (typeof item === "string") {
+            return { imageUrl: formatImageUrl(item) };
+          } else {
+            return {
+              ...item,
+              imageUrl: formatImageUrl(item.imageUrl || item),
+            };
+          }
+        });
+        setPortfolioItems(formattedPortfolioItems);
       }
 
       // Set arrays
@@ -393,6 +420,18 @@ const ProfileEdit = () => {
     setPortfolioItemToDelete(null);
   };
 
+  // Extract original image paths for submission
+  const getOriginalPortfolioPaths = () => {
+    return portfolioItems.map((item) => {
+      // Extract the path portion without the API_BASE_URL
+      const imageUrl = item.imageUrl || item;
+      if (typeof imageUrl === "string" && imageUrl.startsWith(API_BASE_URL)) {
+        return imageUrl.substring(API_BASE_URL.length);
+      }
+      return imageUrl;
+    });
+  };
+
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -405,9 +444,20 @@ const ProfileEdit = () => {
       // Add basic form data
       for (const key in formData) {
         if (typeof formData[key] === "object" && formData[key] !== null) {
-          Object.entries(formData.location).forEach(([key, value]) => {
-            formDataToSend.append(`location[${key}]`, value);
-          });
+          // Handle nested objects like location
+          if (key === "location") {
+            Object.entries(formData.location).forEach(([subKey, value]) => {
+              formDataToSend.append(`location[${subKey}]`, value);
+            });
+          } else if (key === "education") {
+            Object.entries(formData.education).forEach(([subKey, value]) => {
+              formDataToSend.append(`education[${subKey}]`, value);
+            });
+          } else if (key === "socialMedia") {
+            Object.entries(formData.socialMedia).forEach(([subKey, value]) => {
+              formDataToSend.append(`socialMedia[${subKey}]`, value);
+            });
+          }
         } else {
           formDataToSend.append(key, formData[key]);
         }
@@ -428,12 +478,13 @@ const ProfileEdit = () => {
       });
 
       // Add existing portfolio items
+      const originalPortfolioPaths = getOriginalPortfolioPaths();
       formDataToSend.append(
         "existingPortfolio",
-        JSON.stringify(portfolioItems)
+        JSON.stringify(originalPortfolioPaths)
       );
 
-      // Add arrays - Convert array fields to individual fields to avoid parsing issues
+      // Add arrays with proper formatting
       softwareSkills.forEach((skill, index) => {
         formDataToSend.append(
           `softwareProficiency[${index}][name]`,
@@ -450,12 +501,63 @@ const ProfileEdit = () => {
           );
       });
 
-      // Add other arrays similarly if needed
+      // Add specializations
       specializations.forEach((item, index) => {
         formDataToSend.append(`specializations[${index}]`, item);
       });
 
-      // Similarly for other arrays...
+      // Add certifications
+      certifications.forEach((item, index) => {
+        formDataToSend.append(`certifications[${index}]`, item);
+      });
+
+      // Add project types
+      projectTypes.forEach((item, index) => {
+        formDataToSend.append(`projectTypes[${index}]`, item);
+      });
+
+      // Add services
+      services.forEach((item, index) => {
+        formDataToSend.append(`services[${index}]`, item);
+      });
+
+      // Add languages
+      languages.forEach((lang, index) => {
+        formDataToSend.append(`languages[${index}][language]`, lang.language);
+        formDataToSend.append(
+          `languages[${index}][proficiency]`,
+          lang.proficiency
+        );
+        if (lang._id)
+          formDataToSend.append(`languages[${index}][_id]`, lang._id);
+      });
+
+      // Add company history
+      companyHistory.forEach((company, index) => {
+        formDataToSend.append(`companyHistory[${index}][name]`, company.name);
+        formDataToSend.append(
+          `companyHistory[${index}][position]`,
+          company.position
+        );
+        formDataToSend.append(
+          `companyHistory[${index}][startDate]`,
+          company.startDate
+        );
+        formDataToSend.append(
+          `companyHistory[${index}][endDate]`,
+          company.endDate || ""
+        );
+        formDataToSend.append(
+          `companyHistory[${index}][isCurrentPosition]`,
+          company.isCurrentPosition ? "true" : "false"
+        );
+        formDataToSend.append(
+          `companyHistory[${index}][description]`,
+          company.description || ""
+        );
+        if (company._id)
+          formDataToSend.append(`companyHistory[${index}][_id]`, company._id);
+      });
 
       // Dispatch update action
       dispatch(updateArchitectProfile(formDataToSend));
@@ -470,7 +572,7 @@ const ProfileEdit = () => {
         softwareProficiency: softwareSkills,
         languages,
         companyHistory,
-        existingPortfolio: portfolioItems,
+        existingPortfolio: getOriginalPortfolioPaths(),
       };
 
       dispatch(updateArchitectProfile(dataToSend));
