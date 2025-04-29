@@ -23,7 +23,6 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/architect" element={<ArchitectDashboard />} />
         <Route path="/admin" element={<Dashboard />} />
-        <Route path="/project_showcase" element={<Clients />} />
         <Route path="/calender" element={<Calender />} />
         <Route path="/subs" element={<Pricing />} />
         <Route path="/about" element={<About />} />
@@ -32,7 +31,7 @@ function App() {
         <Route path="/my-favorites" element={<FAv />} />
         <Route path="/architect-details" element={<ArchitectD />} />
         <Route path="/projects-details" element={<ProjectD />} />
-
+        <Route path="/project_showcase" element={<Clients />} />
         <Route path="/trending" element={<InteriorDesignTrends />} />
         <Route path="*" element={<Clients />} />
       </Routes>
