@@ -1,0 +1,405 @@
+/* QuotesStyles.css - Unique styling for Quotes component */
+
+.quotes-management-container {
+  height: 100vh;
+  padding: 20px;
+  overflow: hidden; /* Prevent main container scrolling */
+}
+
+.quotes-table-transparent {
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  max-height: calc(
+    100vh - 180px
+  ) !important; /* Adjust based on your header height */
+  overflow: auto;
+  color: #242d49;
+}
+
+.quotes-heading-text {
+  font-size: 24px;
+  font-weight: 600;
+  color: #242d49;
+  margin-bottom: 20px;
+}
+
+/* Sticky header */
+.quotes-table-transparent .MuiTableHead-root {
+  position: sticky;
+  top: 0;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  z-index: 1;
+}
+
+/* Table cell styling */
+.quotes-table-transparent .MuiTableCell-root {
+  color: #242d49 !important;
+  border-bottom: 1px solid rgba(36, 45, 73, 0.1);
+}
+
+/* Row hover effect */
+.quotes-table-transparent .MuiTableRow-hover:hover {
+  background-color: rgba(255, 145, 157, 0.05) !important;
+}
+
+/* Quote ID button */
+.quotes-table-transparent .quote-id-button {
+  font-weight: bold;
+  color: #1976d2;
+  padding: 0;
+  text-align: left;
+  text-transform: none;
+}
+
+.quotes-table-transparent .quote-id-button:hover {
+  color: #0a5cad;
+  background: transparent;
+  text-decoration: underline;
+}
+
+/* Action buttons */
+.quotes-table-transparent .MuiIconButton-root {
+  color: #ff919d !important;
+  transition: transform 0.2s ease;
+}
+
+.quotes-table-transparent .MuiIconButton-root:hover {
+  transform: scale(1.1);
+  background: rgba(255, 145, 157, 0.1) !important;
+}
+
+/* Status chips */
+.quotes-table-transparent .MuiChip-root {
+  font-weight: 500;
+}
+
+.quotes-table-transparent .MuiChip-colorDefault {
+  background-color: #e0e0e0;
+}
+
+.quotes-table-transparent .MuiChip-colorPrimary {
+  background-color: #1976d2;
+  color: white;
+}
+
+.quotes-table-transparent .MuiChip-colorSuccess {
+  background-color: #4caf50;
+  color: white;
+}
+
+.quotes-table-transparent .MuiChip-colorError {
+  background-color: #f44336;
+  color: white;
+}
+
+.quotes-table-transparent .MuiChip-colorWarning {
+  background-color: #ff9800;
+  color: white;
+}
+
+.quotes-table-transparent .MuiChip-colorSecondary {
+  background-color: #9c27b0;
+  color: white;
+}
+
+/* Scrollbar styling */
+.quotes-table-transparent::-webkit-scrollbar {
+  width: 8px;
+}
+
+.quotes-table-transparent::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.quotes-table-transparent::-webkit-scrollbar-thumb {
+  background: rgba(36, 45, 73, 0.4);
+  border-radius: 4px;
+}
+
+.quotes-table-transparent::-webkit-scrollbar-thumb:hover {
+  background: rgba(36, 45, 73, 0.6);
+}
+
+/* Filter panel */
+.quotes-filter-panel {
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(36, 45, 73, 0.1);
+}
+
+.quotes-filter-panel .MuiFormControl-root {
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 4px;
+}
+
+.quotes-filter-panel .MuiButton-contained {
+  background-color: #ff919d;
+  color: white;
+}
+
+.quotes-filter-panel .MuiButton-outlined {
+  border-color: #ff919d;
+  color: #ff919d;
+}
+
+.quotes-filter-panel .MuiButton-contained:hover {
+  background-color: #e57f8a;
+}
+
+.quotes-filter-panel .MuiButton-outlined:hover {
+  background-color: rgba(255, 145, 157, 0.1);
+}
+
+/* Header buttons */
+.quotes-header-button-group {
+  display: flex;
+  gap: 10px;
+}
+
+.quotes-filter-toggle-btn {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(36, 45, 73, 0.1) !important;
+  color: #242d49 !important;
+}
+
+.quotes-new-quote-btn {
+  background-color: #ff919d !important;
+  color: white !important;
+}
+
+.quotes-new-quote-btn:hover {
+  background-color: #e57f8a !important;
+}
+
+/* Empty state */
+.quotes-empty-state {
+  text-align: center;
+  padding: 40px 0;
+  color: #242d49;
+}
+
+.quotes-empty-state-btn {
+  margin-top: 16px;
+  background-color: #ff919d !important;
+  color: white !important;
+}
+
+.quotes-empty-state-btn:hover {
+  background-color: #e57f8a !important;
+}
+
+/* Loading state */
+.quotes-loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.quotes-loading-spinner {
+  color: #ff919d !important;
+}
+
+/* Form Dialog */
+.quotes-form-dialog .MuiAppBar-root {
+  background-color: #ff919d !important;
+}
+
+.quotes-form-dialog .MuiToolbar-root .MuiIconButton-root {
+  color: white !important;
+}
+
+.quotes-form-dialog .MuiButton-root {
+  color: white !important;
+}
+
+/* Details Dialog */
+.quotes-details-dialog .MuiAppBar-root {
+  background-color: #ff919d !important;
+}
+
+.quotes-details-dialog .MuiToolbar-root .MuiIconButton-root {
+  color: white !important;
+}
+
+.quotes-details-dialog .MuiButton-root {
+  color: white !important;
+}
+
+/* Delete Dialog */
+.quotes-delete-dialog .MuiDialogTitle-root {
+  color: #242d49;
+}
+
+.quotes-delete-dialog .MuiDialogContent-root {
+  color: #242d49;
+}
+
+.quotes-delete-dialog .delete-confirm-btn {
+  background-color: #f44336 !important;
+  color: white !important;
+}
+
+.quotes-delete-dialog .delete-cancel-btn {
+  color: #242d49 !important;
+}
+
+/* Animation for table rows */
+@keyframes quotes-row-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.quotes-table-row-animated {
+  animation: quotes-row-fade-in 0.3s ease-out forwards;
+}
+
+/* Quote Form specific styles */
+.quote-form-container {
+  padding-top: 2rem;
+  padding-bottom: 5rem;
+  background: radial-gradient(
+    ellipse 200% 100% at bottom left,
+    #183ec2,
+    #eaeefe 100%
+  );
+  color: #242d49;
+}
+
+.quote-form-card {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08) !important;
+}
+
+.quote-form-section-title {
+  color: #242d49 !important;
+  font-weight: 600 !important;
+  margin-bottom: 1rem !important;
+  border-bottom: 2px solid rgba(255, 145, 157, 0.3);
+  padding-bottom: 0.5rem;
+}
+
+.quote-form-field {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 4px !important;
+}
+
+.quote-form-submit-btn {
+  background-color: #ff919d !important;
+  color: white !important;
+}
+
+.quote-form-submit-btn:hover {
+  background-color: #e57f8a !important;
+}
+
+.quote-form-cancel-btn {
+  border-color: #ff919d !important;
+  color: #ff919d !important;
+}
+
+.quote-form-cancel-btn:hover {
+  background-color: rgba(255, 145, 157, 0.1) !important;
+}
+
+/* Quote Details specific styles */
+.quote-details-container {
+  padding: 2rem;
+  background: radial-gradient(
+    ellipse 200% 100% at bottom left,
+    #183ec2,
+    #eaeefe 100%
+  );
+  color: #242d49;
+}
+
+.quote-details-card {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08) !important;
+}
+
+.quote-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.quote-details-title {
+  color: #242d49 !important;
+  font-weight: 600 !important;
+}
+
+.quote-details-section {
+  margin-bottom: 2rem;
+}
+
+.quote-details-section-title {
+  color: #242d49 !important;
+  font-weight: 600 !important;
+  margin-bottom: 1rem !important;
+  border-bottom: 2px solid rgba(255, 145, 157, 0.3);
+  padding-bottom: 0.5rem;
+}
+
+.quote-details-items-table {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  margin-bottom: 2rem !important;
+}
+
+.quote-details-items-table .MuiTableHead-root {
+  background: rgba(255, 145, 157, 0.1) !important;
+}
+
+.quote-details-items-table .MuiTableCell-root {
+  color: #242d49 !important;
+  border-bottom: 1px solid rgba(36, 45, 73, 0.1) !important;
+}
+
+.quote-details-totals {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border-radius: 8px !important;
+  padding: 1rem !important;
+  margin-top: 1rem !important;
+}
+
+.quote-details-status-chip {
+  margin-left: 1rem !important;
+}
+
+.quote-details-action-btn {
+  margin-left: 1rem !important;
+}
+
+.quote-details-pdf-btn {
+  background-color: #ff919d !important;
+  color: white !important;
+}
+
+.quote-details-pdf-btn:hover {
+  background-color: #e57f8a !important;
+}
+
+.quote-details-edit-btn {
+  border-color: #ff919d !important;
+  color: #ff919d !important;
+}
+
+.quote-details-edit-btn:hover {
+  background-color: rgba(255, 145, 157, 0.1) !important;
+}

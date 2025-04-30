@@ -54,6 +54,7 @@ import FileDownload from "js-file-download";
 import axios from "axios";
 import QuoteForm from "./QuoteForm";
 import QuoteDetails from "./QuoteDetails";
+import "./Quotes.css";
 
 const Quotes = () => {
   const dispatch = useDispatch();
@@ -214,12 +215,16 @@ const Quotes = () => {
 
   // Filter panel component
   const FilterPanel = () => (
-    <Card variant="outlined" sx={{ mb: 4 }}>
+    <Card variant="outlined" className="quotes-filter-panel">
       <CardContent>
         <Box component="form" onSubmit={handleSearchSubmit}>
           <Grid container spacing={3}>
             <Grid item xs={12} md={3}>
-              <FormControl fullWidth size="small">
+              <FormControl
+                fullWidth
+                size="small"
+                className="quotes-filter-panel"
+              >
                 <InputLabel id="status-label">Status</InputLabel>
                 <Select
                   labelId="status-label"
@@ -228,6 +233,7 @@ const Quotes = () => {
                   value={filters.status}
                   onChange={handleFilterChange}
                   label="Status"
+                  className="quote-form-field"
                 >
                   <MenuItem value="">All Statuses</MenuItem>
                   <MenuItem value="draft">Draft</MenuItem>
@@ -250,6 +256,7 @@ const Quotes = () => {
                 value={filters.client}
                 onChange={handleFilterChange}
                 placeholder="Filter by client"
+                className="quote-form-field"
               />
             </Grid>
 
@@ -263,6 +270,7 @@ const Quotes = () => {
                 value={filters.project}
                 onChange={handleFilterChange}
                 placeholder="Filter by project"
+                className="quote-form-field"
               />
             </Grid>
 
@@ -276,6 +284,7 @@ const Quotes = () => {
                 value={filters.search}
                 onChange={handleFilterChange}
                 placeholder="Search quotes"
+                className="quote-form-field"
               />
             </Grid>
 
@@ -285,10 +294,15 @@ const Quotes = () => {
                   variant="outlined"
                   onClick={handleResetFilters}
                   sx={{ mr: 1 }}
+                  className="quotes-filter-panel .MuiButton-outlined"
                 >
                   Reset
                 </Button>
-                <Button type="submit" variant="contained">
+                <Button
+                  type="submit"
+                  variant="contained"
+                  className="quotes-filter-panel .MuiButton-contained"
+                >
                   Apply Filters
                 </Button>
               </Box>
@@ -306,6 +320,7 @@ const Quotes = () => {
       onClose={() => setShowDeleteModal(false)}
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
+      className="quotes-delete-dialog"
     >
       <DialogTitle id="alert-dialog-title">Delete Quote</DialogTitle>
       <DialogContent>
@@ -315,8 +330,18 @@ const Quotes = () => {
         </DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={() => setShowDeleteModal(false)}>Cancel</Button>
-        <Button onClick={confirmDelete} color="error" autoFocus>
+        <Button
+          onClick={() => setShowDeleteModal(false)}
+          className="delete-cancel-btn"
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={confirmDelete}
+          color="error"
+          autoFocus
+          className="delete-confirm-btn"
+        >
           Delete
         </Button>
       </DialogActions>
@@ -330,6 +355,7 @@ const Quotes = () => {
       onClose={handleCloseFormDialog}
       fullScreen
       aria-labelledby="form-dialog-title"
+      className="quotes-form-dialog"
     >
       <AppBar sx={{ position: "relative" }}>
         <Toolbar>
@@ -363,6 +389,7 @@ const Quotes = () => {
       onClose={handleCloseDetailsDialog}
       fullScreen
       aria-labelledby="details-dialog-title"
+      className="quotes-details-dialog"
     >
       <AppBar sx={{ position: "relative" }}>
         <Toolbar>
@@ -385,12 +412,14 @@ const Quotes = () => {
                   handleCloseDetailsDialog();
                   handleEditQuote(currentQuote._id);
                 }}
+                className="quote-details-edit-btn"
               >
                 Edit
               </Button>
               <Button
                 color="inherit"
                 onClick={() => handleGeneratePDF(currentQuote._id)}
+                className="quote-details-pdf-btn"
               >
                 PDF
               </Button>
@@ -417,22 +446,23 @@ const Quotes = () => {
   }
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box className="quotes-management-container">
       <Box
         display="flex"
         justifyContent="space-between"
         alignItems="center"
         mb={3}
       >
-        <Typography variant="h4" component="h1">
+        <Typography variant="h4" component="h1" className="quotes-heading-text">
           Quotes
         </Typography>
-        <Box>
+        <Box className="quotes-header-button-group">
           <Button
             variant="outlined"
             startIcon={showFilters ? <CloseIcon /> : <FilterIcon />}
             onClick={() => setShowFilters(!showFilters)}
             sx={{ mr: 1 }}
+            className="quotes-filter-toggle-btn"
           >
             {showFilters ? "Hide Filters" : "Show Filters"}
           </Button>
@@ -441,6 +471,7 @@ const Quotes = () => {
             color="primary"
             startIcon={<AddIcon />}
             onClick={handleNewQuote}
+            className="quotes-new-quote-btn"
           >
             New Quote
           </Button>
@@ -452,17 +483,37 @@ const Quotes = () => {
       </Collapse>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" my={5}>
-          <CircularProgress />
+        <Box
+          display="flex"
+          justifyContent="center"
+          my={5}
+          className="quotes-loading-container"
+        >
+          <CircularProgress className="quotes-loading-spinner" />
         </Box>
       ) : (
         <>
           {quotes.length === 0 ? (
-            <Alert severity="info">
-              No quotes found. Create your first quote!
-            </Alert>
+            <Box className="quotes-empty-state">
+              <Alert severity="info">
+                No quotes found. Create your first quote!
+              </Alert>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleNewQuote}
+                className="quotes-empty-state-btn"
+                sx={{ mt: 2 }}
+              >
+                Create Quote
+              </Button>
+            </Box>
           ) : (
-            <TableContainer component={Paper} elevation={2}>
+            <TableContainer
+              component={Paper}
+              elevation={2}
+              className="quotes-table-transparent"
+            >
               <Table aria-label="quotes table">
                 <TableHead>
                   <TableRow>
@@ -476,18 +527,17 @@ const Quotes = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {quotes.map((quote) => (
-                    <TableRow key={quote._id} hover>
+                  {quotes.map((quote, index) => (
+                    <TableRow
+                      key={quote._id}
+                      hover
+                      className="quotes-table-row-animated"
+                      style={{ animationDelay: `${index * 0.05}s` }}
+                    >
                       <TableCell>
                         <Button
                           onClick={() => handleViewQuote(quote._id)}
-                          sx={{
-                            fontWeight: "bold",
-                            color: "#1976d2",
-                            padding: "0",
-                            textAlign: "left",
-                            textTransform: "none",
-                          }}
+                          className="quote-id-button"
                         >
                           {quote._id.substring(quote._id.length - 8)}
                         </Button>
