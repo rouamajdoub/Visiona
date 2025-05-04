@@ -25,9 +25,9 @@ const menuItems = [
   { title: "Calendar", icon: faCalendar, view: "calendar" },
   { title: "Projects", icon: faProjectDiagram, view: "projects" },
   { title: "Profile", icon: faUser, view: "profile" },
-  { title: "Market", icon: faStore, view: "market" },
-  { title: "Invoices", icon: faFileInvoice, view: "invoices" },
   { title: "Quotes", icon: faFileInvoiceDollar, view: "quote" },
+  { title: "Invoices", icon: faFileInvoice, view: "invoices" },
+  { title: "Market", icon: faStore, view: "market" },
   { title: "Matching requests", icon: faBell, view: "match" },
 ];
 

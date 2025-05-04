@@ -15,6 +15,7 @@ import FAv from "./pages/client_page/section/Fav/FAv.jsx";
 import Clients from "./pages/client_page/Home.jsx";
 import ArchitectD from "./pages/client_page/section/Architect/ArchitectD.jsx";
 import ProjectD from "./pages/client_page/section/Projects/ProjectD.jsx";
+import Account from "./pages/client_page/section/Account/Account.jsx";
 function App() {
   return (
     <>
@@ -33,6 +34,7 @@ function App() {
         <Route path="/projects-details" element={<ProjectD />} />
         <Route path="/project_showcase" element={<Clients />} />
         <Route path="/trending" element={<InteriorDesignTrends />} />
+        <Route path="/account" element={<Account />} />
         <Route path="*" element={<Clients />} />
       </Routes>
     </>

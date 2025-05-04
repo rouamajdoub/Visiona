@@ -1,4 +1,4 @@
-// src/provider/ClientProviders.tsx
+// src/app/ClientProviders.tsx
 "use client";
 
 import { AuthProvider } from "@/utils/auth-context";
@@ -9,7 +9,6 @@ function AuthSyncWrapper({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// ✅ This is a NAMED export
 export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>

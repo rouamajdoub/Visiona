@@ -181,12 +181,6 @@ export const FAQ = () => {
             ))}
           </motion.div>
         </div>
-
-        {/* Contact prompt */}
-        <div className="mt-16 text-center">
-          <p className="text-gray-700"> Cant find what youre looking for?</p>
-          <button className="btn btn-primary mt-4">Contact Support</button>
-        </div>
       </div>
     </section>
   );
