@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const needSheetSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Who submitted the needsheet
@@ -48,16 +48,86 @@ const needSheetSchema = new mongoose.Schema({
   },
 
   // Step 5: Services Needed
-  serviceTypes: [
+  services: [
     {
       type: String,
       enum: [
-        "Consulting",
-        "Design",
-        "Full Management",
-        "Construction Follow-up",
-        "Permit Assistance",
-        "Other",
+        // Architectural Design
+        "Residential Architecture",
+        "Commercial Architecture",
+        "Industrial Architecture",
+        "Renovation and Adaptive Reuse",
+        "Space Programming and Planning",
+        "Conceptual/Schematic Design",
+        "Design Development",
+        "Construction Documentation",
+        "Building Code and Code Compliance",
+
+        // Interior Design
+        "Client Consultation and Programming",
+        "Interior Space Planning",
+        "Interior Concept Development",
+        "3D Interior Renderings and Visualization",
+        "Material and Finish Selection",
+        "Lighting and Color Design",
+        "Furniture, Fixtures & Equipment (FF&E)",
+        "Interior Renovation and Restoration",
+        "Interior Project Coordination and Management",
+
+        // Landscape Architecture
+        "Site Analysis and Conceptual Landscape Design",
+        "Landscape Master Planning",
+        "Planting Design",
+        "Hardscape Design",
+        "Water Feature Design",
+        "Sustainability and Environmental Landscape Design",
+        "Urban and Streetscape Design",
+        "Landscape Construction Documentation and Administration",
+        "Landscape Maintenance and Management Planning",
+
+        // Urban Planning
+        "Land Use and Zoning Analysis",
+        "Site Planning and Subdivision Layout",
+        "Zoning Code Preparation",
+        "Comprehensive and Master Planning",
+        "Urban Design and Redevelopment",
+        "Resilience and Sustainability Planning",
+        "Community Engagement in Planning",
+        "GIS and Urban Data Analysis",
+
+        // Specialized Consulting
+        "Sustainability Consulting",
+        "Heritage and Historic Preservation",
+        "Accessibility Consulting",
+
+        // Project Management and Supervision
+        "Project Scheduling and Cost Control",
+        "Contract and Tender Management",
+        "Construction Supervision",
+        "Quality Assurance and Quality Control",
+        "Progress Monitoring and Reporting",
+        "Safety and Compliance Oversight",
+        "Punch List and Project Closeout",
+
+        // Feasibility and Site Analysis
+        "Site Inventory and Analysis",
+        "Concept Feasibility Studies",
+        "Regulatory Feasibility Analysis",
+        "Market and Program Studies",
+        "Environmental and Impact Assessments",
+
+        // 3D Modeling and BIM
+        "3D CAD Modeling",
+        "Building Information Modeling (BIM)",
+        "3D Renderings and Visualizations",
+        "Virtual and Augmented Reality",
+        "Laser Scanning and Point-Cloud Services",
+
+        // Permit Drawings and Approvals
+        "Permit Drawing Preparation",
+        "Regulatory Submissions",
+        "Code Compliance Documentation",
+        "Official Hearings and Negotiations",
       ],
     },
   ],
@@ -71,7 +141,10 @@ const needSheetSchema = new mongoose.Schema({
 
   // Step 7: Description
   projectDescription: { type: String, maxlength: 2000 },
-
+  budget: {
+    min: Number,
+    max: Number,
+  },
   // Metadata
   createdAt: { type: Date, default: Date.now },
   status: {
@@ -81,4 +154,4 @@ const needSheetSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.model("NeedSheet", needSheetSchema);
+module.exports = mongoose.model("NeedSheet", needSheetSchema);

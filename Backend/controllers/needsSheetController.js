@@ -1,13 +1,14 @@
+// controllers/needSheetController.js
 const NeedSheet = require("../models/NeedSheet");
 
 /**
- * Create a new need sheet
- * @route POST /api/needsheets
- * @access Private (Client only)
+ * @desc    Create a new need sheet
+ * @route   POST /api/needsheets
+ * @access  Private - Client only
  */
 exports.createNeedSheet = async (req, res) => {
   try {
-    // Assign the current user's ID to the needSheet
+    // Add the authenticated user's ID to the need sheet
     req.body.userId = req.user._id;
 
     const needSheet = new NeedSheet(req.body);
@@ -16,10 +17,14 @@ exports.createNeedSheet = async (req, res) => {
     res.status(201).json({
       success: true,
       data: needSheet,
+      message: "Need sheet created successfully",
     });
   } catch (error) {
+    console.error(error);
+
+    // Handle validation errors
     if (error.name === "ValidationError") {
-      const messages = Object.values(error.errors).map((err) => err.message);
+      const messages = Object.values(error.errors).map((val) => val.message);
       return res.status(400).json({
         success: false,
         error: messages,
@@ -28,26 +33,19 @@ exports.createNeedSheet = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      error: "Erreur serveur: " + error.message,
+      error: "Server Error",
     });
   }
 };
 
 /**
- * Get all need sheets belonging to the current user
- * @route GET /api/needsheets
- * @access Private
+ * @desc    Get all need sheets for a user
+ * @route   GET /api/needsheets
+ * @access  Private - Client only
  */
-exports.getNeedSheets = async (req, res) => {
+exports.getUserNeedSheets = async (req, res) => {
   try {
-    // For clients, get only their own needsheets
-    // For architects or admins, they could see more (implement based on your requirements)
-    const filter = { userId: req.user._id };
-
-    // If user is admin or architect with appropriate permissions,
-    // you might adjust the filter here
-
-    const needSheets = await NeedSheet.find(filter).sort({ createdAt: -1 });
+    const needSheets = await NeedSheet.find({ userId: req.user._id });
 
     res.status(200).json({
       success: true,
@@ -55,38 +53,35 @@ exports.getNeedSheets = async (req, res) => {
       data: needSheets,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
-      error: "Erreur serveur: " + error.message,
+      error: "Server Error",
     });
   }
 };
 
 /**
- * Get a single need sheet by ID
- * @route GET /api/needsheets/:id
- * @access Private
+ * @desc    Get a single need sheet
+ * @route   GET /api/needsheets/:id
+ * @access  Private - Client only
  */
-exports.getNeedSheetById = async (req, res) => {
+exports.getNeedSheet = async (req, res) => {
   try {
     const needSheet = await NeedSheet.findById(req.params.id);
 
     if (!needSheet) {
       return res.status(404).json({
         success: false,
-        error: "Fiche de besoins non trouvée",
+        error: "Need sheet not found",
       });
     }
 
-    // Security check: only allow the owner, architects or admins to view
-    if (
-      needSheet.userId.toString() !== req.user._id.toString() &&
-      req.user.role !== "admin" &&
-      req.user.role !== "architect"
-    ) {
+    // Check if user owns this need sheet
+    if (needSheet.userId.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
-        error: "Accès non autorisé à cette fiche de besoins",
+        error: "Not authorized to access this need sheet",
       });
     }
 
@@ -95,17 +90,18 @@ exports.getNeedSheetById = async (req, res) => {
       data: needSheet,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
-      error: "Erreur serveur: " + error.message,
+      error: "Server Error",
     });
   }
 };
 
 /**
- * Update a need sheet
- * @route PUT /api/needsheets/:id
- * @access Private (Owner only)
+ * @desc    Update a need sheet
+ * @route   PUT /api/needsheets/:id
+ * @access  Private - Client only
  */
 exports.updateNeedSheet = async (req, res) => {
   try {
@@ -114,22 +110,21 @@ exports.updateNeedSheet = async (req, res) => {
     if (!needSheet) {
       return res.status(404).json({
         success: false,
-        error: "Fiche de besoins non trouvée",
+        error: "Need sheet not found",
       });
     }
 
-    // Only allow the owner to update their needsheet
+    // Check if user owns this need sheet
     if (needSheet.userId.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
-        error: "Vous n'êtes pas autorisé à modifier cette fiche de besoins",
+        error: "Not authorized to update this need sheet",
       });
     }
 
-    // Prevent updating userId
+    // Don't allow changing the userId
     delete req.body.userId;
 
-    // Update the needsheet
     needSheet = await NeedSheet.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
@@ -138,10 +133,14 @@ exports.updateNeedSheet = async (req, res) => {
     res.status(200).json({
       success: true,
       data: needSheet,
+      message: "Need sheet updated successfully",
     });
   } catch (error) {
+    console.error(error);
+
+    // Handle validation errors
     if (error.name === "ValidationError") {
-      const messages = Object.values(error.errors).map((err) => err.message);
+      const messages = Object.values(error.errors).map((val) => val.message);
       return res.status(400).json({
         success: false,
         error: messages,
@@ -150,15 +149,15 @@ exports.updateNeedSheet = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      error: "Erreur serveur: " + error.message,
+      error: "Server Error",
     });
   }
 };
 
 /**
- * Delete a need sheet
- * @route DELETE /api/needsheets/:id
- * @access Private (Owner or Admin)
+ * @desc    Delete a need sheet
+ * @route   DELETE /api/needsheets/:id
+ * @access  Private - Client only
  */
 exports.deleteNeedSheet = async (req, res) => {
   try {
@@ -167,114 +166,30 @@ exports.deleteNeedSheet = async (req, res) => {
     if (!needSheet) {
       return res.status(404).json({
         success: false,
-        error: "Fiche de besoins non trouvée",
+        error: "Need sheet not found",
       });
     }
 
-    // Allow deletion by owner or admin
-    if (
-      needSheet.userId.toString() !== req.user._id.toString() &&
-      req.user.role !== "admin"
-    ) {
+    // Check if user owns this need sheet
+    if (needSheet.userId.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
-        error: "Vous n'êtes pas autorisé à supprimer cette fiche de besoins",
+        error: "Not authorized to delete this need sheet",
       });
     }
 
-    await needSheet.deleteOne();
+    await needSheet.remove();
 
     res.status(200).json({
       success: true,
       data: {},
+      message: "Need sheet deleted successfully",
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       success: false,
-      error: "Erreur serveur: " + error.message,
-    });
-  }
-};
-
-/**
- * Update need sheet status
- * @route PATCH /api/needsheets/:id/status
- * @access Private (Admin or Architect with permissions)
- */
-exports.updateNeedSheetStatus = async (req, res) => {
-  try {
-    // Only allow specific status values
-    if (!["Pending", "Matched", "In Progress"].includes(req.body.status)) {
-      return res.status(400).json({
-        success: false,
-        error: "Statut invalide",
-      });
-    }
-
-    let needSheet = await NeedSheet.findById(req.params.id);
-
-    if (!needSheet) {
-      return res.status(404).json({
-        success: false,
-        error: "Fiche de besoins non trouvée",
-      });
-    }
-
-    // Only admins or assigned architects can update status
-    if (req.user.role !== "admin" && req.user.role !== "architect") {
-      return res.status(403).json({
-        success: false,
-        error: "Vous n'êtes pas autorisé à modifier le statut de cette fiche",
-      });
-    }
-
-    // Update just the status field
-    needSheet = await NeedSheet.findByIdAndUpdate(
-      req.params.id,
-      { status: req.body.status },
-      { new: true, runValidators: true }
-    );
-
-    res.status(200).json({
-      success: true,
-      data: needSheet,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Erreur serveur: " + error.message,
-    });
-  }
-};
-
-/**
- * Get all need sheets for AI matching
- * @route GET /api/needsheets/pending
- * @access Private (Admin or System)
- */
-exports.getPendingNeedSheets = async (req, res) => {
-  try {
-    // Only admins can access all pending needsheets
-    if (req.user.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        error: "Accès non autorisé",
-      });
-    }
-
-    const needSheets = await NeedSheet.find({ status: "Pending" }).sort({
-      createdAt: 1,
-    });
-
-    res.status(200).json({
-      success: true,
-      count: needSheets.length,
-      data: needSheets,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Erreur serveur: " + error.message,
+      error: "Server Error",
     });
   }
 };

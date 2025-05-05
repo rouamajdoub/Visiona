@@ -22,6 +22,7 @@ const authRoutes = require("./routes/authRoutes");
 const eventRoutes = require("./routes/eventRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const clientRoutes = require("./routes/clientRoutes");
+const needSheetRoutes = require("./routes/needSheetRoutes");
 
 // --------------------Stripe -----------------------
 const webhookRoutes = require("./Stripe/webhook/route");
@@ -92,6 +93,9 @@ app.use("/api/kanban", kanbanRoutes);
 // ---------------------------Stripe webhook route--------------------
 app.use(webhookRoutes);
 app.use("/api/payments", paymentRoutes);
+
+// ---------------------------Need Sheet routes--------------------
+app.use("/api/needsheets", needSheetRoutes);
 
 // ------------------------------Auth0 callback handling---------------------------------------
 app.get("/", async (req, res) => {

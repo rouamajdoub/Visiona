@@ -87,7 +87,6 @@
 .popular-text {
   background: linear-gradient(to right, #dd7ddf, #e1cd86);
   background-size: 200%;
-  -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
