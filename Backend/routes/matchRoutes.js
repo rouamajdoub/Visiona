@@ -8,6 +8,10 @@ router.post("/match", async (req, res) => {
   try {
     const { needsheetId } = req.body;
 
+    if (!needsheetId) {
+      return res.status(400).json({ error: "needsheetId is required" });
+    }
+
     const needsheet = await NeedSheet.findById(needsheetId);
     const architects = await Architect.find();
 
@@ -23,17 +27,26 @@ Based on the client's project type, location, surface, and service type, suggest
 Return only the ID(s) of the best matching architect(s) and a summary.
 `;
 
-    const response = await axios.post("http://localhost:11434/api/generate", {
-      model: "llama3",
-      prompt: prompt,
-      stream: false,
-    });
+    const response = await axios.post(
+      "http://localhost:11434/api/generate",
+      {
+        model: "llama3",
+        prompt: prompt,
+        stream: false,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 180000, // 60 seconds max
+      }
+    );
 
     const aiResult = response.data.response;
     res.json({ match: aiResult });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Server error" });
+    console.error("Matching error:", error.message);
+    res.status(500).json({ error: "AI matching failed. Please try again." });
   }
 });
 
