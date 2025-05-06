@@ -26,7 +26,7 @@ const Login = () => {
         navigate("/subs");
       } else {
         // Otherwise, redirect to appropriate dashboard
-        navigate(user.role === "client" ? "/home" : "/architect");
+        navigate(user.role === "client" ? "/needSheet" : "/architect");
       }
     }
   }, [user, isFirstLogin, navigate]);

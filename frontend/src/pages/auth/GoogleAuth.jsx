@@ -41,8 +41,8 @@ const GoogleAuth = () => {
         onSuccess={handleSuccess}
         onError={handleError}
         useOneTap
-        clientId={process.env.GOOGLE_CLIENT_ID} // Replace with your actual client ID
-        redirectUri="http://localhost:3000/api/auth/callback/google" // Make sure this matches your Google Cloud Console setting
+        clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}
+        redirectUri="http://localhost:3000/api/auth/callback/google"
       />
     </div>
   );

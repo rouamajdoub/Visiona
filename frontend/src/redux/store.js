@@ -9,6 +9,7 @@ import eventReducer from "./slices/eventSlice";
 import clientsReducer from "./slices/clientsSlice";
 import tasksReducer from "./slices/TaskSlice";
 import quotesReducer from "./slices/quotesSlice";
+import needSheetReducer from "./slices/needSheetSlice";
 const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -20,6 +21,7 @@ const store = configureStore({
     clients: clientsReducer,
     tasks: tasksReducer,
     quotes: quotesReducer,
+    needSheet: needSheetReducer,
   },
 });
 

@@ -23,11 +23,11 @@ const eventRoutes = require("./routes/eventRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const clientRoutes = require("./routes/clientRoutes");
 const needSheetRoutes = require("./routes/needSheetRoutes");
+const matchArchitect = require("./routes/matchRoutes");
 
 // --------------------Stripe -----------------------
 const webhookRoutes = require("./Stripe/webhook/route");
 const paymentRoutes = require("./routes/paymentRoutes");
-
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -43,6 +43,7 @@ app.use(
 
 // Middleware
 app.use(express.json());
+
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
@@ -96,6 +97,7 @@ app.use("/api/payments", paymentRoutes);
 
 // ---------------------------Need Sheet routes--------------------
 app.use("/api/needsheets", needSheetRoutes);
+app.use("/api/ai", matchArchitect);
 
 // ------------------------------Auth0 callback handling---------------------------------------
 app.get("/", async (req, res) => {

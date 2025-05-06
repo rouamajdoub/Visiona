@@ -1,8 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&display=swap");
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 body,
 html,
 #root,
@@ -11,31 +8,4 @@ html,
   height: 100%;
   width: 100%;
   font-family: "Source Sans Pro", sans-serif;
-}
-
-.app {
-  display: flex;
-  position: relative;
-}
-
-::-webkit-scrollbar {
-  width: 10px;
-}
-
-/* Track */
-::-webkit-scrollbar-track {
-  background: #e0e0e0;
-}
-
-/* Handle */
-::-webkit-scrollbar-thumb {
-  background: #888;
-}
-
-/* Handle on hover */
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-.section-title {
-  @apply  text-3xl md:text-[54px] md:leading-[60px] font-bold tracking-tighter bg-gradient-to-b from-black to-[#001E80] text-transparent bg-clip-text;
 }

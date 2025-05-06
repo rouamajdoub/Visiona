@@ -1,0 +1,138 @@
+.clt_header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+.clt_header_topbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 0;
+  background-color: black;
+  color: white;
+  font-size: 14px;
+}
+
+.clt_logo_small {
+  height: 30px;
+  width: 30px;
+}
+
+.clt_header_motto {
+  opacity: 0.6;
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .clt_header_motto {
+    display: block;
+  }
+}
+
+.clt_header_cta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.clt_header_icon {
+  height: 14px;
+  width: 14px;
+}
+
+.clt_header_main {
+  padding: 20px 0;
+}
+
+.clt_header_container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.clt_logo_main {
+  height: 90px;
+  width: auto;
+}
+
+.clt_menu_button {
+  background: none;
+  border: none;
+  display: block;
+}
+
+.clt_menu_icon {
+  font-size: 20px;
+  color: #333;
+}
+
+.clt_nav_desktop {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .clt_nav_desktop {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    color: #666;
+  }
+
+  .clt_nav_desktop button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    transition: color 0.2s ease;
+  }
+
+  .clt_nav_desktop button:hover {
+    color: #000;
+  }
+}
+
+.clt_btn_primary {
+  background-color: black;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+}
+
+.clt_nav_mobile {
+  margin-top: 12px;
+  padding: 16px;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.clt_nav_mobile_inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #666;
+}
+
+.clt_nav_mobile_inner button {
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.clt_nav_mobile_inner button:hover {
+  color: black;
+}
