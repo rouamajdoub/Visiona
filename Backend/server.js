@@ -24,6 +24,8 @@ const profileRoutes = require("./routes/profileRoutes");
 const clientRoutes = require("./routes/clientRoutes");
 const needSheetRoutes = require("./routes/needSheetRoutes");
 const matchArchitect = require("./routes/matchRoutes");
+//const matchRequestRoutes = require("./routes/matchArxhitectRequests");
+const adminRoutes = require("./routes/adminRoutes");
 
 // --------------------Stripe -----------------------
 const webhookRoutes = require("./Stripe/webhook/route");
@@ -75,6 +77,8 @@ connectDB();
 
 //--------------------------------------------Routes --------------------
 app.use("/api/auth", authRoutes);
+app.use("/api/admins", adminRoutes);
+
 app.use("/api/users", userRoutes);
 app.use("/api/clients", userRoutes);
 app.use("/api/architects", userRoutes);
@@ -98,6 +102,7 @@ app.use("/api/payments", paymentRoutes);
 // ---------------------------Need Sheet routes--------------------
 app.use("/api/needsheets", needSheetRoutes);
 app.use("/api/ai", matchArchitect);
+//app.use("/api/match-requests", matchRequestRoutes);
 
 // ------------------------------Auth0 callback handling---------------------------------------
 app.get("/", async (req, res) => {

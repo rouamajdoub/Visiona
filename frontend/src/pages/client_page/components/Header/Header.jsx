@@ -12,14 +12,6 @@ const Header = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
-  const scrollToSection = (sectionId) => {
-    setMobileMenuOpen(false);
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
-  };
-
   return (
     <header className="clt_header">
       <div className="clt_header_topbar">
@@ -27,10 +19,6 @@ const Header = () => {
         <p className="clt_header_motto">
           Enhance Your Space, Elevate Your Style
         </p>
-        <div className="clt_header_cta">
-          <p>Get started</p>
-          <FontAwesomeIcon icon={faArrowRight} className="clt_header_icon" />
-        </div>
       </div>
 
       <div className="clt_header_main">
@@ -45,20 +33,12 @@ const Header = () => {
           </button>
 
           <nav className="clt_nav_desktop">
-            <button onClick={() => scrollToSection("hero")}>About</button>
-            <button onClick={() => scrollToSection("productShowcase")}>
-              Features
-            </button>
-            <button onClick={() => scrollToSection("testimonials")}>
-              Customers
-            </button>
-            <button onClick={() => scrollToSection("pricing")}>Pricing</button>
-            <button onClick={() => scrollToSection("faq")}>FAQ</button>
-            <button
-              onClick={() => scrollToSection("callToAction")}
-              className="clt_btn_primary"
-            >
-              Start Now
+            <button>Home</button>
+            <button>Shop </button>
+            <button>Need Sheet</button>
+            <button>Logout</button>
+            <button className="clt_btn_primary">
+              <a href="/Profile">My Account</a>
             </button>
           </nav>
         </div>
@@ -66,22 +46,12 @@ const Header = () => {
         {mobileMenuOpen && (
           <div className="clt_nav_mobile">
             <nav className="clt_nav_mobile_inner">
-              <button onClick={() => scrollToSection("hero")}>About</button>
-              <button onClick={() => scrollToSection("productShowcase")}>
-                Features
-              </button>
-              <button onClick={() => scrollToSection("testimonials")}>
-                Customers
-              </button>
-              <button onClick={() => scrollToSection("pricing")}>
-                Pricing
-              </button>
-              <button onClick={() => scrollToSection("faq")}>FAQ</button>
-              <button
-                onClick={() => scrollToSection("callToAction")}
-                className="clt_btn_primary"
-              >
-                Start Now
+              <button>Home</button>
+              <button>Shop</button>
+              <button>Need Sheet</button>
+              <button>Logout</button>
+              <button className="clt_btn_primary">
+                <a href="/Profile">My Account</a>
               </button>
             </nav>
           </div>

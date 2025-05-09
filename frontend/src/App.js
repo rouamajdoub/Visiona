@@ -12,6 +12,7 @@ import Policy from "./pages/landing/P-Policy/Policy.jsx";
 //Client Pages
 import Clients from "./pages/client_page/page/Home.jsx";
 import NeedSheetForm from "./pages/client_page/Global/NeedSheetForm/NeedSheetForm.jsx";
+import ClientPortal from "./pages/client_page/Global/account/ClientPortal.jsx";
 function App() {
   return (
     <>
@@ -24,9 +25,10 @@ function App() {
         <Route path="/subs" element={<Pricing />} />
         <Route path="/about" element={<About />} />
         <Route path="/policy" element={<Policy />} />
-        <Route path="/home" element={<Clients />} />
+        <Route path="/Home" element={<Clients />} />
         <Route path="/trending" element={<InteriorDesignTrends />} />
         <Route path="/needSheet" element={<NeedSheetForm />} />
+        <Route path="/Profile" element={<ClientPortal />} />
 
         <Route path="*" element={<Clients />} />
       </Routes>

@@ -5,11 +5,8 @@ import starImage from "@/assets/star.png";
 import springImage from "@/assets/spring.png";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
-import { useAuth } from "@/utils/auth-context";
-import Link from "next/link";
 
 export const CallToAction = () => {
-  const { user, isAuthenticated } = useAuth();
   const sectionRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -32,24 +29,11 @@ export const CallToAction = () => {
     >
       <div className="container">
         <div className="section-heading relative">
-          {isAuthenticated ? (
-            <>
-              <h2 className="section-title">Welcome, {user?.name}!</h2>
-              <p className="section-description mt-5">
-                {user?.role === "architect"
-                  ? "Manage your projects, showcase your work, and connect with new clients."
-                  : "Discover amazing architects and bring your design vision to life."}
-              </p>
-            </>
-          ) : (
-            <>
-              <h2 className="section-title">Join the Visiona Community</h2>
-              <p className="section-description mt-5">
-                With Visiona, managing projects, clients, and designs has never
-                been easier.
-              </p>
-            </>
-          )}
+          <h2 className="section-title">Join the Visiona Community</h2>
+          <p className="section-description mt-5">
+            With Visiona, managing projects, clients, and designs has never been
+            easier.
+          </p>
           <motion.img
             src={starImage.src}
             alt="Star Image"
@@ -70,44 +54,13 @@ export const CallToAction = () => {
           />
         </div>
         <div className="flex gap-2 mt-10 justify-center">
-          {isAuthenticated ? (
-            <>
-              <Link href="/profile" className="btn btn-primary">
-                My Account
-              </Link>
-              {user?.role === "architect" && (
-                <a
-                  href="http://localhost:3000/upload-project"
-                  className="btn btn-text gap-1"
-                >
-                  <span>Upload Project</span>
-                  <ArrowRight className="h-5 w-5" />
-                </a>
-              )}
-              {user?.role === "client" && (
-                <a
-                  href="http://localhost:3000/projects"
-                  className="btn btn-text gap-1"
-                >
-                  <span>Browse Projects</span>
-                  <ArrowRight className="h-5 w-5" />
-                </a>
-              )}
-            </>
-          ) : (
-            <>
-              <button className="btn btn-primary" onClick={handleSignUpClick}>
-                Sign up
-              </button>
-              <button
-                className="btn btn-text gap-1"
-                onClick={handleLearnMoreClick}
-              >
-                <span>Learn more</span>
-                <ArrowRight className="h-5 w-5" />
-              </button>
-            </>
-          )}
+          <button className="btn btn-primary" onClick={handleSignUpClick}>
+            Sign up
+          </button>
+          <button className="btn btn-text gap-1" onClick={handleLearnMoreClick}>
+            <span>Learn more</span>
+            <ArrowRight className="h-5 w-5" />
+          </button>
         </div>
       </div>
     </section>

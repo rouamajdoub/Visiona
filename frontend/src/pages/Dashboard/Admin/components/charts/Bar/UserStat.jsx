@@ -1,12 +1,8 @@
 import React from "react";
-import { useTheme, Box, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { ResponsiveBar } from "@nivo/bar";
-import { tokens } from "../../../../../../theme"; // Adjust the import path as necessary
 
 const UserStat = ({ data }) => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
-
   if (!data || data.length === 0) return <Typography>Loading...</Typography>;
 
   // Count the number of users by role

@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import "react-pro-sidebar/dist/css/styles.css";
 import { ProSidebar, Menu, MenuItem } from "react-pro-sidebar";
-import { Box, IconButton, Typography, useTheme } from "@mui/material";
+import { Box, IconButton, Typography } from "@mui/material";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import profile from "../img/avatar.png";
 import logo from "../img/logo.png";
 import {
   faHome,
@@ -13,7 +12,6 @@ import {
   faFileInvoiceDollar,
   faCog,
 } from "@fortawesome/free-solid-svg-icons";
-import { tokens } from "../../../../theme";
 import { motion } from "framer-motion";
 
 const menuItems = [
@@ -25,17 +23,12 @@ const menuItems = [
 ];
 
 const Sidebar = ({ setCurrentView }) => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selected, setSelected] = useState("Dashboard");
 
   return (
     <Box
       sx={{
-        "& .pro-sidebar-inner": {
-          background: `${colors.primary[400]} !important`,
-        },
         "& .pro-icon-wrapper": { backgroundColor: "transparent !important" },
         "& .pro-inner-item": { padding: "5px 35px 5px 20px !important" },
         "& .pro-inner-item:hover": { color: "#868dfb !important" },
@@ -44,8 +37,6 @@ const Sidebar = ({ setCurrentView }) => {
           height: "100vh !important",
           overflowY: "auto",
           "&::-webkit-scrollbar": { width: "4px" },
-          "&::-webkit-scrollbar-track": { background: colors.primary[100] },
-          "&::-webkit-scrollbar-thumb": { background: colors.primary[300] },
         },
       }}
       className={isCollapsed ? "sidebar-collapsed" : ""} // Add class based on collapsed state
@@ -56,7 +47,7 @@ const Sidebar = ({ setCurrentView }) => {
           <MenuItem
             onClick={() => setIsCollapsed(!isCollapsed)}
             icon={isCollapsed ? <MenuOutlinedIcon /> : undefined}
-            style={{ margin: "10px 0 20px 0", color: colors.grey[100] }}
+            style={{ margin: "10px 0 20px 0" }}
           >
             {!isCollapsed && (
               <Box
@@ -81,33 +72,6 @@ const Sidebar = ({ setCurrentView }) => {
             )}
           </MenuItem>
 
-          {/* Profile Section */}
-          {!isCollapsed && (
-            <Box mb="25px">
-              <Box display="flex" justifyContent="center" alignItems="center">
-                <img
-                  src={profile}
-                  alt="profile-user"
-                  width="100px"
-                  height="100px"
-                  style={{ cursor: "pointer", borderRadius: "50%" }}
-                />
-              </Box>
-              <Box textAlign="center">
-                <Typography
-                  variant="h2"
-                  color={colors.grey[100]}
-                  fontWeight="bold"
-                >
-                  Admin Name
-                </Typography>
-                <Typography variant="h5" color={colors.greenAccent[500]}>
-                  Admin
-                </Typography>
-              </Box>
-            </Box>
-          )}
-
           {/* Sidebar Items */}
           <Box paddingLeft={isCollapsed ? undefined : "10%"}>
             {menuItems.map((item, index) => (
@@ -119,7 +83,6 @@ const Sidebar = ({ setCurrentView }) => {
               >
                 <MenuItem
                   active={selected === item.title}
-                  style={{ color: colors.grey[100] }}
                   onClick={() => {
                     setSelected(item.title);
                     setCurrentView(item.view);

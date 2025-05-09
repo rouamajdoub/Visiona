@@ -19,7 +19,7 @@
 
 .clt_logo_small {
   height: 30px;
-  width: 30px;
+  width: auto;
 }
 
 .clt_header_motto {
@@ -58,8 +58,8 @@
 }
 
 .clt_logo_main {
-  height: 90px;
-  width: auto;
+  width: 80px;
+  height: auto;
 }
 
 .clt_menu_button {

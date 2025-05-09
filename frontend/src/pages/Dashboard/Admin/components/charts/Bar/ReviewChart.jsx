@@ -1,12 +1,8 @@
 import React from "react";
 import { useTheme, Box, Typography } from "@mui/material";
 import { ResponsiveBar } from "@nivo/bar";
-import { tokens } from "../../../../../../theme";
 
 const ReviewChart = ({ productReviews }) => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
-
   if (!productReviews || productReviews.length === 0)
     return <Typography>No review data available</Typography>;
 
@@ -65,7 +61,6 @@ const ReviewChart = ({ productReviews }) => {
           indexBy="product"
           margin={{ top: 20, right: 20, bottom: 50, left: 50 }}
           padding={0.3}
-          colors={[colors.blueAccent[400]]}
           theme={{
             text: {
               fill: "black",

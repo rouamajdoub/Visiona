@@ -4,17 +4,13 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchUsers, deleteUser } from "../../../../redux/slices/adminSlice"; // Import actions from your slice
 import { Box, Typography, useTheme } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { tokens } from "../../../../theme";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
 
 const UserManagement = () => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
   const dispatch = useDispatch();
   const { users = [], loading, error } = useSelector((state) => state.admin); // Adjust based on your Redux state
-  const [filter, setFilter] = useState("");
 
   useEffect(() => {
     dispatch(fetchUsers()); // Fetch users when the component mounts
@@ -52,21 +48,13 @@ const UserManagement = () => {
           p="5px"
           display="flex"
           justifyContent="center"
-          backgroundColor={
-            row.role === "admin"
-              ? colors.greenAccent[600]
-              : row.role === "manager"
-              ? colors.greenAccent[700]
-              : colors.greenAccent[700]
-          }
+          backgroundColor={row.role === "admin"}
           borderRadius="4px"
         >
           {row.role === "admin" && <AdminPanelSettingsOutlinedIcon />}
           {row.role === "manager" && <SecurityOutlinedIcon />}
           {row.role === "user" && <LockOpenOutlinedIcon />}
-          <Typography color={colors.grey[100]} sx={{ ml: "5px" }}>
-            {row.role}
-          </Typography>
+          <Typography sx={{ ml: "5px" }}>{row.role}</Typography>
         </Box>
       ),
     },
@@ -104,23 +92,15 @@ const UserManagement = () => {
           "& .MuiDataGrid-cell": {
             borderBottom: "none",
           },
-          "& .name-column--cell": {
-            color: colors.greenAccent[300],
-          },
+          "& .name-column--cell": {},
           "& .MuiDataGrid-columnHeaders": {
-            backgroundColor: colors.blueAccent[700],
             borderBottom: "none",
           },
-          "& .MuiDataGrid-virtualScroller": {
-            backgroundColor: colors.primary[400],
-          },
+          "& .MuiDataGrid-virtualScroller": {},
           "& .MuiDataGrid-footerContainer": {
             borderTop: "none",
-            backgroundColor: colors.blueAccent[700],
           },
-          "& .MuiCheckbox-root": {
-            color: `${colors.greenAccent[200]} !important`,
-          },
+          "& .MuiCheckbox-root": {},
         }}
       >
         <DataGrid

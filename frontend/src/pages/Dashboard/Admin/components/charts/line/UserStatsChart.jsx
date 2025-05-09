@@ -1,12 +1,8 @@
 import React from "react";
-import { useTheme, Box, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { ResponsiveLine } from "@nivo/line";
-import { tokens } from "../../../../../../theme";
 
 const UserStatsChart = ({ data }) => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
-
   if (!data || data.length === 0)
     return <Typography>No data available</Typography>;
 

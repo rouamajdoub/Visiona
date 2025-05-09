@@ -4,13 +4,9 @@ import {
   fetchSubscriptions,
   deleteSubscription,
 } from "../../../../redux/slices/adminSlice";
-import EditSubscriptionModal from "../Edit/EditSubscription";
-import { Box, Typography, useTheme } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { tokens } from "../../../../theme";
 const SubscriptionManagement = () => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
   const dispatch = useDispatch();
   const {
     subscriptions = [],
@@ -116,23 +112,15 @@ const SubscriptionManagement = () => {
           "& .MuiDataGrid-cell": {
             borderBottom: "none",
           },
-          "& .name-column--cell": {
-            color: colors.greenAccent[300],
-          },
+          "& .name-column--cell": {},
           "& .MuiDataGrid-columnHeaders": {
-            backgroundColor: colors.blueAccent[700],
             borderBottom: "none",
           },
-          "& .MuiDataGrid-virtualScroller": {
-            backgroundColor: colors.primary[400],
-          },
+          "& .MuiDataGrid-virtualScroller": {},
           "& .MuiDataGrid-footerContainer": {
             borderTop: "none",
-            backgroundColor: colors.blueAccent[700],
           },
-          "& .MuiCheckbox-root": {
-            color: `${colors.greenAccent[200]} !important`,
-          },
+          "& .MuiCheckbox-root": {},
         }}
       >
         <DataGrid
@@ -141,13 +129,6 @@ const SubscriptionManagement = () => {
           columns={columns} // Use the defined columns
         />
       </Box>
-
-      {selectedSubscription && (
-        <EditSubscriptionModal
-          subscription={selectedSubscription}
-          onClose={handleCloseModal}
-        />
-      )}
     </Box>
   );
 };

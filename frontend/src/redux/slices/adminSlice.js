@@ -135,13 +135,34 @@ export const approveArchitect = createAsyncThunk(
 
 export const rejectArchitect = createAsyncThunk(
   "admin/rejectArchitect",
-  async (id, { rejectWithValue, dispatch }) => {
+  async (
+    { id, rejectionReason, customReason },
+    { rejectWithValue, dispatch }
+  ) => {
     try {
-      await axios.patch(`${BASE_URL}/arch-req/requests/${id}`, {
-        status: "rejected",
-      });
-      dispatch(fetchArchitectRequests()); // Refresh the list after deletion
-      return id;
+      const response = await axios.patch(
+        `${BASE_URL}/arch-req/requests/${id}`,
+        {
+          status: "rejected",
+          rejectionReason,
+          customReason,
+        }
+      );
+      dispatch(fetchArchitectRequests()); // Refresh the list after rejection
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+// New thunk to fetch architect statistics
+export const fetchArchitectStats = createAsyncThunk(
+  "admin/fetchArchitectStats",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${BASE_URL}/arch-req/stats`);
+      return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
     }
@@ -158,7 +179,13 @@ const adminSlice = createSlice({
       projectReviews: [],
     },
     architects: [],
-
+    architectStats: {
+      total: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      rejectionReasons: [],
+    },
     userStats: [], // Initialize userStats
     loading: false,
     error: null,
@@ -273,7 +300,7 @@ const adminSlice = createSlice({
       .addCase(approveArchitect.fulfilled, (state, action) => {
         state.loading = false;
         state.architects = state.architects.map((arch) =>
-          arch._id === action.payload._id ? action.payload : arch
+          arch._id === action.payload.user._id ? action.payload.user : arch
         );
       })
       .addCase(approveArchitect.rejected, (state, action) => {
@@ -285,11 +312,24 @@ const adminSlice = createSlice({
       })
       .addCase(rejectArchitect.fulfilled, (state, action) => {
         state.loading = false;
-        state.architects = state.architects.filter(
-          (arch) => arch._id !== action.payload
+        // Update the architect in the list instead of removing it
+        state.architects = state.architects.map((arch) =>
+          arch._id === action.payload.user._id ? action.payload.user : arch
         );
       })
       .addCase(rejectArchitect.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Architect Stats
+      .addCase(fetchArchitectStats.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchArchitectStats.fulfilled, (state, action) => {
+        state.loading = false;
+        state.architectStats = action.payload;
+      })
+      .addCase(fetchArchitectStats.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       });

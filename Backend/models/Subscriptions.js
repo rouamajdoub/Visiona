@@ -9,9 +9,9 @@ const subscriptionSchema = new mongoose.Schema(
     },
     plan: {
       type: String,
-      enum: ["Free", "Premium", "VIP"],
+      enum: ["free", "premium", "vip"],
       required: true,
-      default: "Free",
+      default: "free",
     },
     startDate: {
       type: Date,
@@ -20,7 +20,7 @@ const subscriptionSchema = new mongoose.Schema(
     endDate: {
       type: Date,
       required: function () {
-        return this.plan !== "Free"; // Seulement pour les plans payants
+        return this.plan !== "free"; // Seulement pour les plans payants
       },
     },
     status: {
@@ -31,14 +31,14 @@ const subscriptionSchema = new mongoose.Schema(
     price: {
       type: Number,
       required: function () {
-        return this.plan !== "Free";
+        return this.plan !== "free";
       },
     },
     paymentMethod: {
       type: String,
       enum: ["Card", "PayPal", "Bank Transfer"],
       required: function () {
-        return this.plan !== "Free";
+        return this.plan !== "free";
       },
     },
     transactions: [

@@ -1,20 +1,20 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchArchitectRequests,
   approveArchitect,
   rejectArchitect,
 } from "../../../../redux/slices/adminSlice";
-import { Box, Typography, Button, useTheme } from "@mui/material";
+import { Box, Typography, Button } from "@mui/material";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
-import { tokens } from "../../../../theme";
+// Import the RejectionDialog correctly
+import RejectionDialog from "../../Admin/components/Dialog/RejectionDialog"; // Adjust the path based on your file structure
 
 const ArchitectRequests = () => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
   const dispatch = useDispatch();
   const { architects, loading, error } = useSelector((state) => state.admin);
-  const { token } = useSelector((state) => state.auth);
+  const [openRejectionDialog, setOpenRejectionDialog] = useState(false);
+  const [selectedArchitect, setSelectedArchitect] = useState(null);
 
   useEffect(() => {
     dispatch(fetchArchitectRequests());
@@ -26,9 +26,22 @@ const ArchitectRequests = () => {
     }
   };
 
-  const handleReject = (id) => {
-    if (window.confirm("Reject this architect?")) {
-      dispatch(rejectArchitect(id));
+  const handleRejectClick = (architect) => {
+    setSelectedArchitect(architect);
+    setOpenRejectionDialog(true);
+  };
+
+  const handleRejectionSubmit = ({ rejectionReason, customReason }) => {
+    if (selectedArchitect) {
+      dispatch(
+        rejectArchitect({
+          id: selectedArchitect._id,
+          rejectionReason,
+          customReason,
+        })
+      );
+      setOpenRejectionDialog(false);
+      setSelectedArchitect(null);
     }
   };
 
@@ -68,21 +81,7 @@ const ArchitectRequests = () => {
       flex: 1,
       valueGetter: (params) => params?.row?.cin || "N/A",
     },
-    {
-      field: "paymentStatus",
-      headerName: "Payment Status",
-      flex: 1.5,
-      renderCell: (params) => (
-        <Typography
-          sx={{
-            color: params?.row?.paymentStatus === "completed" ? "green" : "red",
-            fontWeight: "bold",
-          }}
-        >
-          {params?.row?.paymentStatus || "pending"}
-        </Typography>
-      ),
-    },
+
     {
       field: "status",
       headerName: "Status",
@@ -90,7 +89,12 @@ const ArchitectRequests = () => {
       renderCell: (params) => (
         <Typography
           sx={{
-            color: params?.row?.status === "approved" ? "green" : "red",
+            color:
+              params?.row?.status === "approved"
+                ? "green"
+                : params?.row?.status === "rejected"
+                ? "red"
+                : "orange",
             fontWeight: "bold",
           }}
         >
@@ -125,7 +129,7 @@ const ArchitectRequests = () => {
           <Button
             variant="contained"
             color="error"
-            onClick={() => handleReject(params?.row?._id)}
+            onClick={() => handleRejectClick(params.row)}
             disabled={params?.row?.status === "rejected"}
           >
             Reject
@@ -154,15 +158,11 @@ const ArchitectRequests = () => {
             "& .MuiDataGrid-root": { border: "none" },
             "& .MuiDataGrid-cell": { borderBottom: "none" },
             "& .MuiDataGrid-columnHeaders": {
-              backgroundColor: colors.blueAccent[700],
               borderBottom: "none",
             },
-            "& .MuiDataGrid-virtualScroller": {
-              backgroundColor: colors.primary[400],
-            },
+            "& .MuiDataGrid-virtualScroller": {},
             "& .MuiDataGrid-footerContainer": {
               borderTop: "none",
-              backgroundColor: colors.blueAccent[700],
             },
           }}
         >
@@ -180,6 +180,19 @@ const ArchitectRequests = () => {
           />
         </Box>
       )}
+
+      <RejectionDialog
+        open={openRejectionDialog}
+        onClose={() => setOpenRejectionDialog(false)}
+        onSubmit={handleRejectionSubmit}
+        architectName={
+          selectedArchitect
+            ? `${selectedArchitect.prenom || ""} ${
+                selectedArchitect.nomDeFamille || ""
+              }`.trim()
+            : ""
+        }
+      />
     </Box>
   );
 };

@@ -4,20 +4,10 @@ import {
   fetchAllReviews,
   deleteReview,
 } from "../../../../redux/slices/adminSlice";
-import {
-  Box,
-  Typography,
-  Button,
-  useTheme,
-  MenuItem,
-  Select,
-} from "@mui/material";
+import { Box, Typography, Button, MenuItem, Select } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { tokens } from "../../../../theme";
 
 const ReviewManagement = () => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
   const dispatch = useDispatch();
   const { reviews, loading, error } = useSelector((state) => state.admin);
   const [reviewType, setReviewType] = useState("all"); // New state for filtering
@@ -121,19 +111,13 @@ const ReviewManagement = () => {
             "& .MuiDataGrid-root": { border: "none" },
             "& .MuiDataGrid-cell": { borderBottom: "none" },
             "& .MuiDataGrid-columnHeaders": {
-              backgroundColor: colors.blueAccent[700],
               borderBottom: "none",
             },
-            "& .MuiDataGrid-virtualScroller": {
-              backgroundColor: colors.primary[400],
-            },
+            "& .MuiDataGrid-virtualScroller": {},
             "& .MuiDataGrid-footerContainer": {
               borderTop: "none",
-              backgroundColor: colors.blueAccent[700],
             },
-            "& .MuiCheckbox-root": {
-              color: `${colors.greenAccent[200]} !important`,
-            },
+            "& .MuiCheckbox-root": {},
           }}
         >
           <DataGrid rows={rows} columns={columns} checkboxSelection />

@@ -1,19 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  Box,
-  CircularProgress,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from "@mui/material";
+import { Box, CircularProgress, Typography } from "@mui/material";
 
 // Global components
-import Topbar from "./components/Topbar";
+
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 
@@ -21,13 +11,12 @@ import Header from "./components/Header";
 import UserStatisticsChart from "./components/charts/Bar/UserStat";
 import ReviewManagementChart from "./components/charts/Bar/ReviewChart";
 import UserStatsChart from "./components/charts/line/UserStatsChart";
-
+import ArchitectStatsChart from "./components/charts/Radar/ArchitectStatsChart ";
 // Management pages
 import ReviewManagement from "./pages/ReviewManagement";
 import UserManagement from "./pages/UserManagement";
 import SubscriptionManagement from "./pages/SubscriptionManagement";
-import ArchiSignUpReq from "./pages/ArchiSignUpReq";
-
+import ArchitectRequests from "./pages/ArchiSignUpReq";
 // CSS
 import "./css/style.css";
 
@@ -56,14 +45,6 @@ const AdminDashboard = () => {
     dispatch(fetchArchitectRequests());
   }, [dispatch]);
 
-  const renderArchitectRequests = () => (
-    <div className="table-container">
-      <Typography variant="h6" gutterBottom>
-        Architect Sign-Up Requests
-      </Typography>
-    </div>
-  );
-
   const renderStatistics = () => (
     <div className="stats-container">
       <div className="stat-card">
@@ -74,6 +55,9 @@ const AdminDashboard = () => {
       </div>
       <div className="stat-card">
         <UserStatsChart data={userStats} />
+      </div>
+      <div className="stat-card">
+        <ArchitectStatsChart data={userStats} />
       </div>
     </div>
   );
@@ -89,21 +73,15 @@ const AdminDashboard = () => {
           isSidebarCollapsed ? "sidebar-collapsed" : ""
         }`}
       >
-        <Topbar />
         <Box>
-          <Header title="Admin Dashboard" />
+          <Header title="Admin Dashboard" className="header-class" />
           {loading && <CircularProgress />}
           {error && <Typography color="error">{error}</Typography>}
-          {currentView === "dashboard" && (
-            <>
-              {renderArchitectRequests()}
-              {renderStatistics()}
-            </>
-          )}
+          {currentView === "dashboard" && <>{renderStatistics()}</>}
           {currentView === "reviews" && <ReviewManagement />}
           {currentView === "users" && <UserManagement />}
           {currentView === "subscriptions" && <SubscriptionManagement />}
-          {currentView === "sign-up-req" && <ArchiSignUpReq />}
+          {currentView === "sign-up-req" && <ArchitectRequests />}
         </Box>
       </Box>
     </Box>
