@@ -11,6 +11,7 @@ import {
   faClipboardList,
   faFileInvoiceDollar,
   faCog,
+  faConciergeBell,
 } from "@fortawesome/free-solid-svg-icons";
 import { motion } from "framer-motion";
 
@@ -20,6 +21,7 @@ const menuItems = [
   { title: "Architects", icon: faUsers, view: "sign-up-req" },
   { title: "Subscriptions", icon: faFileInvoiceDollar, view: "subscriptions" },
   { title: "reviews", icon: faClipboardList, view: "reviews" },
+  { title: "Services", icon: faConciergeBell, view: "services" },
 ];
 
 const Sidebar = ({ setCurrentView }) => {

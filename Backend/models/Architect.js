@@ -11,34 +11,30 @@ const architectSchema = new mongoose.Schema(
       required: true,
     },
     firstLogin: { type: Boolean, default: false },
-
-    //personal info
-    profilePicture: { type: String }, // URL to profile image
-    bio: { type: String }, // Paragraph about the architect
+    bio: { type: String },
     phoneNumber: { type: String },
-
-    //business info
     companyName: { type: String },
-    companyLogo: { type: String }, // URL to company logo
     experienceYears: { type: Number },
-    specialization: { type: [String] }, // Array of specializations
-    specialty: { type: String }, // Primary specialty
-    certification: { type: String }, // Primary certification
-    isVerified: { type: Boolean, default: false }, // Verification status
+    specialization: { type: [String] },
+    specialty: { type: String },
+    certification: { type: String },
+    isVerified: { type: Boolean, default: false },
     portfolioURL: { type: String },
+
+    //imgs
+    portfolio: [{ type: String }], // Array of image URLs showcasing work for the clinet
+    companyLogo: { type: String }, // URL to company logo
+    profilePicture: { type: String }, // URL to profile image
+
+    //pdf
     certifications: { type: [String] },
     patenteNumber: { type: String, required: true },
     cin: { type: String, required: true },
-
-    //portfolio
-    portfolio: [{ type: String }], // Array of image URLs showcasing work
-
     education: {
       degree: { type: String },
       institution: String,
       graduationYear: Number,
     },
-
     softwareProficiency: [
       {
         name: { type: String },
@@ -48,7 +44,6 @@ const architectSchema = new mongoose.Schema(
         },
       },
     ],
-
     location: {
       country: { type: String },
       region: { type: String },
@@ -66,7 +61,6 @@ const architectSchema = new mongoose.Schema(
         },
       },
     },
-
     website: { type: String },
     socialMedia: {
       linkedin: String,
@@ -74,8 +68,6 @@ const architectSchema = new mongoose.Schema(
       facebook: String,
       twitter: String,
     },
-
-    // Languages spoken
     languages: [
       {
         language: String,
@@ -86,100 +78,56 @@ const architectSchema = new mongoose.Schema(
         },
       },
     ],
-
-    // Project types
     projectTypes: [{ type: String }], // e.g., Residential, Commercial, Industrial, etc.
 
-    // Service offerings
+    // Updated services field to link with service categories and subcategories
     services: [
       {
-        type: String,
-        enum: [
-          // Architectural Design
-          "Residential Architecture",
-          "Commercial Architecture",
-          "Industrial Architecture",
-          "Renovation and Adaptive Reuse",
-          "Space Programming and Planning",
-          "Conceptual/Schematic Design",
-          "Design Development",
-          "Construction Documentation",
-          "Building Code and Code Compliance",
-
-          // Interior Design
-          "Client Consultation and Programming",
-          "Interior Space Planning",
-          "Interior Concept Development",
-          "3D Interior Renderings and Visualization",
-          "Material and Finish Selection",
-          "Lighting and Color Design",
-          "Furniture, Fixtures & Equipment (FF&E)",
-          "Interior Renovation and Restoration",
-          "Interior Project Coordination and Management",
-
-          // Landscape Architecture
-          "Site Analysis and Conceptual Landscape Design",
-          "Landscape Master Planning",
-          "Planting Design",
-          "Hardscape Design",
-          "Water Feature Design",
-          "Sustainability and Environmental Landscape Design",
-          "Urban and Streetscape Design",
-          "Landscape Construction Documentation and Administration",
-          "Landscape Maintenance and Management Planning",
-
-          // Urban Planning
-          "Land Use and Zoning Analysis",
-          "Site Planning and Subdivision Layout",
-          "Zoning Code Preparation",
-          "Comprehensive and Master Planning",
-          "Urban Design and Redevelopment",
-          "Resilience and Sustainability Planning",
-          "Community Engagement in Planning",
-          "GIS and Urban Data Analysis",
-
-          // Specialized Consulting
-          "Sustainability Consulting",
-          "Heritage and Historic Preservation",
-          "Accessibility Consulting",
-
-          // Project Management and Supervision
-          "Project Scheduling and Cost Control",
-          "Contract and Tender Management",
-          "Construction Supervision",
-          "Quality Assurance and Quality Control",
-          "Progress Monitoring and Reporting",
-          "Safety and Compliance Oversight",
-          "Punch List and Project Closeout",
-
-          // Feasibility and Site Analysis
-          "Site Inventory and Analysis",
-          "Concept Feasibility Studies",
-          "Regulatory Feasibility Analysis",
-          "Market and Program Studies",
-          "Environmental and Impact Assessments",
-
-          // 3D Modeling and BIM
-          "3D CAD Modeling",
-          "Building Information Modeling (BIM)",
-          "3D Renderings and Visualizations",
-          "Virtual and Augmented Reality",
-          "Laser Scanning and Point-Cloud Services",
-
-          // Permit Drawings and Approvals
-          "Permit Drawing Preparation",
-          "Regulatory Submissions",
-          "Code Compliance Documentation",
-          "Official Hearings and Negotiations",
+        category: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "ServiceCategory",
+          required: true,
+        },
+        subcategories: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "ServiceSubcategory",
+          },
+        ],
+        // Additional details about the architect's expertise in this service
+        description: { type: String },
+        // Cost range for this service (if applicable)
+        priceRange: {
+          min: { type: Number },
+          max: { type: Number },
+          currency: { type: String, default: "MAD" },
+        },
+        // Showcase projects related to this service
+        portfolioItems: [
+          {
+            title: { type: String },
+            description: { type: String },
+            images: [{ type: String }], // URLs to images
+            year: { type: Number },
+            location: { type: String },
+          },
         ],
       },
     ],
 
-    //for the stats
+    // AI analyzed service areas (automatically generated based on architect's services)
+    serviceAnalysis: {
+      primaryExpertise: [{ type: String }],
+      secondaryExpertise: [{ type: String }],
+      keywordTags: [{ type: String }],
+      analysisDate: { type: Date },
+      analysisVersion: { type: String },
+      confidenceScore: { type: Number, min: 0, max: 1 },
+    },
+
     stats: {
       projects: { type: Number, default: 0 }, // Number of completed projects
       reviews: { type: Number, default: 0 }, // Number of reviews
-      earnings: { type: Number, default: 0 }, // Earnings in USD
       views: { type: Number, default: 0 }, // Profile views
     },
     rating: {
@@ -200,7 +148,6 @@ const architectSchema = new mongoose.Schema(
         date: { type: Date, default: Date.now },
       },
     ],
-
     //for the clients
     clientsCount: { type: Number, default: 0 },
     clients: [
