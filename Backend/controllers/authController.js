@@ -301,12 +301,22 @@ exports.login = asyncHandler(async (req, res) => {
     }
 
     // Extra check for architects
-    if (user.role === "architect" && user.status !== "approved") {
-      console.log("Architect not approved. Status:", user.status);
-      return res.status(401).json({
-        success: false,
-        error: "Account pending approval",
-      });
+    if (user.role === "architect") {
+      if (user.status === "rejected") {
+        console.log("Architect was rejected.");
+        return res.status(403).json({
+          success: false,
+          error: "Access denied: Your application was rejected by the admin.",
+        });
+      }
+
+      if (user.status !== "approved") {
+        console.log("Architect not approved. Status:", user.status);
+        return res.status(401).json({
+          success: false,
+          error: "Account pending approval",
+        });
+      }
     }
 
     // Extra check for admins

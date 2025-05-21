@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { Box, CircularProgress, Typography } from "@mui/material";
 
 // Global components
-
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 
@@ -17,6 +16,7 @@ import ReviewManagement from "./pages/ReviewManagement";
 import UserManagement from "./pages/UserManagement";
 import SubscriptionManagement from "./pages/SubscriptionManagement";
 import ArchitectRequests from "./pages/ArchiSignUpReq";
+import ServiceManagement from "./pages/ServiceManagement";
 // CSS
 import "./css/style.css";
 
@@ -28,6 +28,7 @@ import {
   fetchUserStats,
   fetchArchitectRequests,
 } from "../../../redux/slices/adminSlice";
+import { Heading1 } from "lucide-react";
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
@@ -74,14 +75,19 @@ const AdminDashboard = () => {
         }`}
       >
         <Box>
-          <Header title="Admin Dashboard" className="header-class" />
+          <h1>Admin Dashboard</h1>
           {loading && <CircularProgress />}
-          {error && <Typography color="error">{error}</Typography>}
-          {currentView === "dashboard" && <>{renderStatistics()}</>}
+          {error && (
+            <Typography color="error">
+              {typeof error === "string" ? error : "An error occurred"}
+            </Typography>
+          )}
+          {currentView === "dashboard" && renderStatistics()}
           {currentView === "reviews" && <ReviewManagement />}
           {currentView === "users" && <UserManagement />}
           {currentView === "subscriptions" && <SubscriptionManagement />}
           {currentView === "sign-up-req" && <ArchitectRequests />}
+          {currentView === "services" && <ServiceManagement />}
         </Box>
       </Box>
     </Box>

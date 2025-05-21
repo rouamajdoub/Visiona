@@ -21,6 +21,9 @@
   transition: margin-left 0.3s ease; /* Smooth transition */
   width: calc(100% - 250px); /* Account for sidebar width */
 }
+h1 {
+  color: black;
+}
 
 .dashboard-container.sidebar-collapsed {
   width: calc(100% - 80px); /* Account for collapsed sidebar width */

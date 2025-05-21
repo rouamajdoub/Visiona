@@ -26,7 +26,9 @@ const needSheetRoutes = require("./routes/needSheetRoutes");
 const matchArchitect = require("./routes/matchRoutes");
 //const matchRequestRoutes = require("./routes/matchArxhitectRequests");
 const adminRoutes = require("./routes/adminRoutes");
-
+const serviceSubcategoryRoutes = require("./routes/serviceSubcategoryRoutes");
+const serviceCategoryRoutes = require("./routes/serviceCategoryRoutes");
+const analysis = require("./routes/analysis");
 // --------------------Stripe -----------------------
 const webhookRoutes = require("./Stripe/webhook/route");
 const paymentRoutes = require("./routes/paymentRoutes");
@@ -94,7 +96,10 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/client-arch", clientRoutes);
 app.use("/api/projects", projects);
 app.use("/api/kanban", kanbanRoutes);
-
+//----admin dashboard----------------
+app.use("/api/admin/service-subcategories", serviceSubcategoryRoutes);
+app.use("/api/admin/service-categories", serviceCategoryRoutes);
+app.use("/api/analysis", analysis);
 // ---------------------------Stripe webhook route--------------------
 app.use(webhookRoutes);
 app.use("/api/payments", paymentRoutes);

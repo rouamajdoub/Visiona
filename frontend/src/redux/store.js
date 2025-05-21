@@ -11,6 +11,7 @@ import tasksReducer from "./slices/TaskSlice";
 import quotesReducer from "./slices/quotesSlice";
 import needSheetReducer from "./slices/needSheetSlice";
 import subscriptionReducer from "./slices/subscriptionSlice";
+import serviceCategoriesReducer from "./slices/serviceCategoriesSlice";
 
 const store = configureStore({
   reducer: {
@@ -25,6 +26,7 @@ const store = configureStore({
     subscriptions: subscriptionReducer,
     quotes: quotesReducer,
     needSheet: needSheetReducer,
+    serviceCategories: serviceCategoriesReducer,
   },
 });
 
