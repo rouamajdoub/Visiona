@@ -1,28 +1,16 @@
 const express = require("express");
 const router = express.Router();
-const {
-  register,
-  login,
-  getProfile,
-  logout,
-  googleLogin,
-  checkAuth,
-} = require("../controllers/authController"); // Ensure correct path
+const authController = require("../controllers/authController");
+const fileUpload = require("../middlewares/fileUpload");
+// Routes already added from your code
 
-// Auth Status Check
-router.get("/check", checkAuth);
-
-// Registration
-router.post("/register", register);
-
-// Login routes
-router.post("/login", login);
-router.post("/google-login", googleLogin);
-
-// Profile (Protected)
-router.get("/profile/:id", getProfile);
-
-// Logout
-router.post("/logout", logout);
+// Add this new route for token verification
+router.get("/google/success", authController.handleGoogleLoginSuccess);
+// Auth routes
+router.post("/register", fileUpload, authController.register);
+router.post("/login", authController.login);
+router.post("/logout", authController.logout);
+router.post("/register-admin", authController.registerAdmin);
+router.get("/check", authController.checkAuth);
 
 module.exports = router;

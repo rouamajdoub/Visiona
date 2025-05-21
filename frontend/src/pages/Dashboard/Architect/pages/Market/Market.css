@@ -1,43 +1,155 @@
-/* Table Styles */
-.ant-table {
-    background: var(--glass); /* Use the glass effect for the table background */
-    border-radius: 10px; /* Rounded corners */
-    box-shadow: var(--boxShadow); /* Apply shadow for depth */
+/* Market Component CSS with Glassmorphism Effect */
+:root {
+  --primary-color: #ff919d;
+  --text-color: #242d49;
+  --glass-bg: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --blur-intensity: blur(12px);
+  --header-height: 200px; /* Smaller header height */
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+  --border-radius: 0.8rem;
+  --card-border-radius: 1rem;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+/* Container */
+.mkt-dashboard-container {
+  padding: var(--spacing-md);
+  width: 100%;
+}
+
+/* Dashboard Header */
+.mkt-dashboard-header {
+  background: var(--glass-bg) !important;
+  backdrop-filter: var(--blur-intensity) !important;
+  -webkit-backdrop-filter: var(--blur-intensity) !important;
+  border-radius: var(--card-border-radius) !important;
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--card-shadow) !important;
+  padding: var(--spacing-lg) var(--spacing-md) !important;
+  margin-bottom: var(--spacing-lg) !important;
+  overflow: hidden;
+}
+
+.mkt-dashboard-title {
+  color: #242d49 !important;
+  font-weight: 600 !important;
+  margin-bottom: var(--spacing-sm);
+}
+
+.mkt-dashboard-subtitle {
+  color: #242d49 !important;
+  opacity: 0.7;
+}
+
+/* Tabs Container */
+.mkt-dashboard-tabs-container {
+  background: var(--glass-bg);
+  backdrop-filter: var(--blur-intensity);
+  -webkit-backdrop-filter: var(--blur-intensity);
+  border-radius: var(--card-border-radius);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--card-shadow);
+  margin-bottom: var(--spacing-lg);
+  overflow: hidden;
+}
+
+/* Main Tabs */
+.mkt-dashboard-tabs {
+  background: transparent;
+  color: #242d49 !important;
+}
+
+/* Hide default tab indicator */
+.mkt-tab-indicator {
+  display: none !important;
+}
+
+/* Individual Tab */
+.mkt-dashboard-tab {
+  color: #242d49 !important;
+  position: relative;
+  transition: all 300ms ease;
+  min-height: 72px !important;
+  padding: 12px !important;
+  text-transform: none !important;
+  font-weight: 500 !important;
+}
+
+/* Tab Icon Styling */
+.mkt-dashboard-tab .MuiSvgIcon-root {
+  color: #242d49 !important;
+  transition: all 300ms ease;
+  margin-bottom: 4px !important;
+  font-size: 1.5rem !important;
+}
+
+/* Hover effect for tabs */
+.mkt-dashboard-tab:hover {
+  background: rgba(255, 145, 157, 0.08) !important;
+  color: #ff919d !important;
+}
+
+.mkt-dashboard-tab:hover .MuiSvgIcon-root {
+  color: #ff919d !important;
+  transform: scale(1.1);
+}
+
+/* Active Tab Styling */
+.mkt-active-tab {
+  color: #ff919d !important;
+  background: rgba(255, 145, 157, 0.15) !important;
+  font-weight: 600 !important;
+  position: relative;
+}
+
+.mkt-active-tab .MuiSvgIcon-root {
+  color: #ff919d !important;
+}
+
+/* Active Tab Indicator - Left Side Bar */
+.mkt-active-tab::before {
+  content: "";
+  width: 4px;
+  height: 70%;
+  background: #ff919d;
+  position: absolute;
+  left: 0;
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 0 8px #ff919d;
+}
+
+/* Tab Content Container */
+.mkt-tab-content {
+  margin-top: var(--spacing-md);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 960px) {
+  .mkt-dashboard-tab {
+    min-height: 60px !important;
+    padding: 8px !important;
   }
-  
-  .ant-table-header {
-    background: var(--blue); /* Header background */
-    color: #fff; /* White text for contrast */
+
+  .mkt-dashboard-tab .MuiSvgIcon-root {
+    font-size: 1.3rem !important;
   }
-  
-  .ant-table-header th {
-    font-weight: bold; /* Bold header text */
+}
+
+@media (max-width: 600px) {
+  .mkt-dashboard-tab {
+    min-height: 50px !important;
+    padding: 6px !important;
+    font-size: 0.8rem !important;
   }
-  
-  .ant-table-tbody > tr:hover {
-    background: var(--light-blue); /* Light blue on row hover */
+
+  .mkt-dashboard-tab .MuiSvgIcon-root {
+    font-size: 1.1rem !important;
   }
-  
-  .ant-table-tbody > tr:nth-child(odd) {
-    background: rgba(255, 255, 255, 0.1); /* Slightly different background for odd rows */
+
+  .mkt-dashboard-title {
+    font-size: 1.5rem !important;
   }
-  
-  .ant-table-tbody > tr > td {
-    color: var(--black); /* Regular text color */
-  }
-  
-  .ant-table-pagination {
-    background: var(--glass); /* Glass effect for pagination */
-    border-radius: 10px; /* Rounded corners for pagination */
-    box-shadow: var(--smboxShadow); /* Subtle shadow for pagination */
-  }
-  
-  /* Button Styles inside Table */
-  .ant-btn {
-    background: var(--orange); /* Button background */
-    color: #fff; /* White text for contrast */
-  }
-  
-  .ant-btn:hover {
-    background: var(--yellow); /* Lighter on hover */
-  }
+}

@@ -1,6 +1,6 @@
 // controllers/serviceSubcategoryController.js
-const ServiceCategory = require("../models/ServiceCategory");
 const ServiceSubcategory = require("../models/ServiceSubcategory");
+const ServiceCategory = require("../models/ServiceCategory");
 
 // Create a new service subcategory
 exports.createSubcategory = async (req, res) => {
@@ -10,11 +10,11 @@ exports.createSubcategory = async (req, res) => {
     if (!name || !parentCategory) {
       return res.status(400).json({
         success: false,
-        message: "Subcategory name and parent category ID are required",
+        message: "Subcategory name and parent category are required",
       });
     }
 
-    // Verify parent category exists
+    // Check if parent category exists
     const categoryExists = await ServiceCategory.findById(parentCategory);
     if (!categoryExists) {
       return res.status(404).json({
@@ -23,7 +23,7 @@ exports.createSubcategory = async (req, res) => {
       });
     }
 
-    // Check if subcategory with the same name already exists under this parent category
+    // Check if subcategory with same name exists in the same parent category
     const existingSubcategory = await ServiceSubcategory.findOne({
       name,
       parentCategory,
@@ -33,7 +33,7 @@ exports.createSubcategory = async (req, res) => {
       return res.status(400).json({
         success: false,
         message:
-          "A subcategory with this name already exists under the selected parent category",
+          "A subcategory with this name already exists in the selected category",
       });
     }
 
@@ -61,18 +61,19 @@ exports.createSubcategory = async (req, res) => {
 };
 
 // Get all service subcategories
+// Can filter by parent category using query param: ?categoryId=xyz
 exports.getAllSubcategories = async (req, res) => {
   try {
     const { categoryId } = req.query;
-
     let query = {};
+
     if (categoryId) {
       query.parentCategory = categoryId;
     }
 
-    const subcategories = await ServiceSubcategory.find(query)
-      .populate("parentCategory", "name")
-      .sort({ name: 1 });
+    const subcategories = await ServiceSubcategory.find(query).sort({
+      name: 1,
+    });
 
     res.status(200).json({
       success: true,
@@ -89,15 +90,12 @@ exports.getAllSubcategories = async (req, res) => {
   }
 };
 
-// Get a specific service subcategory
+// Get a specific service subcategory by ID
 exports.getSubcategoryById = async (req, res) => {
   try {
     const subcategoryId = req.params.id;
 
-    const subcategory = await ServiceSubcategory.findById(
-      subcategoryId
-    ).populate("parentCategory", "name");
-
+    const subcategory = await ServiceSubcategory.findById(subcategoryId);
     if (!subcategory) {
       return res.status(404).json({
         success: false,
@@ -125,6 +123,7 @@ exports.updateSubcategory = async (req, res) => {
     const subcategoryId = req.params.id;
     const { name, description, parentCategory } = req.body;
 
+    // Check if subcategory exists
     const subcategory = await ServiceSubcategory.findById(subcategoryId);
     if (!subcategory) {
       return res.status(404).json({
@@ -133,7 +132,7 @@ exports.updateSubcategory = async (req, res) => {
       });
     }
 
-    // If parent category is being updated, verify it exists
+    // If changing parent category, check if it exists
     if (
       parentCategory &&
       parentCategory !== subcategory.parentCategory.toString()
@@ -147,12 +146,13 @@ exports.updateSubcategory = async (req, res) => {
       }
     }
 
-    // Check if the new name already exists for another subcategory under the same parent category
-    if (name || parentCategory) {
-      const targetParentId = parentCategory || subcategory.parentCategory;
+    // If changing name, check if the new name already exists for another subcategory in the same parent category
+    if (name && name !== subcategory.name) {
+      const targetParentCategory = parentCategory || subcategory.parentCategory;
+
       const existingSubcategory = await ServiceSubcategory.findOne({
-        name: name || subcategory.name,
-        parentCategory: targetParentId,
+        name,
+        parentCategory: targetParentCategory,
         _id: { $ne: subcategoryId },
       });
 
@@ -160,21 +160,21 @@ exports.updateSubcategory = async (req, res) => {
         return res.status(400).json({
           success: false,
           message:
-            "A subcategory with this name already exists under the selected parent category",
+            "A subcategory with this name already exists in the selected category",
         });
       }
     }
 
-    const updates = {};
-    if (name) updates.name = name;
-    if (description !== undefined) updates.description = description;
-    if (parentCategory) updates.parentCategory = parentCategory;
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (parentCategory) updateData.parentCategory = parentCategory;
 
     const updatedSubcategory = await ServiceSubcategory.findByIdAndUpdate(
       subcategoryId,
-      updates,
+      updateData,
       { new: true, runValidators: true }
-    ).populate("parentCategory", "name");
+    );
 
     res.status(200).json({
       success: true,
@@ -199,7 +199,6 @@ exports.deleteSubcategory = async (req, res) => {
     const deletedSubcategory = await ServiceSubcategory.findByIdAndDelete(
       subcategoryId
     );
-
     if (!deletedSubcategory) {
       return res.status(404).json({
         success: false,

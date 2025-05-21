@@ -13,7 +13,19 @@ import Policy from "./pages/landing/P-Policy/Policy.jsx";
 import Clients from "./pages/client_page/page/Home.jsx";
 import NeedSheetForm from "./pages/client_page/Global/NeedSheetForm/NeedSheetForm.jsx";
 import ClientPortal from "./pages/client_page/Global/account/ClientPortal.jsx";
+import MatchSteps from "./pages/client_page/components/ai_matching/MatchSteps.jsx";
+//market
+import { MarketplaceProvider } from "./pages/Market/MarketplaceContext/MarketplaceContext.jsx";
+import Marketplace from "./pages/Market/market_place/marketplace.jsx";
+import ProductDetails from "./pages/Market/ProductDetails/ProductDetails.jsx";
+import FavoritesPage from "./pages/Market/Favorites/FavoritesPage.jsx";
+import CartPage from "./pages/Market/Cart/CartPage.jsx";
+//oauth
+import OAuthSuccess from "./pages/auth/AuthSuccess.jsx";
 //test
+
+import RegisterForm from "./pages/auth/RegisterForm.jsx";
+
 function App() {
   return (
     <>
@@ -30,6 +42,45 @@ function App() {
         <Route path="/trending" element={<InteriorDesignTrends />} />
         <Route path="/needSheet" element={<NeedSheetForm />} />
         <Route path="/Profile" element={<ClientPortal />} />
+        <Route path="/register" element={<RegisterForm />} />
+        <Route path="/oauth-success" element={<OAuthSuccess />} />
+        <Route path="/match" element={<MatchSteps />} />
+
+        {/* Marketplace Routes */}
+        <Route
+          path="/marketplace"
+          element={
+            <MarketplaceProvider>
+              <Marketplace />
+            </MarketplaceProvider>
+          }
+        />
+        <Route
+          path="/marketplace/product/:id"
+          element={
+            <MarketplaceProvider>
+              <ProductDetails
+                productId={window.location.pathname.split("/").pop()}
+              />
+            </MarketplaceProvider>
+          }
+        />
+        <Route
+          path="/marketplace/favorites"
+          element={
+            <MarketplaceProvider>
+              <FavoritesPage />
+            </MarketplaceProvider>
+          }
+        />
+        <Route
+          path="/marketplace/cart"
+          element={
+            <MarketplaceProvider>
+              <CartPage />
+            </MarketplaceProvider>
+          }
+        />
 
         <Route path="*" element={<Clients />} />
       </Routes>

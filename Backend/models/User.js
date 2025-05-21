@@ -11,10 +11,13 @@ const userSchema = new mongoose.Schema(
     password: { type: String, minlength: 8, select: false },
     profilePicture: { type: String },
     phoneNumber: { type: String },
-    auth0Id: { type: String, unique: true },
+
+    // Auth methods
+    auth0Id: { type: String },
+    googleId: { type: String }, // Add Google ID field
     authMethod: {
       type: String,
-      enum: ["auth0", "local"],
+      enum: ["auth0", "local", "google"], // Add "google" to auth methods
       required: true,
     },
     role: {
@@ -23,12 +26,19 @@ const userSchema = new mongoose.Schema(
       default: "client",
     },
     location: {
-      country: { type: String },
+      country: { type: String, default: "Tunisia" },
       region: { type: String },
-      city: { type: String },
       coordinates: {
         type: { type: String, enum: ["Point"] },
-        coordinates: { type: [Number] },
+        coordinates: {
+          type: [Number],
+          validate: {
+            validator: function (arr) {
+              return arr.length === 2;
+            },
+            message: "Coordinates must be an array of [longitude, latitude]",
+          },
+        },
       },
     },
     isVerified: { type: Boolean, default: false },
@@ -40,7 +50,6 @@ const userSchema = new mongoose.Schema(
     infoTerm: { type: Boolean, default: false },
     majorTerm: { type: Boolean, default: false },
     exterieurParticipantTerm: { type: Boolean, default: false },
-   
 
     authTokens: [
       {
@@ -50,6 +59,7 @@ const userSchema = new mongoose.Schema(
     ],
     resetPasswordToken: String,
     resetPasswordExpires: Date,
+    firstLogin: { type: Boolean, default: false }, // Track first login
   },
   { timestamps: true, discriminatorKey: "role" }
 );
@@ -78,7 +88,7 @@ userSchema.methods.generateAuthToken = async function () {
     }
   );
 
-  // Store the raw token (no hashing needed as JWT is already secure)
+  // Store the raw token
   this.authTokens.push({ token, createdAt: Date.now() });
 
   // Cleanup old tokens (older than 30 days)
@@ -89,7 +99,7 @@ userSchema.methods.generateAuthToken = async function () {
   return token;
 };
 
-// Compare token method (direct comparison, no bcrypt)
+// Compare token method
 userSchema.methods.compareToken = function (token) {
   return this.authTokens.some((tokenObj) => tokenObj.token === token);
 };
@@ -101,6 +111,9 @@ userSchema.methods.toJSON = function () {
   delete user.authTokens;
   return user;
 };
+
+userSchema.index({ "location.coordinates": "2dsphere" });
+userSchema.index({ googleId: 1 }, { sparse: true }); // Add index for googleId
 
 const User = mongoose.model("User", userSchema);
 module.exports = User;

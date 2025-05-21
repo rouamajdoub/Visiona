@@ -4,20 +4,18 @@ import {
   Typography,
   Button,
   TextField,
-  Card,
-  CardContent,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  IconButton,
   Paper,
   Grid,
   CircularProgress,
   Divider,
 } from "@mui/material";
-import { Delete, Add, Email, Phone, LocationOn } from "@mui/icons-material";
+import { Delete, Add } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
+import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import {
   fetchClients,
   createClient,
@@ -120,7 +118,7 @@ const ClientManagement = () => {
   };
 
   const formatAddress = (address) => {
-    if (!address) return "";
+    if (!address) return "N/A";
     return [
       address.street,
       address.city,
@@ -131,6 +129,52 @@ const ClientManagement = () => {
       .filter(Boolean)
       .join(", ");
   };
+
+  const columns = [
+    { field: "_id", headerName: "ID", width: 220 },
+    { field: "name", headerName: "Client Name", flex: 1 },
+    { field: "email", headerName: "Email", flex: 1 },
+    {
+      field: "phone",
+      headerName: "Phone",
+      flex: 1,
+      valueGetter: (params) =>
+        params.row && params.row.phone ? params.row.phone : "N/A",
+    },
+    {
+      field: "address",
+      headerName: "Address",
+      flex: 1.5,
+      valueGetter: (params) =>
+        params.row ? formatAddress(params.row.address) : "N/A",
+    },
+    {
+      field: "notes",
+      headerName: "Notes",
+      flex: 1,
+      valueGetter: (params) =>
+        params.row && params.row.notes ? params.row.notes : "N/A",
+    },
+    {
+      field: "actions",
+      headerName: "Actions",
+      flex: 0.7,
+      sortable: false,
+      renderCell: (params) => (
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            variant="contained"
+            color="error"
+            size="small"
+            onClick={() => params.row && handleRemoveClient(params.row._id)}
+            startIcon={<Delete />}
+          >
+            Delete
+          </Button>
+        </Box>
+      ),
+    },
+  ];
 
   return (
     <Box sx={{ p: 3 }}>
@@ -167,80 +211,44 @@ const ClientManagement = () => {
           <CircularProgress />
         </Box>
       ) : (
-        <>
+        <Box
+          height="75vh"
+          sx={{
+            "& .MuiDataGrid-root": { border: "none" },
+            "& .MuiDataGrid-cell": { borderBottom: "none" },
+            "& .MuiDataGrid-columnHeaders": {
+              borderBottom: "none",
+            },
+            "& .MuiDataGrid-footerContainer": {
+              borderTop: "none",
+            },
+          }}
+        >
           {clients?.length > 0 ? (
-            <Grid container spacing={3}>
-              {clients.map((client) => (
-                <Grid item xs={12} md={6} lg={4} key={client._id}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6">{client.name}</Typography>
-
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", mt: 1 }}
-                      >
-                        <Email fontSize="small" sx={{ mr: 1 }} />
-                        <Typography variant="body2">{client.email}</Typography>
-                      </Box>
-
-                      {client.phone && (
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", mt: 1 }}
-                        >
-                          <Phone fontSize="small" sx={{ mr: 1 }} />
-                          <Typography>{client.phone}</Typography>
-                        </Box>
-                      )}
-
-                      {client.address && (
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", mt: 1 }}
-                        >
-                          <LocationOn fontSize="small" sx={{ mr: 1 }} />
-                          <Typography variant="body2">
-                            {formatAddress(client.address)}
-                          </Typography>
-                        </Box>
-                      )}
-
-                      {client.notes && (
-                        <Box sx={{ mt: 2 }}>
-                          <Typography variant="caption" color="text.secondary">
-                            Notes:
-                          </Typography>
-                          <Typography variant="body2">
-                            {client.notes}
-                          </Typography>
-                        </Box>
-                      )}
-
-                      <Box
-                        sx={{
-                          mt: 2,
-                          display: "flex",
-                          justifyContent: "flex-end",
-                        }}
-                      >
-                        <IconButton
-                          color="error"
-                          onClick={() => handleRemoveClient(client._id)}
-                        >
-                          <Delete />
-                        </IconButton>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
+            <DataGrid
+              rows={clients || []}
+              columns={columns}
+              getRowId={(row) =>
+                row && row._id ? row._id : Math.random().toString()
+              }
+              components={{ Toolbar: GridToolbar }}
+              componentsProps={{
+                toolbar: {
+                  showQuickFilter: true,
+                  quickFilterProps: { debounceMs: 500 },
+                },
+              }}
+              pageSize={10}
+              rowsPerPageOptions={[10, 25, 50]}
+            />
           ) : (
-            <Paper sx={{ p: 4, textAlign: "center" }}>
+            <Paper sx={{ p: 4, textAlign: "center", height: "100%" }}>
               <Typography color="text.secondary">
                 No clients found. Start by adding your first client.
               </Typography>
             </Paper>
           )}
-        </>
+        </Box>
       )}
 
       {/* Add Client Dialog */}

@@ -1,0 +1,253 @@
+/* Market Section Container */
+.market-section-container {
+  position: relative;
+  padding: 120px 5%;
+  overflow: hidden;
+  background: white;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Content Container */
+.market-section-content {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+}
+
+/* Text Content */
+.market-section-text {
+  flex: 0 0 45%;
+  padding-right: 40px;
+}
+
+.market-section-title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+  color: #1a1a1a;
+}
+
+.market-section-subtitle {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  margin-bottom: 2.5rem;
+  color: #555;
+  max-width: 90%;
+}
+
+/* CTA Button */
+.market-cta-btn {
+  background: linear-gradient(90deg, #4f46e5, #818cf8);
+  color: white;
+  border: none;
+  padding: 16px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.market-cta-btn:hover {
+  background-color: #34495e;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Images Container */
+.market-section-images {
+  flex: 0 0 55%;
+  position: relative;
+  height: 500px;
+}
+
+/* Image Wrappers */
+.market-image-wrapper {
+  position: absolute;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  background-color: white;
+  overflow: hidden;
+}
+
+/* Image Placeholders (replace with your actual images) */
+.market-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #999;
+  background-color: #f0f0f0;
+}
+
+/* Primary Image */
+.market-image-primary {
+  width: 300px;
+  height: 400px;
+  top: 0;
+  left: 0;
+  z-index: 3;
+}
+
+/* Secondary Image */
+.market-image-secondary {
+  width: 250px;
+  height: 350px;
+  top: 50px;
+  left: 220px;
+  z-index: 2;
+}
+
+/* Tertiary Image */
+.market-image-tertiary {
+  width: 200px;
+  height: 300px;
+  top: 150px;
+  left: 400px;
+  z-index: 1;
+}
+
+/* Responsive Styles */
+@media (max-width: 1200px) {
+  .market-section-title {
+    font-size: 3rem;
+  }
+
+  .market-image-primary {
+    width: 250px;
+    height: 350px;
+  }
+
+  .market-image-secondary {
+    width: 220px;
+    height: 300px;
+    left: 180px;
+  }
+
+  .market-image-tertiary {
+    width: 180px;
+    height: 250px;
+    left: 330px;
+  }
+}
+
+@media (max-width: 992px) {
+  .market-section-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .market-section-text {
+    flex: 0 0 100%;
+    padding-right: 0;
+    margin-bottom: 60px;
+  }
+
+  .market-section-subtitle {
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .market-section-images {
+    flex: 0 0 100%;
+    height: 400px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .market-image-primary {
+    left: 50%;
+    transform: translateX(-50%);
+    top: 0;
+  }
+
+  .market-image-secondary {
+    left: calc(50% - 180px);
+    top: 50px;
+  }
+
+  .market-image-tertiary {
+    left: calc(50% + 100px);
+    top: 100px;
+  }
+}
+
+@media (max-width: 768px) {
+  .market-section-container {
+    padding: 80px 5%;
+  }
+
+  .market-section-title {
+    font-size: 2.5rem;
+  }
+
+  .market-section-subtitle {
+    font-size: 1.1rem;
+  }
+
+  .market-section-images {
+    height: 350px;
+  }
+
+  .market-image-primary {
+    width: 200px;
+    height: 280px;
+  }
+
+  .market-image-secondary {
+    width: 180px;
+    height: 240px;
+    left: calc(50% - 150px);
+  }
+
+  .market-image-tertiary {
+    width: 160px;
+    height: 200px;
+    left: calc(50% + 80px);
+  }
+}
+
+@media (max-width: 576px) {
+  .market-section-container {
+    padding: 60px 5%;
+  }
+
+  .market-section-title {
+    font-size: 2rem;
+  }
+
+  .market-section-images {
+    height: 300px;
+  }
+
+  .market-image-primary {
+    width: 160px;
+    height: 220px;
+  }
+
+  .market-image-secondary {
+    width: 140px;
+    height: 190px;
+    left: calc(50% - 100px);
+  }
+
+  .market-image-tertiary {
+    width: 120px;
+    height: 160px;
+    left: calc(50% + 60px);
+  }
+}

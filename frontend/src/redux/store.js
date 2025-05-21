@@ -12,7 +12,10 @@ import quotesReducer from "./slices/quotesSlice";
 import needSheetReducer from "./slices/needSheetSlice";
 import subscriptionReducer from "./slices/subscriptionSlice";
 import serviceCategoriesReducer from "./slices/serviceCategoriesSlice";
-
+import globalOptionsReducer from "./slices/globalOptionsSlice";
+import statReducer from "./slices/statSlice";
+import architectApprovalReducer from "./slices/architectApprovalSlice";
+import reviewsReducer from "./slices/reviewsSlice";
 const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -27,6 +30,10 @@ const store = configureStore({
     quotes: quotesReducer,
     needSheet: needSheetReducer,
     serviceCategories: serviceCategoriesReducer,
+    globalOptions: globalOptionsReducer,
+    stats: statReducer,
+    architectApproval: architectApprovalReducer,
+    reviews: reviewsReducer,
   },
 });
 

@@ -5,10 +5,15 @@ import {
   createNeedSheet,
   updateFormData,
   resetFormData,
+  addService,
+  removeService,
+  updateLocation,
   selectNeedSheetFormData,
   selectNeedSheetLoading,
   selectNeedSheetSuccess,
   selectNeedSheetError,
+  selectNeedSheetServices,
+  selectNeedSheetLocation,
 } from "../../../../redux/slices/needSheetSlice";
 
 import "./NeedSheetForm.css";
@@ -17,11 +22,13 @@ const NeedSheetForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Redux state
+  // Redux state with updated selectors
   const formData = useSelector(selectNeedSheetFormData);
   const loading = useSelector(selectNeedSheetLoading);
   const success = useSelector(selectNeedSheetSuccess);
   const error = useSelector(selectNeedSheetError);
+  const services = useSelector(selectNeedSheetServices);
+  const location = useSelector(selectNeedSheetLocation);
 
   // Local state
   const [currentStep, setCurrentStep] = useState(1);
@@ -29,7 +36,7 @@ const NeedSheetForm = () => {
     projectTypes: [],
     propertyType: "",
     location: {
-      country: "",
+      country: "Tunisia",
       region: "",
       city: "",
       postalCode: "",
@@ -68,7 +75,7 @@ const NeedSheetForm = () => {
 
   const ownershipStatusOptions = ["Owner", "Renter", "Representative"];
 
-  const serviceOptions = {
+  const serviceCategories = {
     "Architectural Design": [
       "Residential Architecture",
       "Commercial Architecture",
@@ -150,9 +157,6 @@ const NeedSheetForm = () => {
 
   const startTimeOptions = ["ASAP", "1-3 months", "6 months", "Flexible"];
 
-  // Flatten the service options for rendering and search
-  const allServices = Object.values(serviceOptions).flat();
-
   useEffect(() => {
     // Initialize form with any saved data from Redux
     if (Object.keys(formData).length > 0) {
@@ -183,13 +187,27 @@ const NeedSheetForm = () => {
     // Handle nested objects (location, budget)
     if (name.includes(".")) {
       const [parent, child] = name.split(".");
-      setFormValues({
-        ...formValues,
-        [parent]: {
-          ...formValues[parent],
-          [child]: value,
-        },
-      });
+
+      // Special handling for location
+      if (parent === "location") {
+        dispatch(updateLocation({ [child]: value }));
+
+        setFormValues({
+          ...formValues,
+          [parent]: {
+            ...formValues[parent],
+            [child]: value,
+          },
+        });
+      } else {
+        setFormValues({
+          ...formValues,
+          [parent]: {
+            ...formValues[parent],
+            [child]: value,
+          },
+        });
+      }
     } else {
       setFormValues({
         ...formValues,
@@ -216,6 +234,88 @@ const NeedSheetForm = () => {
         [field]: [...currentValues, value],
       });
     }
+  };
+
+  // Handle service selection with the updated structure
+  const handleServiceChange = (category, subcategory) => {
+    // Find if the category already exists in services
+    const existingServiceIndex = formValues.services.findIndex(
+      (service) => service.category === category
+    );
+
+    if (existingServiceIndex !== -1) {
+      // Category exists, update subcategories
+      const updatedServices = [...formValues.services];
+      const currentSubcategories =
+        updatedServices[existingServiceIndex].subcategories || [];
+
+      // Toggle subcategory
+      if (currentSubcategories.includes(subcategory)) {
+        // Remove subcategory
+        updatedServices[existingServiceIndex].subcategories =
+          currentSubcategories.filter((sub) => sub !== subcategory);
+
+        // If no subcategories left, remove the category
+        if (updatedServices[existingServiceIndex].subcategories.length === 0) {
+          dispatch(removeService(category));
+          updatedServices.splice(existingServiceIndex, 1);
+        } else {
+          // Update service with new subcategories
+          dispatch(
+            addService({
+              category: category,
+              subcategories:
+                updatedServices[existingServiceIndex].subcategories,
+            })
+          );
+        }
+      } else {
+        // Add subcategory
+        updatedServices[existingServiceIndex].subcategories = [
+          ...currentSubcategories,
+          subcategory,
+        ];
+
+        // Update service with new subcategories
+        dispatch(
+          addService({
+            category: category,
+            subcategories: updatedServices[existingServiceIndex].subcategories,
+          })
+        );
+      }
+
+      setFormValues({
+        ...formValues,
+        services: updatedServices,
+      });
+    } else {
+      // Category doesn't exist, add it with the subcategory
+      const newService = {
+        category: category,
+        subcategories: [subcategory],
+      };
+
+      dispatch(addService(newService));
+
+      setFormValues({
+        ...formValues,
+        services: [...formValues.services, newService],
+      });
+    }
+  };
+
+  // Check if a subcategory is selected
+  const isSubcategorySelected = (category, subcategory) => {
+    const serviceEntry = formValues.services.find(
+      (service) => service.category === category
+    );
+
+    return (
+      serviceEntry &&
+      serviceEntry.subcategories &&
+      serviceEntry.subcategories.includes(subcategory)
+    );
   };
 
   // Navigate to the next step
@@ -533,7 +633,7 @@ const NeedSheetForm = () => {
     );
   };
 
-  // Step 5: Services
+  // Step 5: Services - Updated to use new service structure
   const renderServicesStep = () => {
     return (
       <div className="form-step">
@@ -543,24 +643,30 @@ const NeedSheetForm = () => {
         </p>
 
         <div className="services-container">
-          {Object.entries(serviceOptions).map(([category, services]) => (
-            <div className="service-category" key={category}>
-              <h3>{category}</h3>
-              <div className="checkbox-grid">
-                {services.map((service) => (
-                  <div className="checkbox-item" key={service}>
-                    <input
-                      type="checkbox"
-                      id={`service-${service}`}
-                      checked={formValues.services.includes(service)}
-                      onChange={() => handleCheckboxChange("services", service)}
-                    />
-                    <label htmlFor={`service-${service}`}>{service}</label>
-                  </div>
-                ))}
+          {Object.entries(serviceCategories).map(
+            ([category, subcategories]) => (
+              <div className="service-category" key={category}>
+                <h3>{category}</h3>
+                <div className="checkbox-grid">
+                  {subcategories.map((subcategory) => (
+                    <div className="checkbox-item" key={subcategory}>
+                      <input
+                        type="checkbox"
+                        id={`service-${subcategory}`}
+                        checked={isSubcategorySelected(category, subcategory)}
+                        onChange={() =>
+                          handleServiceChange(category, subcategory)
+                        }
+                      />
+                      <label htmlFor={`service-${subcategory}`}>
+                        {subcategory}
+                      </label>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       </div>
     );

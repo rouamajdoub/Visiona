@@ -1,3 +1,4 @@
+// Updated Architect Model (models/Architect.js)
 const mongoose = require("mongoose");
 const User = require("./User");
 
@@ -10,6 +11,41 @@ const architectSchema = new mongoose.Schema(
       enum: ["local"],
       required: true,
     },
+    //admin verification
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+    rejectionDetails: {
+      reason: {
+        type: String,
+        enum: [
+          "Incomplete Documentation",
+          "Invalid Professional Credentials",
+          "Insufficient Portfolio Quality",
+          "Duplicate Account",
+          "Inappropriate Content",
+          "Terms Violation",
+          "Other",
+        ],
+      },
+      customReason: { type: String }, // For "Other" or additional details
+      rejectedAt: { type: Date },
+    },
+    //profile
+    documents: [{ type: String }],
+
+    // Updated file paths for required documents
+    patenteFile: {
+      type: String,
+      required: true,
+    }, // Path to the patent PDF file
+    cinFile: {
+      type: String,
+      required: true,
+    }, // Path to the CIN image file
+
     firstLogin: { type: Boolean, default: false },
     bio: { type: String },
     phoneNumber: { type: String },
@@ -22,14 +58,13 @@ const architectSchema = new mongoose.Schema(
     portfolioURL: { type: String },
 
     //imgs
-    portfolio: [{ type: String }], // Array of image URLs showcasing work for the clinet
+    portfolio: [{ type: String }], // Array of image URLs showcasing work for the client
     companyLogo: { type: String }, // URL to company logo
     profilePicture: { type: String }, // URL to profile image
 
     //pdf
     certifications: { type: [String] },
     patenteNumber: { type: String, required: true },
-    cin: { type: String, required: true },
     education: {
       degree: { type: String },
       institution: String,
@@ -44,23 +79,7 @@ const architectSchema = new mongoose.Schema(
         },
       },
     ],
-    location: {
-      country: { type: String },
-      region: { type: String },
-      city: { type: String },
-      coordinates: {
-        type: { type: String, enum: ["Point"] },
-        coordinates: {
-          type: [Number],
-          validate: {
-            validator: function (arr) {
-              return arr.length === 2;
-            },
-            message: "Coordinates must be an array of [longitude, latitude]",
-          },
-        },
-      },
-    },
+
     website: { type: String },
     socialMedia: {
       linkedin: String,
@@ -178,42 +197,9 @@ const architectSchema = new mongoose.Schema(
       default: "pending",
     },
 
-    //admin verification
-    status: {
-      type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
-    },
-    rejectionDetails: {
-      reason: {
-        type: String,
-        enum: [
-          "Incomplete Documentation",
-          "Invalid Professional Credentials",
-          "Insufficient Portfolio Quality",
-          "Duplicate Account",
-          "Inappropriate Content",
-          "Terms Violation",
-          "Other",
-        ],
-      },
-      customReason: { type: String }, // For "Other" or additional details
-      rejectedAt: { type: Date },
-    },
-
-    documents: [{ type: String }],
     isActive: { type: Boolean, default: true },
-
-    termsAccepted: {
-      content: { type: Boolean, default: false },
-      cgvCgu: { type: Boolean, default: false },
-      privacy: { type: Boolean, default: false },
-      lastUpdated: Date,
-    },
   },
   { timestamps: true }
 );
-
-architectSchema.index({ "location.coordinates": "2dsphere" });
 
 module.exports = User.discriminator("architect", architectSchema);

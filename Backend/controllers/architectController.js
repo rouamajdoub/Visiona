@@ -3,6 +3,8 @@ const {
   sendApprovalEmail,
   sendRejectionEmail,
 } = require("../utils/emailService");
+const fs = require("fs");
+const path = require("path");
 
 // Get all architect requests
 exports.getArchitectRequests = async (req, res) => {
@@ -17,6 +19,89 @@ exports.getArchitectRequests = async (req, res) => {
   } catch (error) {
     console.error("Error fetching architect requests:", error);
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Get detailed architect information by ID
+exports.getArchitectDetails = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Find the architect by ID, ensuring they have the architect role
+    const architect = await User.findOne({
+      _id: id,
+      role: "architect",
+    }).select("-password -authTokens");
+
+    if (!architect) {
+      return res.status(404).json({ error: "Architect not found" });
+    }
+
+    // Return the architect data including file paths
+    res.json({
+      message: "Architect details retrieved successfully",
+      architect,
+    });
+  } catch (error) {
+    console.error("Error fetching architect details:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get architect document file (patent PDF or CIN image)
+exports.getArchitectDocument = async (req, res) => {
+  const { id, docType } = req.params;
+
+  if (!["patenteFile", "cinFile"].includes(docType)) {
+    return res.status(400).json({ error: "Invalid document type requested" });
+  }
+
+  try {
+    // Find the architect by ID
+    const architect = await User.findOne({
+      _id: id,
+      role: "architect",
+    }).select(docType);
+
+    if (!architect) {
+      return res.status(404).json({ error: "Architect not found" });
+    }
+
+    const filePath = architect[docType];
+
+    if (!filePath) {
+      return res.status(404).json({ error: "Document not found" });
+    }
+
+    // Resolve the absolute path to the file
+    // Assuming files are stored in a 'uploads' directory relative to the project root
+    const absolutePath = path.resolve(process.cwd(), filePath);
+
+    // Check if file exists
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ error: "File not found on server" });
+    }
+
+    // Determine content type based on file extension
+    const ext = path.extname(filePath).toLowerCase();
+    let contentType = "application/octet-stream"; // Default content type
+
+    if (ext === ".pdf") {
+      contentType = "application/pdf";
+    } else if ([".jpg", ".jpeg"].includes(ext)) {
+      contentType = "image/jpeg";
+    } else if (ext === ".png") {
+      contentType = "image/png";
+    }
+
+    // Set content type header and send file
+    res.setHeader("Content-Type", contentType);
+    res.sendFile(absolutePath);
+  } catch (error) {
+    console.error(`Error retrieving ${docType}:`, error);
+    res
+      .status(500)
+      .json({ error: "Failed to retrieve document", details: error.message });
   }
 };
 

@@ -1,4 +1,4 @@
-import React  from "react";
+import React from "react";
 import "./Card.css";
 import { CircularProgressbar } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
@@ -14,32 +14,35 @@ const Card = ({
   series,
   isExpanded,
   onCardClick,
+  timeFrame = "Monthly", // Add timeFrame prop with default value
 }) => {
   return (
     <AnimatePresence>
       {isExpanded ? (
         <ExpandedCard
-          key={`expanded-${title}`} // Unique key for expanded card
+          key={`expanded-${title}`}
           title={title}
           color={color}
           series={series}
           onClose={onCardClick}
+          timeFrame={timeFrame}
         />
       ) : (
         <CompactCard
-          key={`compact-${title}`} // Unique key for compact card
+          key={`compact-${title}`}
           title={title}
           color={color}
           barValue={barValue}
           value={value}
           onClick={onCardClick}
+          timeFrame={timeFrame}
         />
       )}
     </AnimatePresence>
   );
 };
 
-const CompactCard = ({ title, color, barValue, value, onClick }) => {
+const CompactCard = ({ title, color, barValue, value, onClick, timeFrame }) => {
   return (
     <motion.div
       className="CompactCard"
@@ -47,7 +50,7 @@ const CompactCard = ({ title, color, barValue, value, onClick }) => {
         background: color.backGround,
         boxShadow: color.boxShadow,
       }}
-      layoutId={`card-${title}`} // Unique layoutId for each card
+      layoutId={`card-${title}`}
       onClick={onClick}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -58,14 +61,18 @@ const CompactCard = ({ title, color, barValue, value, onClick }) => {
         <span>{title}</span>
       </div>
       <div className="detail">
-        <span>${value}</span>
-        <span>Last 24 hours</span>
+        <span>{value}</span>
+        <span>This month's {title.toLowerCase()}</span>
+        <span className="percentage-change">
+          {barValue > 0 ? "+" : ""}
+          {barValue}% vs last month
+        </span>
       </div>
     </motion.div>
   );
 };
 
-const ExpandedCard = ({ title, color, series, onClose }) => {
+const ExpandedCard = ({ title, color, series, onClose, timeFrame }) => {
   const data = {
     options: {
       chart: {
@@ -85,11 +92,41 @@ const ExpandedCard = ({ title, color, series, onClose }) => {
       },
       tooltip: {
         x: {
-          format: "dd/MM/yy HH:mm",
+          format: "MMM",
         },
       },
+      grid: {
+        show: true,
+        borderColor: "rgba(255, 255, 255, 0.2)",
+        strokeDashArray: 0,
+      },
       xaxis: {
-        type: "datetime",
+        categories: [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ],
+        labels: {
+          style: {
+            colors: "#fff",
+          },
+        },
+      },
+      yaxis: {
+        labels: {
+          style: {
+            colors: "#fff",
+          },
+        },
       },
     },
   };
@@ -101,7 +138,7 @@ const ExpandedCard = ({ title, color, series, onClose }) => {
         background: color.backGround,
         boxShadow: color.boxShadow,
       }}
-      layoutId={`card-${title}`} // Match the layoutId with CompactCard
+      layoutId={`card-${title}`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -113,7 +150,9 @@ const ExpandedCard = ({ title, color, series, onClose }) => {
       <div className="chartContainer">
         <Chart options={data.options} series={series} type="area" />
       </div>
-      <span>Last 24 hours</span>
+      <span>
+        {timeFrame} trends for {new Date().getFullYear()}
+      </span>
     </motion.div>
   );
 };

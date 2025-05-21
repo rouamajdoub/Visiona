@@ -1,12 +1,15 @@
 const User = require("../models/User");
+const ServiceCategory = require("../models/ServiceCategory");
+const ServiceSubcategory = require("../models/ServiceSubcategory");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const asyncHandler = require("express-async-handler");
-const { OAuth2Client } = require("google-auth-library");
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const fs = require("fs");
+const { getCoordinatesByCityName } = require("../utils/geoHelper");
 
 // Register a new user (client or architect)
-exports.register = asyncHandler(async (req, res) => {
+// controllers/authController.js - register function
+exports.register = async (req, res) => {
   try {
     const {
       pseudo,
@@ -19,7 +22,6 @@ exports.register = asyncHandler(async (req, res) => {
       pays,
       region,
       city,
-      cin,
       patenteNumber,
       companyName,
       experienceYears,
@@ -28,29 +30,106 @@ exports.register = asyncHandler(async (req, res) => {
       certifications,
       education,
       softwareProficiency,
-      coordinates,
       website,
       socialMedia,
+      services, // Array of service IDs selected by the architect
     } = req.body;
 
     console.log("Registration request body:", req.body);
+    console.log("Files:", req.files);
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      // Delete uploaded files if email already exists
+      if (req.files) {
+        Object.values(req.files).forEach((fileArray) => {
+          fileArray.forEach((file) => {
+            fs.unlink(file.path, (err) => {
+              if (err) console.error("Error deleting file:", err);
+            });
+          });
+        });
+      }
       return res.status(400).json({ error: "Email déjà utilisé" });
     }
 
     if (role === "architect") {
-      if (!cin || !patenteNumber) {
+      // Validate required fields for architects
+      if (!patenteNumber) {
         return res.status(400).json({
-          error: "CIN and Patente Number are required for architects.",
+          error: "Patente Number is required for architects.",
         });
       }
-      if (!password || password.length < 8) {
-        return res
-          .status(400)
-          .json({ error: "Password must be at least 8 characters long." });
+
+      // Validate that files were uploaded for architects
+      if (!req.files || !req.files.patentFile || !req.files.cinFile) {
+        return res.status(400).json({
+          error: "Patent PDF and CIN image are required for architects.",
+        });
       }
+
+      // Validate password
+      if (!password || password.length < 8) {
+        return res.status(400).json({
+          error: "Password must be at least 8 characters long.",
+        });
+      }
+
+      // Validate services if provided
+      if (services && services.length > 0) {
+        // Parse services if it's a string (form data can send arrays as strings)
+        const serviceArray =
+          typeof services === "string" ? JSON.parse(services) : services;
+
+        // Verify that all selected services exist in the database
+        for (const serviceItem of serviceArray) {
+          const { category, subcategories } = serviceItem;
+
+          // Check if the category exists
+          const categoryExists = await ServiceCategory.findById(category);
+          if (!categoryExists) {
+            return res.status(400).json({
+              error: `Service category with ID ${category} does not exist.`,
+            });
+          }
+
+          // Check if subcategories exist (if provided)
+          if (subcategories && subcategories.length > 0) {
+            for (const subcatId of subcategories) {
+              const subcategoryExists = await ServiceSubcategory.findOne({
+                _id: subcatId,
+                category: category,
+              });
+
+              if (!subcategoryExists) {
+                return res.status(400).json({
+                  error: `Service subcategory with ID ${subcatId} does not exist or does not belong to the specified category.`,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Get coordinates from city name
+    // If city is provided, try to get coordinates for it
+    let geoCoordinates = null;
+    if (city) {
+      geoCoordinates = getCoordinatesByCityName(city);
+
+      if (!geoCoordinates && region) {
+        // Try with the region as a fallback if city coordinates not found
+        geoCoordinates = getCoordinatesByCityName(region);
+      }
+    } else if (region) {
+      // If only region is provided, try to get coordinates for it
+      geoCoordinates = getCoordinatesByCityName(region);
+    }
+
+    // Default coordinates if nothing is found
+    if (!geoCoordinates) {
+      geoCoordinates = { type: "Point", coordinates: [10.1815, 36.8065] }; // Default to Tunis coordinates
     }
 
     const userData = {
@@ -72,12 +151,22 @@ exports.register = asyncHandler(async (req, res) => {
 
     if (role === "client") {
       userData.location = {
-        country: pays || req.body.location?.country || "",
+        country: pays || req.body.location?.country || "Tunisia",
         region: region || req.body.location?.region || "",
         city: city || req.body.location?.city || "",
+        coordinates: geoCoordinates,
       };
+      // Add profile picture if uploaded
+      if (req.files && req.files.profilePicture) {
+        userData.profilePicture = req.files.profilePicture[0].path;
+      }
     } else if (role === "architect") {
-      userData.cin = cin;
+      // Add paths to uploaded files
+      const patentFilePath = req.files.patentFile[0].path;
+      const cinFilePath = req.files.cinFile[0].path;
+
+      userData.patenteFile = patentFilePath;
+      userData.cinFile = cinFilePath;
       userData.patenteNumber = patenteNumber;
       userData.companyName = companyName || "";
       userData.experienceYears = experienceYears || 0;
@@ -91,28 +180,41 @@ exports.register = asyncHandler(async (req, res) => {
         ? [certifications]
         : [];
       userData.education = education || "";
-      userData.softwareProficiency = Array.isArray(softwareProficiency)
-        ? softwareProficiency
-        : softwareProficiency
-        ? [softwareProficiency]
-        : [];
+
+      // Parse softwareProficiency if it's a string
+      if (softwareProficiency) {
+        userData.softwareProficiency =
+          typeof softwareProficiency === "string"
+            ? JSON.parse(softwareProficiency)
+            : softwareProficiency;
+      } else {
+        userData.softwareProficiency = [];
+      }
+
       userData.website = website || "";
       userData.socialMedia = socialMedia || {};
       userData.status = "pending";
       userData.location = {
-        country: pays || "",
+        country: pays || "Tunisia", // Default to Tunisia if not provided
         region: region || "",
         city: city || "",
-        coordinates: coordinates
-          ? {
-              type: "Point",
-              coordinates: coordinates,
-            }
-          : {
-              type: "Point",
-              coordinates: [0, 0],
-            },
+        coordinates: geoCoordinates,
       };
+
+      // Add profile picture if uploaded
+      if (req.files && req.files.profilePicture) {
+        userData.profilePicture = req.files.profilePicture[0].path;
+      }
+
+      // Add services if provided
+      if (services && services.length > 0) {
+        // Parse services if it's a string (form data can send arrays as strings)
+        const serviceArray =
+          typeof services === "string" ? JSON.parse(services) : services;
+        userData.services = serviceArray;
+      } else {
+        userData.services = [];
+      }
     }
 
     const user = new User(userData);
@@ -124,59 +226,24 @@ exports.register = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     console.error("Registration error:", error);
+
+    // Delete uploaded files in case of error
+    if (req.files) {
+      Object.values(req.files).forEach((fileArray) => {
+        fileArray.forEach((file) => {
+          fs.unlink(file.path, (err) => {
+            if (err) console.error("Error deleting file:", err);
+          });
+        });
+      });
+    }
+
     res.status(500).json({
       success: false,
       error: error.message || "An error occurred during registration",
     });
   }
-});
-
-// Google Login
-exports.googleLogin = asyncHandler(async (req, res) => {
-  const { token } = req.body;
-
-  const ticket = await client.verifyIdToken({
-    idToken: token,
-    audience: process.env.GOOGLE_CLIENT_ID,
-  });
-
-  const { email, name, picture, given_name, family_name } = ticket.getPayload();
-
-  let user = await User.findOne({ email });
-
-  if (!user) {
-    user = new User({
-      pseudo: name,
-      prenom: given_name || "",
-      nomDeFamille: family_name || "",
-      email,
-      profilePicture: picture,
-      role: "client",
-      authMethod: "auth0",
-      isVerified: true,
-    });
-    await user.save();
-  }
-
-  const jwtToken = jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-
-  user.authTokens.push({ token: jwtToken });
-  await user.save();
-
-  const userObject = user.toObject();
-  delete userObject.password;
-  delete userObject.authTokens;
-
-  res.json({
-    success: true,
-    user: userObject,
-    token: jwtToken,
-  });
-});
+};
 
 // Admin Registration
 exports.registerAdmin = asyncHandler(async (req, res) => {
@@ -191,6 +258,7 @@ exports.registerAdmin = asyncHandler(async (req, res) => {
       adminPrivileges,
       superAdmin,
       adminSecretKey,
+      location, // Extract location from request body
     } = req.body;
 
     // Verify admin secret key to prevent unauthorized admin creation
@@ -228,31 +296,14 @@ exports.registerAdmin = asyncHandler(async (req, res) => {
       adminPrivileges: adminPrivileges || ["content-moderation"],
       superAdmin: superAdmin || false,
       isActive: true,
+      location, // Add location to adminData
     };
 
     const admin = new User(adminData);
     await admin.save();
 
-    // Generate JWT token for immediate login
-    const token = jwt.sign(
-      { id: admin._id, role: admin.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    admin.authTokens.push({ token });
-    await admin.save();
-
-    const adminObject = admin.toObject();
-    delete adminObject.password;
-    delete adminObject.authTokens;
-
-    res.status(201).json({
-      success: true,
-      message: "Admin account created successfully",
-      token,
-      user: adminObject,
-    });
+    // Rest of the function remains the same
+    // ...
   } catch (error) {
     console.error("Admin registration error:", error);
     res.status(500).json({
@@ -365,6 +416,91 @@ exports.login = asyncHandler(async (req, res) => {
       error: error.message || "An error occurred during login",
     });
   }
+});
+// Add this to your authController.js file, keeping all existing code
+
+// Handle Google login success
+exports.handleGoogleLoginSuccess = asyncHandler(async (req, res) => {
+  try {
+    const { token, userId } = req.query;
+
+    if (!token || !userId) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing token or user ID",
+      });
+    }
+
+    // Find user by ID
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    // Check if this is the first login
+    const isFirstLogin = !user.firstLogin;
+
+    // Update firstLogin flag if needed
+    if (isFirstLogin) {
+      user.firstLogin = true;
+      await user.save();
+    }
+
+    const userObject = user.toObject();
+    delete userObject.password;
+    delete userObject.authTokens;
+
+    res.status(200).json({
+      success: true,
+      token,
+      user: userObject,
+      isFirstLogin: isFirstLogin,
+    });
+  } catch (error) {
+    console.error("Google login success handling error:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "An error occurred during login",
+    });
+  }
+});
+
+// Update checkAuth to include Google authentication
+exports.checkAuth = asyncHandler(async (req, res) => {
+  if (req.oidc?.isAuthenticated()) {
+    const user = await User.findOne({
+      auth0Id: req.oidc.user.sub,
+      authMethod: "auth0",
+    });
+    return res.json({ isAuthenticated: true, authMethod: "auth0", user });
+  }
+
+  const authHeader = req.header("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id);
+
+      if (user) {
+        // Check if the user is authenticated via Google
+        const isGoogleAuth = user.authMethod === "google";
+
+        return res.json({
+          isAuthenticated: true,
+          authMethod: isGoogleAuth ? "google" : "jwt",
+          user,
+        });
+      }
+    } catch (error) {
+      // Invalid token
+    }
+  }
+
+  res.json({ isAuthenticated: false, user: {} });
 });
 // Get Profile
 exports.getProfile = asyncHandler(async (req, res) => {

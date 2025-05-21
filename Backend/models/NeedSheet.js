@@ -31,12 +31,15 @@ const needSheetSchema = new mongoose.Schema({
     ],
   },
 
-  // Step 3: Location
+  // Step 3: Location - Structured like User model
   location: {
     country: String,
     region: String,
     city: String,
-    postalCode: String,
+    coordinates: {
+      type: { type: String, enum: ["Point"], default: "Point" },
+      coordinates: { type: [Number], default: [0, 0] }, // [lng, lat]
+    },
   },
 
   // Step 4: Property Details
@@ -47,87 +50,16 @@ const needSheetSchema = new mongoose.Schema({
     enum: ["Owner", "Renter", "Representative"],
   },
 
-  // Step 5: Services Needed
+  // Step 5: Services Needed - Updated to link to ServiceCategory and ServiceSubcategory
   services: [
     {
-      type: String,
-      enum: [
-        // Architectural Design
-        "Residential Architecture",
-        "Commercial Architecture",
-        "Industrial Architecture",
-        "Renovation and Adaptive Reuse",
-        "Space Programming and Planning",
-        "Conceptual/Schematic Design",
-        "Design Development",
-        "Construction Documentation",
-        "Building Code and Code Compliance",
-
-        // Interior Design
-        "Client Consultation and Programming",
-        "Interior Space Planning",
-        "Interior Concept Development",
-        "3D Interior Renderings and Visualization",
-        "Material and Finish Selection",
-        "Lighting and Color Design",
-        "Furniture, Fixtures & Equipment (FF&E)",
-        "Interior Renovation and Restoration",
-        "Interior Project Coordination and Management",
-
-        // Landscape Architecture
-        "Site Analysis and Conceptual Landscape Design",
-        "Landscape Master Planning",
-        "Planting Design",
-        "Hardscape Design",
-        "Water Feature Design",
-        "Sustainability and Environmental Landscape Design",
-        "Urban and Streetscape Design",
-        "Landscape Construction Documentation and Administration",
-        "Landscape Maintenance and Management Planning",
-
-        // Urban Planning
-        "Land Use and Zoning Analysis",
-        "Site Planning and Subdivision Layout",
-        "Zoning Code Preparation",
-        "Comprehensive and Master Planning",
-        "Urban Design and Redevelopment",
-        "Resilience and Sustainability Planning",
-        "Community Engagement in Planning",
-        "GIS and Urban Data Analysis",
-
-        // Specialized Consulting
-        "Sustainability Consulting",
-        "Heritage and Historic Preservation",
-        "Accessibility Consulting",
-
-        // Project Management and Supervision
-        "Project Scheduling and Cost Control",
-        "Contract and Tender Management",
-        "Construction Supervision",
-        "Quality Assurance and Quality Control",
-        "Progress Monitoring and Reporting",
-        "Safety and Compliance Oversight",
-        "Punch List and Project Closeout",
-
-        // Feasibility and Site Analysis
-        "Site Inventory and Analysis",
-        "Concept Feasibility Studies",
-        "Regulatory Feasibility Analysis",
-        "Market and Program Studies",
-        "Environmental and Impact Assessments",
-
-        // 3D Modeling and BIM
-        "3D CAD Modeling",
-        "Building Information Modeling (BIM)",
-        "3D Renderings and Visualizations",
-        "Virtual and Augmented Reality",
-        "Laser Scanning and Point-Cloud Services",
-
-        // Permit Drawings and Approvals
-        "Permit Drawing Preparation",
-        "Regulatory Submissions",
-        "Code Compliance Documentation",
-        "Official Hearings and Negotiations",
+      category: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "ServiceCategory",
+        required: true,
+      },
+      subcategories: [
+        { type: mongoose.Schema.Types.ObjectId, ref: "ServiceSubcategory" },
       ],
     },
   ],
@@ -153,5 +85,8 @@ const needSheetSchema = new mongoose.Schema({
     default: "Pending",
   },
 });
+
+// Add index for geospatial queries
+needSheetSchema.index({ "location.coordinates": "2dsphere" });
 
 module.exports = mongoose.model("NeedSheet", needSheetSchema);

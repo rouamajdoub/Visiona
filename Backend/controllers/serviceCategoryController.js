@@ -156,31 +156,28 @@ exports.deleteCategory = async (req, res) => {
   try {
     const categoryId = req.params.id;
 
-    // Check if there are any subcategories related to this category
-    const subcategories = await ServiceSubcategory.find({
-      parentCategory: categoryId,
-    });
-
-    if (subcategories.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Cannot delete category with existing subcategories. Please delete the subcategories first.",
-      });
-    }
-
-    const deletedCategory = await ServiceCategory.findByIdAndDelete(categoryId);
-
-    if (!deletedCategory) {
+    // First check if category exists
+    const category = await ServiceCategory.findById(categoryId);
+    if (!category) {
       return res.status(404).json({
         success: false,
         message: "Service category not found",
       });
     }
 
+    // Delete all subcategories associated with this category
+    const deleteSubcategoriesResult = await ServiceSubcategory.deleteMany({
+      parentCategory: categoryId,
+    });
+
+    // Now delete the category
+    const deletedCategory = await ServiceCategory.findByIdAndDelete(categoryId);
+
     res.status(200).json({
       success: true,
-      message: "Service category deleted successfully",
+      message:
+        "Service category and all associated subcategories deleted successfully",
+      deletedSubcategories: deleteSubcategoriesResult.deletedCount,
     });
   } catch (error) {
     console.error("Error deleting service category:", error);

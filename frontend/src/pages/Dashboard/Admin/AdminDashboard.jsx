@@ -4,7 +4,6 @@ import { Box, CircularProgress, Typography } from "@mui/material";
 
 // Global components
 import Sidebar from "./components/Sidebar";
-import Header from "./components/Header";
 
 // Charts
 import UserStatisticsChart from "./components/charts/Bar/UserStat";
@@ -16,7 +15,11 @@ import ReviewManagement from "./pages/ReviewManagement";
 import UserManagement from "./pages/UserManagement";
 import SubscriptionManagement from "./pages/SubscriptionManagement";
 import ArchitectRequests from "./pages/ArchiSignUpReq";
+import ArchitectApprovalPage from "./pages/ArchitectApprovalPage";
 import ServiceManagement from "./pages/ServiceManagement";
+import CertificationManagement from "./pages/CertificationManagement";
+import SoftwareSkillsManagement from "./pages/SoftwareSkillsManagement";
+import CategoryManagement from "./pages/CategoryManagement";
 // CSS
 import "./css/style.css";
 
@@ -28,7 +31,6 @@ import {
   fetchUserStats,
   fetchArchitectRequests,
 } from "../../../redux/slices/adminSlice";
-import { Heading1 } from "lucide-react";
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
@@ -86,8 +88,12 @@ const AdminDashboard = () => {
           {currentView === "reviews" && <ReviewManagement />}
           {currentView === "users" && <UserManagement />}
           {currentView === "subscriptions" && <SubscriptionManagement />}
-          {currentView === "sign-up-req" && <ArchitectRequests />}
+          {currentView === "1sign-up-req" && <ArchitectRequests />}
           {currentView === "services" && <ServiceManagement />}
+          {currentView === "certifications" && <CertificationManagement />}
+          {currentView === "skills" && <SoftwareSkillsManagement />}
+          {currentView === "Market-CAT" && <CategoryManagement />}
+          {currentView === "sign-up-req" && <ArchitectApprovalPage />}
         </Box>
       </Box>
     </Box>

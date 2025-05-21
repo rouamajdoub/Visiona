@@ -20,19 +20,27 @@ const menuItems = [
   { title: "Users", icon: faCog, view: "users" },
   { title: "Architects", icon: faUsers, view: "sign-up-req" },
   { title: "Subscriptions", icon: faFileInvoiceDollar, view: "subscriptions" },
-  { title: "reviews", icon: faClipboardList, view: "reviews" },
-  { title: "Services", icon: faConciergeBell, view: "services" },
+  { title: "Reviews", icon: faClipboardList, view: "reviews" },
+  { title: "Category-Market", icon: faClipboardList, view: "Market-CAT" },
+  { title: "Product-Market", icon: faClipboardList, view: "MArket-PROD" },
+];
+
+const architectOptions = [
+  { title: "Services", view: "services" },
+  { title: "Certifications", view: "certifications" },
+  { title: "Software Skills", view: "skills" },
 ];
 
 const Sidebar = ({ setCurrentView }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selected, setSelected] = useState("Dashboard");
+  const [showArchitectOptions, setShowArchitectOptions] = useState(false);
 
   return (
     <Box
       sx={{
         "& .pro-icon-wrapper": { backgroundColor: "transparent !important" },
-        "& .pro-inner-item": { padding: "5px 35px 5px 20px !important" },
+        "& .pro-inner-item": { padding: "10px 35px !important" }, // Increased padding
         "& .pro-inner-item:hover": { color: "#868dfb !important" },
         "& .pro-menu-item.active": { color: "#6870fa !important" },
         "& .pro-sidebar": {
@@ -41,7 +49,7 @@ const Sidebar = ({ setCurrentView }) => {
           "&::-webkit-scrollbar": { width: "4px" },
         },
       }}
-      className={isCollapsed ? "sidebar-collapsed" : ""} // Add class based on collapsed state
+      className={isCollapsed ? "sidebar-collapsed" : ""}
     >
       <ProSidebar collapsed={isCollapsed}>
         <Menu iconShape="square">
@@ -61,11 +69,7 @@ const Sidebar = ({ setCurrentView }) => {
                 <img
                   src={logo}
                   alt="Logo"
-                  style={{
-                    width: "80px",
-                    height: "auto",
-                    borderRadius: "8px",
-                  }}
+                  style={{ width: "80px", height: "auto", borderRadius: "8px" }}
                 />
                 <IconButton onClick={() => setIsCollapsed(!isCollapsed)}>
                   <MenuOutlinedIcon />
@@ -95,6 +99,42 @@ const Sidebar = ({ setCurrentView }) => {
                 </MenuItem>
               </motion.div>
             ))}
+
+            {/* Architect Settings Dropdown */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <MenuItem
+                icon={<FontAwesomeIcon icon={faConciergeBell} />}
+                onClick={() => setShowArchitectOptions(!showArchitectOptions)}
+              >
+                <Typography>Architect Settings</Typography>
+              </MenuItem>
+
+              {/* Submenu */}
+              {showArchitectOptions &&
+                architectOptions.map((sub, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ x: -10, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <MenuItem
+                      style={{ paddingLeft: "40px" }} // Maintain padding for sub-menu items
+                      active={selected === sub.title}
+                      onClick={() => {
+                        setSelected(sub.title);
+                        setCurrentView(sub.view);
+                      }}
+                    >
+                      <Typography>{sub.title}</Typography>
+                    </MenuItem>
+                  </motion.div>
+                ))}
+            </motion.div>
           </Box>
         </Menu>
       </ProSidebar>

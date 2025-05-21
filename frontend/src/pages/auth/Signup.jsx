@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -7,6 +7,13 @@ import {
   selectAuthStatus,
   selectAuthError,
   resetStatus,
+  fetchGlobalOptions,
+  fetchServiceCategories,
+  selectCertifications,
+  selectSoftwareProficiency,
+  selectServiceCategories,
+  selectGlobalOptionsStatus,
+  selectServiceCategoriesStatus,
 } from "../../redux/slices/authSlice";
 import {
   FaUser,
@@ -28,8 +35,10 @@ import {
   FaInstagram,
   FaArrowRight,
   FaArrowLeft,
-  FaBriefcase,
   FaUserTie,
+  FaUpload,
+  FaTimes,
+  FaPlus,
 } from "react-icons/fa";
 import "./styles/Auth.css";
 
@@ -38,16 +47,21 @@ const Signup = () => {
     register,
     handleSubmit,
     formState: { errors },
-    reset,
     watch,
     setValue,
-    control,
   } = useForm();
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const authStatus = useSelector(selectAuthStatus);
   const authError = useSelector(selectAuthError);
+
+  // Get predefined options from Redux store
+  const certifications = useSelector(selectCertifications);
+  const softwareProficiencyOptions = useSelector(selectSoftwareProficiency);
+  const serviceCategories = useSelector(selectServiceCategories);
+  const globalOptionsStatus = useSelector(selectGlobalOptionsStatus);
+  const serviceCategoriesStatus = useSelector(selectServiceCategoriesStatus);
 
   const [step, setStep] = useState(1);
   const [userType, setUserType] = useState(null);
@@ -61,6 +75,67 @@ const Signup = () => {
 
   // Form data state to hold all data across steps
   const [formData, setFormData] = useState({});
+
+  // New state for file uploads
+  const [cinFile, setCinFile] = useState(null);
+  const [patenteFile, setPatenteFile] = useState(null);
+
+  // New state for autocomplete fields
+  const [selectedServices, setSelectedServices] = useState([]);
+  const [selectedCertifications, setSelectedCertifications] = useState([]);
+
+  // Input field states for autocomplete
+  const [serviceInput, setServiceInput] = useState("");
+  const [certificationInput, setCertificationInput] = useState("");
+  const [softwareInput, setSoftwareInput] = useState("");
+  const [profilePicture, setProfilePicture] = useState(null);
+
+  // Dropdown visibility states
+  const [showServiceDropdown, setShowServiceDropdown] = useState(false);
+  const [showCertificationDropdown, setShowCertificationDropdown] =
+    useState(false);
+  const [showSoftwareDropdown, setShowSoftwareDropdown] = useState(false);
+
+  // Refs for dropdown click outside detection
+  const serviceDropdownRef = useRef(null);
+  const certificationDropdownRef = useRef(null);
+  const softwareDropdownRef = useRef(null);
+
+  // Fetch predefined options when component mounts
+  useEffect(() => {
+    dispatch(fetchGlobalOptions("certification"));
+    dispatch(fetchGlobalOptions("software"));
+    dispatch(fetchServiceCategories());
+  }, [dispatch]);
+
+  // Handle clicks outside dropdown to close them
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        serviceDropdownRef.current &&
+        !serviceDropdownRef.current.contains(event.target)
+      ) {
+        setShowServiceDropdown(false);
+      }
+      if (
+        certificationDropdownRef.current &&
+        !certificationDropdownRef.current.contains(event.target)
+      ) {
+        setShowCertificationDropdown(false);
+      }
+      if (
+        softwareDropdownRef.current &&
+        !softwareDropdownRef.current.contains(event.target)
+      ) {
+        setShowSoftwareDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     if (authStatus === "succeeded") {
@@ -106,6 +181,78 @@ const Signup = () => {
     setSoftwareFields(values);
   };
 
+  // Service selection handlers
+  const handleServiceInputChange = (e) => {
+    setServiceInput(e.target.value);
+    setShowServiceDropdown(true);
+  };
+
+  const addService = (service) => {
+    if (!selectedServices.includes(service)) {
+      setSelectedServices([...selectedServices, service]);
+    }
+    setServiceInput("");
+    setShowServiceDropdown(false);
+  };
+
+  const removeService = (serviceToRemove) => {
+    setSelectedServices(
+      selectedServices.filter((service) => service !== serviceToRemove)
+    );
+  };
+
+  // Certification selection handlers
+  const handleCertificationInputChange = (e) => {
+    setCertificationInput(e.target.value);
+    setShowCertificationDropdown(true);
+  };
+
+  const addCertification = (certification) => {
+    if (!selectedCertifications.includes(certification)) {
+      setSelectedCertifications([...selectedCertifications, certification]);
+    }
+    setCertificationInput("");
+    setShowCertificationDropdown(false);
+  };
+
+  const removeCertification = (certificationToRemove) => {
+    setSelectedCertifications(
+      selectedCertifications.filter((cert) => cert !== certificationToRemove)
+    );
+  };
+
+  // Software selection handlers
+  const handleSoftwareInputChange = (e, index) => {
+    setSoftwareInput(e.target.value);
+    setShowSoftwareDropdown(true);
+  };
+
+  const selectSoftware = (software, index) => {
+    const updatedSoftwareFields = [...softwareFields];
+    updatedSoftwareFields[index].name = software;
+    setSoftwareFields(updatedSoftwareFields);
+    setSoftwareInput("");
+    setShowSoftwareDropdown(false);
+  };
+
+  // File input handlers
+  const handleCinFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setCinFile(e.target.files[0]);
+    }
+  };
+
+  const handlePatenteFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setPatenteFile(e.target.files[0]);
+    }
+  };
+  const handleProfilePictureChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setProfilePicture(e.target.files[0]);
+    }
+  };
+
   const onSubmit = (data) => {
     // Handle form submission based on current step
     const updatedFormData = { ...formData, ...data };
@@ -121,38 +268,100 @@ const Signup = () => {
     }
 
     // At final step, prepare data for submission
-    let submitData = { ...updatedFormData, role: userType };
-
     if (userType === "client") {
-      submitData = {
-        ...submitData,
+      const submitData = {
+        ...updatedFormData,
         pays: updatedFormData.location?.country,
         region: updatedFormData.location?.region,
         city: updatedFormData.location?.city || "",
+        role: userType,
       };
       delete submitData.location;
-    } else if (userType === "architect") {
-      submitData = {
-        ...submitData,
-        education: educationFields.filter(
-          (edu) => edu.degree && edu.institution && edu.graduationYear
-        ),
-        softwareProficiency: softwareFields.filter(
-          (soft) => soft.name && soft.level
-        ),
-        certifications: updatedFormData.certifications
-          ? updatedFormData.certifications.split(",").map((item) => item.trim())
-          : [],
-        experienceYears: parseInt(updatedFormData.experienceYears, 10),
-        pays: updatedFormData.pays || "",
-        region: updatedFormData.region || "",
-        city: updatedFormData.city || "",
-        coordinates: [0, 0],
-      };
-    }
 
-    console.log("Submitting registration data:", submitData);
-    dispatch(registerUser(submitData));
+      dispatch(registerUser(submitData));
+    } else if (userType === "architect") {
+      // Create FormData for file uploads
+      const formDataToSubmit = new FormData();
+
+      // Add basic fields to FormData
+      formDataToSubmit.append("role", userType);
+      formDataToSubmit.append("pseudo", updatedFormData.pseudo);
+      formDataToSubmit.append("prenom", updatedFormData.prenom);
+      formDataToSubmit.append("nomDeFamille", updatedFormData.nomDeFamille);
+      formDataToSubmit.append("email", updatedFormData.email);
+      formDataToSubmit.append("password", updatedFormData.password);
+      formDataToSubmit.append("cin", updatedFormData.cin);
+      formDataToSubmit.append("patenteNumber", updatedFormData.patenteNumber);
+      formDataToSubmit.append("companyName", updatedFormData.companyName);
+      formDataToSubmit.append(
+        "experienceYears",
+        updatedFormData.experienceYears
+      );
+      if (profilePicture) {
+        formDataToSubmit.append("profilePicture", profilePicture);
+      }
+      // Add files to FormData
+      if (cinFile) {
+        formDataToSubmit.append("cinFile", cinFile);
+      }
+
+      if (patenteFile) {
+        formDataToSubmit.append("patentFile", patenteFile);
+      }
+
+      // Add arrays as JSON strings
+      formDataToSubmit.append(
+        "specialization",
+        JSON.stringify(selectedServices)
+      );
+      formDataToSubmit.append(
+        "certifications",
+        JSON.stringify(selectedCertifications)
+      );
+
+      // Add education and software proficiency as JSON strings
+      const validEducation = educationFields.filter(
+        (edu) => edu.degree && edu.institution && edu.graduationYear
+      );
+      formDataToSubmit.append("education", JSON.stringify(validEducation));
+
+      const validSoftware = softwareFields.filter(
+        (soft) => soft.name && soft.level
+      );
+      formDataToSubmit.append(
+        "softwareProficiency",
+        JSON.stringify(validSoftware)
+      );
+
+      // Location fields
+      formDataToSubmit.append("pays", updatedFormData.pays || "");
+      formDataToSubmit.append("region", updatedFormData.region || "");
+      formDataToSubmit.append("city", updatedFormData.city || "");
+
+      // Portfolio and social media
+      formDataToSubmit.append(
+        "portfolioURL",
+        updatedFormData.portfolioURL || ""
+      );
+      formDataToSubmit.append("website", updatedFormData.website || "");
+
+      if (updatedFormData.socialMedia?.linkedin) {
+        formDataToSubmit.append(
+          "socialMedia.linkedin",
+          updatedFormData.socialMedia.linkedin
+        );
+      }
+
+      if (updatedFormData.socialMedia?.instagram) {
+        formDataToSubmit.append(
+          "socialMedia.instagram",
+          updatedFormData.socialMedia.instagram
+        );
+      }
+
+      console.log("Submitting registration data");
+      dispatch(registerUser(formDataToSubmit));
+    }
   };
 
   const handleNextStep = () => {
@@ -206,6 +415,30 @@ const Signup = () => {
         ))}
       </div>
     );
+  };
+
+  // Filter functions for autocomplete
+  const filteredServices =
+    serviceInput === ""
+      ? serviceCategories
+      : serviceCategories.filter((service) =>
+          service.name.toLowerCase().includes(serviceInput.toLowerCase())
+        );
+
+  const filteredCertifications =
+    certificationInput === ""
+      ? certifications
+      : certifications.filter((cert) =>
+          cert.name.toLowerCase().includes(certificationInput.toLowerCase())
+        );
+
+  const filteredSoftware = (index) => {
+    const input = softwareFields[index]?.name || "";
+    return input === ""
+      ? softwareProficiencyOptions
+      : softwareProficiencyOptions.filter((software) =>
+          software.name.toLowerCase().includes(input.toLowerCase())
+        );
   };
 
   return (
@@ -457,6 +690,36 @@ const Signup = () => {
                 )}
               </div>
 
+              {/* New CIN Image Upload */}
+              <div className="form-group file-upload">
+                <label>
+                  <FaIdCard className="input-icon" /> CIN Image
+                </label>
+                <div className="file-input-container">
+                  <label className="file-input-label">
+                    <input
+                      type="file"
+                      onChange={handleCinFileChange}
+                      accept="image/*"
+                      name="cinFile" // This should match the field name expected by backend
+                      className="file-input"
+                    />
+                    <span className="file-input-button">
+                      <FaUpload /> {cinFile ? cinFile.name : "Upload CIN Image"}
+                    </span>
+                  </label>
+                  {cinFile && (
+                    <button
+                      type="button"
+                      className="file-remove-btn"
+                      onClick={() => setCinFile(null)}
+                    >
+                      <FaTimes />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="form-group">
                 <label>
                   <FaFileAlt className="input-icon" /> Patente Number
@@ -473,6 +736,37 @@ const Signup = () => {
                     {errors.patenteNumber.message}
                   </p>
                 )}
+              </div>
+
+              {/* New Patente PDF Upload */}
+              <div className="form-group file-upload">
+                <label>
+                  <FaFileAlt className="input-icon" /> Patente Document (PDF)
+                </label>
+                <div className="file-input-container">
+                  <label className="file-input-label">
+                    <input
+                      type="file"
+                      onChange={handlePatenteFileChange}
+                      accept=".pdf"
+                      name="patentFile" // This should match the field name expected by backend
+                      className="file-input"
+                    />
+                    <span className="file-input-button">
+                      <FaUpload />{" "}
+                      {patenteFile ? patenteFile.name : "Upload Patente PDF"}
+                    </span>
+                  </label>
+                  {patenteFile && (
+                    <button
+                      type="button"
+                      className="file-remove-btn"
+                      onClick={() => setPatenteFile(null)}
+                    >
+                      <FaTimes />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="form-group">
@@ -536,33 +830,115 @@ const Signup = () => {
                 )}
               </div>
 
-              <div className="form-group">
+              {/* New Services Autocomplete */}
+              <div className="form-group autocomplete-wrapper">
                 <label>
-                  <FaCode className="input-icon" /> Specialization
+                  <FaCode className="input-icon" /> Services
                 </label>
-                <input
-                  {...register("specialization", {
-                    required: "Specialization is required",
-                  })}
-                  defaultValue={formData.specialization || ""}
-                  placeholder="Specialization (comma separated)"
-                />
-                {errors.specialization && (
-                  <p className="error-message">
-                    {errors.specialization.message}
-                  </p>
-                )}
+                <div className="selected-items">
+                  {selectedServices.map((service, idx) => (
+                    <div key={idx} className="selected-item">
+                      <span>{service}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeService(service)}
+                        className="remove-item-btn"
+                      >
+                        <FaTimes />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div
+                  className="autocomplete-container"
+                  ref={serviceDropdownRef}
+                >
+                  <input
+                    type="text"
+                    value={serviceInput}
+                    onChange={handleServiceInputChange}
+                    onFocus={() => setShowServiceDropdown(true)}
+                    placeholder="Type to search services"
+                    className="autocomplete-input"
+                  />
+                  {showServiceDropdown && (
+                    <div className="autocomplete-dropdown">
+                      {globalOptionsStatus === "loading" ||
+                      serviceCategoriesStatus === "loading" ? (
+                        <div className="dropdown-item">Loading...</div>
+                      ) : filteredServices.length > 0 ? (
+                        filteredServices.map((service, idx) => (
+                          <div
+                            key={idx}
+                            className="dropdown-item"
+                            onClick={() => addService(service.name)}
+                          >
+                            {service.name}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="dropdown-item no-match">
+                          No such service found
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="form-group">
+              {/* New Certifications Autocomplete */}
+              <div className="form-group autocomplete-wrapper">
                 <label>
                   <FaCertificate className="input-icon" /> Certifications
                 </label>
-                <input
-                  {...register("certifications")}
-                  defaultValue={formData.certifications || ""}
-                  placeholder="Certifications (comma separated)"
-                />
+                <div className="selected-items">
+                  {selectedCertifications.map((cert, idx) => (
+                    <div key={idx} className="selected-item">
+                      <span>{cert}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeCertification(cert)}
+                        className="remove-item-btn"
+                      >
+                        <FaTimes />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div
+                  className="autocomplete-container"
+                  ref={certificationDropdownRef}
+                >
+                  <input
+                    type="text"
+                    value={certificationInput}
+                    onChange={handleCertificationInputChange}
+                    onFocus={() => setShowCertificationDropdown(true)}
+                    placeholder="Type to search certifications"
+                    className="autocomplete-input"
+                  />
+                  {showCertificationDropdown && (
+                    <div className="autocomplete-dropdown">
+                      {globalOptionsStatus === "loading" ? (
+                        <div className="dropdown-item">Loading...</div>
+                      ) : filteredCertifications.length > 0 ? (
+                        filteredCertifications.map((cert, idx) => (
+                          <div
+                            key={idx}
+                            className="dropdown-item"
+                            onClick={() => addCertification(cert.name)}
+                          >
+                            {cert.name}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="dropdown-item no-match">
+                          No such certification found
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -595,57 +971,59 @@ const Signup = () => {
                       <button
                         type="button"
                         onClick={() => removeEducationField(index)}
-                        className="btn remove-btn"
+                        className="btnremove-field-btn"
                       >
-                        Remove
+                        <FaTimes />
                       </button>
                     )}
                   </div>
 
-                  <div className="form-group">
-                    <label>
-                      <FaGraduationCap className="input-icon" /> Degree
-                    </label>
-                    <input
-                      value={field.degree}
-                      onChange={(e) => {
-                        const values = [...educationFields];
-                        values[index].degree = e.target.value;
-                        setEducationFields(values);
-                      }}
-                      placeholder="Degree"
-                    />
-                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>
+                        <FaGraduationCap className="input-icon" /> Degree
+                      </label>
+                      <input
+                        value={field.degree}
+                        onChange={(e) => {
+                          const values = [...educationFields];
+                          values[index].degree = e.target.value;
+                          setEducationFields(values);
+                        }}
+                        placeholder="Degree"
+                      />
+                    </div>
 
-                  <div className="form-group">
-                    <label>
-                      <FaBuilding className="input-icon" /> Institution
-                    </label>
-                    <input
-                      value={field.institution}
-                      onChange={(e) => {
-                        const values = [...educationFields];
-                        values[index].institution = e.target.value;
-                        setEducationFields(values);
-                      }}
-                      placeholder="Institution"
-                    />
-                  </div>
+                    <div className="form-group">
+                      <label>
+                        <FaBuilding className="input-icon" /> Institution
+                      </label>
+                      <input
+                        value={field.institution}
+                        onChange={(e) => {
+                          const values = [...educationFields];
+                          values[index].institution = e.target.value;
+                          setEducationFields(values);
+                        }}
+                        placeholder="Institution"
+                      />
+                    </div>
 
-                  <div className="form-group">
-                    <label>
-                      <FaClock className="input-icon" /> Graduation Year
-                    </label>
-                    <input
-                      value={field.graduationYear}
-                      onChange={(e) => {
-                        const values = [...educationFields];
-                        values[index].graduationYear = e.target.value;
-                        setEducationFields(values);
-                      }}
-                      placeholder="Graduation Year"
-                      type="number"
-                    />
+                    <div className="form-group">
+                      <label>
+                        <FaClock className="input-icon" /> Graduation Year
+                      </label>
+                      <input
+                        value={field.graduationYear}
+                        onChange={(e) => {
+                          const values = [...educationFields];
+                          values[index].graduationYear = e.target.value;
+                          setEducationFields(values);
+                        }}
+                        placeholder="Graduation Year"
+                        type="number"
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -653,9 +1031,9 @@ const Signup = () => {
               <button
                 type="button"
                 onClick={addEducationField}
-                className="btn add-btn"
+                className="btn add-field-btn"
               >
-                Add Another Education
+                <FaPlus /> Add Another Education
               </button>
             </div>
 
@@ -688,46 +1066,80 @@ const Signup = () => {
                       <button
                         type="button"
                         onClick={() => removeSoftwareField(index)}
-                        className="btn remove-btn"
+                        className="btn remove-field-btn"
                       >
-                        Remove
+                        <FaTimes />
                       </button>
                     )}
                   </div>
 
-                  <div className="form-group">
-                    <label>
-                      <FaTools className="input-icon" /> Software Name
-                    </label>
-                    <input
-                      value={field.name}
-                      onChange={(e) => {
-                        const values = [...softwareFields];
-                        values[index].name = e.target.value;
-                        setSoftwareFields(values);
-                      }}
-                      placeholder="Software Name"
-                    />
-                  </div>
+                  <div className="form-row">
+                    <div className="form-group autocomplete-wrapper">
+                      <label>
+                        <FaTools className="input-icon" /> Software Name
+                      </label>
+                      <div
+                        className="autocomplete-container"
+                        ref={softwareDropdownRef}
+                      >
+                        <input
+                          value={field.name}
+                          onChange={(e) => {
+                            const values = [...softwareFields];
+                            values[index].name = e.target.value;
+                            setSoftwareFields(values);
+                            handleSoftwareInputChange(e, index);
+                          }}
+                          onFocus={() => setShowSoftwareDropdown(true)}
+                          placeholder="Software Name"
+                          className="autocomplete-input"
+                        />
+                        {showSoftwareDropdown && (
+                          <div className="autocomplete-dropdown">
+                            {globalOptionsStatus === "loading" ? (
+                              <div className="dropdown-item">Loading...</div>
+                            ) : filteredSoftware(index).length > 0 ? (
+                              filteredSoftware(index).map((software, idx) => (
+                                <div
+                                  key={idx}
+                                  className="dropdown-item"
+                                  onClick={() =>
+                                    selectSoftware(software.name, index)
+                                  }
+                                >
+                                  {software.name}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="dropdown-item no-match">
+                                No such software found
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                  <div className="form-group">
-                    <label>
-                      <FaTools className="input-icon" /> Proficiency Level
-                    </label>
-                    <select
-                      value={field.level}
-                      onChange={(e) => {
-                        const values = [...softwareFields];
-                        values[index].level = e.target.value;
-                        setSoftwareFields(values);
-                      }}
-                    >
-                      <option value="">Select Level</option>
-                      <option value="Beginner">Beginner</option>
-                      <option value="Intermediate">Intermediate</option>
-                      <option value="Advanced">Advanced</option>
-                      <option value="Expert">Expert</option>
-                    </select>
+                    <div className="form-group">
+                      <label>
+                        <FaGraduationCap className="input-icon" /> Proficiency
+                        Level
+                      </label>
+                      <select
+                        value={field.level}
+                        onChange={(e) => {
+                          const values = [...softwareFields];
+                          values[index].level = e.target.value;
+                          setSoftwareFields(values);
+                        }}
+                      >
+                        <option value="">Select Level</option>
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                        <option value="Expert">Expert</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -735,9 +1147,9 @@ const Signup = () => {
               <button
                 type="button"
                 onClick={addSoftwareField}
-                className="btn add-btn"
+                className="btn add-field-btn"
               >
-                Add Another Software
+                <FaPlus /> Add Another Software
               </button>
             </div>
 
@@ -756,12 +1168,11 @@ const Signup = () => {
           </div>
         )}
 
-        {/* Step 7 for Architect: Contact & Portfolio */}
+        {/* Step 7 for Architect: Additional Information */}
         {step === 7 && userType === "architect" && (
           <div className="form-step">
-            <h2>Contact & Portfolio</h2>
+            <h2>Additional Information</h2>
 
-            {/* Location Section */}
             <div className="form-section">
               <h3>Location</h3>
               <div className="form-group">
@@ -769,10 +1180,15 @@ const Signup = () => {
                   <FaGlobe className="input-icon" /> Country
                 </label>
                 <input
-                  {...register("pays")}
+                  {...register("pays", {
+                    required: "Country is required",
+                  })}
                   defaultValue={formData.pays || ""}
                   placeholder="Country"
                 />
+                {errors.pays && (
+                  <p className="error-message">{errors.pays.message}</p>
+                )}
               </div>
 
               <div className="form-group">
@@ -780,10 +1196,15 @@ const Signup = () => {
                   <FaMapMarkerAlt className="input-icon" /> Region
                 </label>
                 <input
-                  {...register("region")}
+                  {...register("region", {
+                    required: "Region is required",
+                  })}
                   defaultValue={formData.region || ""}
                   placeholder="Region"
                 />
+                {errors.region && (
+                  <p className="error-message">{errors.region.message}</p>
+                )}
               </div>
 
               <div className="form-group">
@@ -793,33 +1214,22 @@ const Signup = () => {
                 <input
                   {...register("city")}
                   defaultValue={formData.city || ""}
-                  placeholder="City"
+                  placeholder="City (Optional)"
                 />
               </div>
             </div>
 
-            {/* Portfolio & Social Media */}
             <div className="form-section">
-              <h3>Portfolio & Social Media</h3>
+              <h3>Online Presence</h3>
               <div className="form-group">
                 <label>
                   <FaLink className="input-icon" /> Portfolio URL
                 </label>
                 <input
-                  {...register("portfolioURL", {
-                    required: "Portfolio URL is required",
-                    pattern: {
-                      value: /^(https?:\/\/)?([\w.-]+)(:[0-9]+)?(\/[^\s]*)?$/,
-                      message: "Invalid URL format",
-                    },
-                  })}
+                  {...register("portfolioURL")}
                   defaultValue={formData.portfolioURL || ""}
-                  placeholder="Portfolio URL"
-                  type="url"
+                  placeholder="Portfolio URL (Optional)"
                 />
-                {errors.portfolioURL && (
-                  <p className="error-message">{errors.portfolioURL.message}</p>
-                )}
               </div>
 
               <div className="form-group">
@@ -830,7 +1240,6 @@ const Signup = () => {
                   {...register("website")}
                   defaultValue={formData.website || ""}
                   placeholder="Website (Optional)"
-                  type="url"
                 />
               </div>
 
@@ -841,8 +1250,7 @@ const Signup = () => {
                 <input
                   {...register("socialMedia.linkedin")}
                   defaultValue={formData.socialMedia?.linkedin || ""}
-                  placeholder="LinkedIn URL (Optional)"
-                  type="url"
+                  placeholder="LinkedIn Profile URL (Optional)"
                 />
               </div>
 
@@ -853,8 +1261,7 @@ const Signup = () => {
                 <input
                   {...register("socialMedia.instagram")}
                   defaultValue={formData.socialMedia?.instagram || ""}
-                  placeholder="Instagram URL (Optional)"
-                  type="url"
+                  placeholder="Instagram Profile URL (Optional)"
                 />
               </div>
             </div>
@@ -868,13 +1275,13 @@ const Signup = () => {
                 <FaArrowLeft /> Back
               </button>
               <button type="submit" className="btn next-btn">
-                Submit Registration Request <FaCheck />
+                Complete Registration <FaCheck />
               </button>
             </div>
           </div>
         )}
 
-        {/* Final Step: Confirmation for Architect */}
+        {/* Step 8: Confirmation for Architects */}
         {step === 8 && userType === "architect" && (
           <div className="form-step success-step">
             <div className="success-icon">
@@ -913,8 +1320,18 @@ const Signup = () => {
           </div>
         )}
 
+        {/* Registration Status Display */}
         {renderRegistrationStatus()}
       </form>
+
+      {/* Display after successful client registration */}
+      {isSubmitted && userType === "client" && (
+        <div className="success-message">
+          <h2>Registration Successful!</h2>
+          <p>Your account has been created successfully.</p>
+          <p>You will be redirected to login page shortly...</p>
+        </div>
+      )}
     </div>
   );
 };

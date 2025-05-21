@@ -7,15 +7,19 @@ export const createNeedSheet = createAsyncThunk(
   "needSheet/create",
   async (needSheetData, { rejectWithValue }) => {
     try {
+      // Format location data if present
+      const formattedData = formatNeedSheetData(needSheetData);
+
       const config = {
         headers: {
           "Content-Type": "application/json",
         },
         withCredentials: true,
       };
+
       const response = await axios.post(
         "/api/needsheets",
-        needSheetData,
+        formattedData,
         config
       );
       return response.data;
@@ -74,15 +78,19 @@ export const updateNeedSheet = createAsyncThunk(
   "needSheet/updateNeedSheet",
   async ({ id, needSheetData }, { rejectWithValue }) => {
     try {
+      // Format location data if present
+      const formattedData = formatNeedSheetData(needSheetData);
+
       const config = {
         headers: {
           "Content-Type": "application/json",
         },
         withCredentials: true,
       };
+
       const response = await axios.put(
         `/api/needsheets/${id}`,
-        needSheetData,
+        formattedData,
         config
       );
       return response.data;
@@ -116,10 +124,59 @@ export const deleteNeedSheet = createAsyncThunk(
   }
 );
 
+// Helper function to format need sheet data before sending to API
+const formatNeedSheetData = (data) => {
+  const formattedData = { ...data };
+
+  // Format services array if present
+  if (formattedData.services) {
+    // Ensure services are in the correct format { category, subcategories }
+    formattedData.services = formattedData.services.map((service) => {
+      // If the service is already in the correct format, return it as is
+      if (service.category && typeof service.category === "string") {
+        return {
+          category: service.category,
+          subcategories: Array.isArray(service.subcategories)
+            ? service.subcategories
+            : [],
+        };
+      }
+      // Otherwise, it might be in legacy format or different structure - convert it
+      return {
+        category:
+          typeof service.category === "object" ? service.category._id : service,
+        subcategories: service.subcategories || [],
+      };
+    });
+  }
+
+  // Ensure location structure is correct
+  if (formattedData.location) {
+    // Make sure location has the proper structure
+    formattedData.location = {
+      country: formattedData.location.country || "Tunisia",
+      region: formattedData.location.region || "",
+      city: formattedData.location.city || "",
+      // Coordinates will be handled by the backend, no need to provide them here
+    };
+  }
+
+  return formattedData;
+};
+
 const initialState = {
   needSheets: [],
   currentNeedSheet: null,
-  formData: {}, // For storing multi-step form data
+  formData: {
+    // Initialize with structured format matching updated model
+    location: {
+      country: "Tunisia",
+      region: "",
+      city: "",
+    },
+    services: [],
+    projectTypes: [],
+  },
   loading: false,
   success: false,
   error: null,
@@ -136,8 +193,46 @@ const needSheetSlice = createSlice({
     updateFormData: (state, action) => {
       state.formData = { ...state.formData, ...action.payload };
     },
+    // Add service to form data
+    addService: (state, action) => {
+      const { category, subcategories } = action.payload;
+      // Ensure we don't add duplicate categories
+      const existingIndex = state.formData.services.findIndex(
+        (service) => service.category === category
+      );
+
+      if (existingIndex !== -1) {
+        // Update existing service
+        state.formData.services[existingIndex] = {
+          category,
+          subcategories:
+            subcategories ||
+            state.formData.services[existingIndex].subcategories,
+        };
+      } else {
+        // Add new service
+        state.formData.services.push({
+          category,
+          subcategories: subcategories || [],
+        });
+      }
+    },
+    // Remove service from form data
+    removeService: (state, action) => {
+      const categoryId = action.payload;
+      state.formData.services = state.formData.services.filter(
+        (service) => service.category !== categoryId
+      );
+    },
+    // Update location in form data
+    updateLocation: (state, action) => {
+      state.formData.location = {
+        ...state.formData.location,
+        ...action.payload,
+      };
+    },
     resetFormData: (state) => {
-      state.formData = {};
+      state.formData = initialState.formData;
     },
   },
   extraReducers: (builder) => {
@@ -152,7 +247,7 @@ const needSheetSlice = createSlice({
         state.success = true;
         state.needSheets.push(action.payload.data);
         state.currentNeedSheet = action.payload.data;
-        state.formData = {}; // Reset form data after successful submission
+        state.formData = initialState.formData; // Reset form data after successful submission
       })
       .addCase(createNeedSheet.rejected, (state, action) => {
         state.loading = false;
@@ -224,19 +319,31 @@ const needSheetSlice = createSlice({
   },
 });
 
-export const { resetNeedSheetStatus, updateFormData, resetFormData } =
-  needSheetSlice.actions;
+export const {
+  resetNeedSheetStatus,
+  updateFormData,
+  resetFormData,
+  addService,
+  removeService,
+  updateLocation,
+} = needSheetSlice.actions;
 
 // Selectors with safe fallbacks
 export const selectNeedSheets = (state) => state.needSheet?.needSheets || [];
 export const selectCurrentNeedSheet = (state) =>
   state.needSheet?.currentNeedSheet || null;
 export const selectNeedSheetFormData = (state) =>
-  state.needSheet?.formData || {};
+  state.needSheet?.formData || initialState.formData;
 export const selectNeedSheetLoading = (state) =>
   state.needSheet?.loading || false;
 export const selectNeedSheetSuccess = (state) =>
   state.needSheet?.success || false;
 export const selectNeedSheetError = (state) => state.needSheet?.error || null;
+
+// Additional selectors for specific parts of form data
+export const selectNeedSheetServices = (state) =>
+  state.needSheet?.formData?.services || [];
+export const selectNeedSheetLocation = (state) =>
+  state.needSheet?.formData?.location || initialState.formData.location;
 
 export default needSheetSlice.reducer;

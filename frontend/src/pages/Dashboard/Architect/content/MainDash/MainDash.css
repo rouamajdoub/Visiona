@@ -1,19 +1,40 @@
+/* Main Dashboard Container */
 .MainDash {
-  /* padding-top: 1rem; */
   display: flex;
   flex-direction: column;
-  justify-content: space-evenly;
+  gap: 2rem;
+  padding: 2rem 2.5rem;
 }
 
+/* Dashboard Title */
+.MainDash h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #252525;
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive adjustments */
 @media screen and (max-width: 1200px) {
   .MainDash {
-    justify-content: flex-start;
-    margin-top: 2rem;
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .MainDash h1 {
+    font-size: 2rem;
   }
 }
 
 @media screen and (max-width: 768px) {
   .MainDash {
+    padding: 1rem;
     align-items: center;
+    gap: 1rem;
+  }
+
+  .MainDash h1 {
+    font-size: 1.75rem;
+    align-self: flex-start;
   }
 }

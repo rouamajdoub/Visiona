@@ -1,14 +1,23 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const statsController = require('../controllers/statsController');
+const { getArchitectStats } = require("../controllers/statArchController");
+const {
+  protect,
+  restrictTo,
+  requireApproved,
+} = require("../middlewares/authMiddleware");
 
-// Dashboard statistics route
-router.get('/dashboard/:userId', statsController.getDashboardStats);
-
-// Profile views increment route
-router.put('/profile-views/:profileId', statsController.incrementProfileViews);
-
-// Comparison statistics route
-router.get('/comparison/:userId', statsController.getComparisonStats);
+/**
+ * @route   GET /api/architects/:id/stats
+ * @desc    Get comprehensive statistics for an architect dashboard
+ * @access  Private (architect only)
+ */
+router.get(
+  "/:id/stats",
+  protect,
+  restrictTo("architect"),
+  requireApproved,
+  getArchitectStats
+);
 
 module.exports = router;

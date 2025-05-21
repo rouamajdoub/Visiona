@@ -13,7 +13,19 @@ const initialState = {
   error: null,
   architectStatus: null, // 'pending' | 'approved' | 'rejected'
   isLoading: false,
-  isFirstLogin: false, // Added this to track first login state
+  isFirstLogin: false,
+  // Global options for dropdown options
+  globalOptions: {
+    certifications: [],
+    softwareProficiency: [],
+    status: "idle",
+    error: null,
+  },
+  serviceCategories: {
+    data: [],
+    status: "idle",
+    error: null,
+  },
 };
 
 // Interceptor to add token to requests
@@ -29,11 +41,18 @@ const setupAuthInterceptor = (token) => {
   );
 };
 
+// Register new user
 export const registerUser = createAsyncThunk(
   "auth/register",
   async (userData, { rejectWithValue }) => {
     try {
-      const response = await axios.post("/api/auth/register", userData);
+      // We expect userData to be a FormData object that contains all fields
+      // including any files that need to be uploaded
+      const response = await axios.post("/api/auth/register", userData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -43,6 +62,37 @@ export const registerUser = createAsyncThunk(
   }
 );
 
+// Fetch global options
+export const fetchGlobalOptions = createAsyncThunk(
+  "auth/fetchGlobalOptions",
+  async (type, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`/api/global-options?type=${type}`);
+      return { type, data: response.data.data };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error || `Failed to fetch ${type}`
+      );
+    }
+  }
+);
+
+// Fetch service categories
+export const fetchServiceCategories = createAsyncThunk(
+  "auth/fetchServiceCategories",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get("/api/admin/service-categories");
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error || "Failed to fetch service categories"
+      );
+    }
+  }
+);
+
+// Regular login
 export const loginUser = createAsyncThunk(
   "auth/login",
   async ({ email, password }, { rejectWithValue, dispatch }) => {
@@ -65,27 +115,66 @@ export const loginUser = createAsyncThunk(
   }
 );
 
-export const googleLogin = createAsyncThunk(
-  "auth/googleLogin",
-  async (googleToken, { rejectWithValue }) => {
+// Google OAuth token verification
+export const verifyGoogleToken = createAsyncThunk(
+  "auth/verifyGoogleToken",
+  async ({ token, userId }, { rejectWithValue, dispatch }) => {
     try {
-      const response = await axios.post("/api/auth/google-login", {
-        token: googleToken,
-      });
-      const { token, user } = response.data;
+      const response = await axios.get(
+        `/api/auth/google/success?token=${token}&userId=${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-      localStorage.setItem("token", token);
-      setupAuthInterceptor(token);
+      // If verification successful, save token and set up interceptor
+      if (response.data.success) {
+        localStorage.setItem("token", token);
+        setupAuthInterceptor(token);
 
-      return { token, user };
+        // Additional verification for architects
+        if (
+          response.data.user.role === "architect" &&
+          response.data.user.status !== "approved"
+        ) {
+          dispatch(fetchUserProfile(response.data.user._id));
+        }
+
+        return {
+          token,
+          user: response.data.user,
+          isFirstLogin: response.data.isFirstLogin,
+        };
+      } else {
+        return rejectWithValue("Google authentication failed");
+      }
     } catch (error) {
       return rejectWithValue(
-        error.response?.data?.error || "Google login failed"
+        error.response?.data?.error || "Google authentication failed"
       );
     }
   }
 );
 
+// Set credentials directly (used by OAuth callback)
+export const setCredentials = createAsyncThunk(
+  "auth/setCredentials",
+  async ({ token, user, isFirstLogin }, { dispatch }) => {
+    localStorage.setItem("token", token);
+    setupAuthInterceptor(token);
+
+    // Additional verification for architects
+    if (user.role === "architect" && user.status !== "approved") {
+      dispatch(fetchUserProfile(user._id));
+    }
+
+    return { token, user, isFirstLogin };
+  }
+);
+
+// Logout
 export const logoutUser = createAsyncThunk(
   "auth/logout",
   async (_, { rejectWithValue }) => {
@@ -99,6 +188,7 @@ export const logoutUser = createAsyncThunk(
   }
 );
 
+// Check authentication status
 export const checkAuthStatus = createAsyncThunk(
   "auth/checkStatus",
   async (_, { rejectWithValue }) => {
@@ -120,6 +210,7 @@ export const checkAuthStatus = createAsyncThunk(
   }
 );
 
+// Fetch user profile
 export const fetchUserProfile = createAsyncThunk(
   "auth/fetchProfile",
   async (userId, { rejectWithValue }) => {
@@ -164,6 +255,7 @@ const authSlice = createSlice({
     };
 
     builder
+      // Register user
       .addCase(registerUser.pending, handlePendingState)
       .addCase(registerUser.fulfilled, (state) => {
         state.status = "succeeded";
@@ -172,6 +264,7 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.rejected, handleRejectedState)
 
+      // Login user
       .addCase(loginUser.pending, handlePendingState)
       .addCase(loginUser.fulfilled, (state, action) => {
         state.status = "succeeded";
@@ -189,8 +282,9 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.rejected, handleRejectedState)
 
-      .addCase(googleLogin.pending, handlePendingState)
-      .addCase(googleLogin.fulfilled, (state, action) => {
+      // Verify Google token
+      .addCase(verifyGoogleToken.pending, handlePendingState)
+      .addCase(verifyGoogleToken.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.isAuthenticated = true;
         state.user = action.payload.user;
@@ -198,9 +292,33 @@ const authSlice = createSlice({
         state.authMethod = "google";
         state.isLoading = false;
         state.error = null;
+        state.isFirstLogin = action.payload.isFirstLogin || false;
+        state.architectStatus =
+          action.payload.user.role === "architect"
+            ? action.payload.user.status
+            : null;
       })
-      .addCase(googleLogin.rejected, handleRejectedState)
+      .addCase(verifyGoogleToken.rejected, handleRejectedState)
 
+      // Set credentials directly (for OAuth)
+      .addCase(setCredentials.pending, handlePendingState)
+      .addCase(setCredentials.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.isAuthenticated = true;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.authMethod = "google"; // Assuming this is only used for OAuth
+        state.isLoading = false;
+        state.error = null;
+        state.isFirstLogin = action.payload.isFirstLogin || false;
+        state.architectStatus =
+          action.payload.user.role === "architect"
+            ? action.payload.user.status
+            : null;
+      })
+      .addCase(setCredentials.rejected, handleRejectedState)
+
+      // Logout user
       .addCase(logoutUser.fulfilled, (state) => {
         state.isAuthenticated = false;
         state.user = null;
@@ -212,6 +330,7 @@ const authSlice = createSlice({
         state.isFirstLogin = false;
       })
 
+      // Check auth status
       .addCase(checkAuthStatus.fulfilled, (state, action) => {
         state.isAuthenticated = action.payload.isAuthenticated;
         state.user = action.payload.user || null;
@@ -222,11 +341,45 @@ const authSlice = createSlice({
         }
       })
 
+      // Fetch user profile
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
         state.user = action.payload;
         if (action.payload.role === "architect") {
           state.architectStatus = action.payload.status;
         }
+      })
+
+      // Global options
+      .addCase(fetchGlobalOptions.pending, (state) => {
+        state.globalOptions.status = "loading";
+        state.globalOptions.error = null;
+      })
+      .addCase(fetchGlobalOptions.fulfilled, (state, action) => {
+        // Update the appropriate options array based on the type
+        if (action.payload.type === "certification") {
+          state.globalOptions.certifications = action.payload.data;
+        } else if (action.payload.type === "software") {
+          state.globalOptions.softwareProficiency = action.payload.data;
+        }
+        state.globalOptions.status = "succeeded";
+      })
+      .addCase(fetchGlobalOptions.rejected, (state, action) => {
+        state.globalOptions.status = "failed";
+        state.globalOptions.error = action.payload;
+      })
+
+      // Service categories
+      .addCase(fetchServiceCategories.pending, (state) => {
+        state.serviceCategories.status = "loading";
+        state.serviceCategories.error = null;
+      })
+      .addCase(fetchServiceCategories.fulfilled, (state, action) => {
+        state.serviceCategories.data = action.payload;
+        state.serviceCategories.status = "succeeded";
+      })
+      .addCase(fetchServiceCategories.rejected, (state, action) => {
+        state.serviceCategories.status = "failed";
+        state.serviceCategories.error = action.payload;
       });
   },
 });
@@ -245,5 +398,17 @@ export const selectAuthMethod = (state) => state.auth.authMethod;
 export const selectSubscriptionStatus = (state) =>
   state.auth.user?.subscription?.status;
 export const selectIsFirstLogin = (state) => state.auth.isFirstLogin;
+
+// New selectors for dropdown options
+export const selectCertifications = (state) =>
+  state.auth.globalOptions.certifications;
+export const selectSoftwareProficiency = (state) =>
+  state.auth.globalOptions.softwareProficiency;
+export const selectServiceCategories = (state) =>
+  state.auth.serviceCategories.data;
+export const selectGlobalOptionsStatus = (state) =>
+  state.auth.globalOptions.status;
+export const selectServiceCategoriesStatus = (state) =>
+  state.auth.serviceCategories.status;
 
 export default authSlice.reducer;

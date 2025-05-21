@@ -1,102 +1,99 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/stats"; // Adjust this URL as needed
-
-// Fetch dashboard statistics
-export const fetchDashboardStats = createAsyncThunk(
-  "statistics/fetchDashboardStats",
-  async (userId, { rejectWithValue }) => {
+// Async thunk action to fetch architect stats
+export const fetchArchitectStats = createAsyncThunk(
+  "stats/fetchArchitectStats",
+  async (architectId, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_URL}/dashboard/${userId}`);
-      return response.data.data; // Adjust based on your API response structure
+      // Get auth token from local storage or other state
+      const token = localStorage.getItem("token");
+
+      // If you're running the backend on a different port/domain, specify it here
+      // For example, if backend runs on port 5000:
+      const API_BASE_URL =
+        process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+      const response = await axios.get(
+        `${API_BASE_URL}/api/arch-stats/${architectId}/stats`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("API Response:", response.data); // Add logging to debug
+
+      return response.data.data;
     } catch (error) {
+      console.error("API Error:", error.response || error); // Add detailed error logging
       return rejectWithValue(
-        error.response?.data || "Failed to fetch dashboard stats"
+        error.response?.data?.error || `Endpoint not found: ${error.message}`
       );
     }
   }
 );
 
-// Increment profile views
-export const incrementProfileViews = createAsyncThunk(
-  "statistics/incrementProfileViews",
-  async (profileId, { rejectWithValue }) => {
-    try {
-      const response = await axios.post(
-        `${API_URL}/profile/${profileId}/views`
-      );
-      return response.data; // Assuming success response
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data || "Failed to increment profile views"
-      );
-    }
-  }
-);
-
-// Fetch comparison statistics
-export const fetchComparisonStats = createAsyncThunk(
-  "statistics/fetchComparisonStats",
-  async (userId, { rejectWithValue }) => {
-    try {
-      const response = await axios.get(`${API_URL}/comparison/${userId}`);
-      return response.data.data; // Adjust based on your API response structure
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data || "Failed to fetch comparison stats"
-      );
-    }
-  }
-);
-
-const statisticsSlice = createSlice({
-  name: "statistics",
-  initialState: {
-    dashboard: null,
-    comparison: null,
-    loading: false,
-    error: null,
+const initialState = {
+  clientGrowth: {
+    monthlyData: [],
+    percentageChange: 0,
+    currentMonthCount: 0,
+    previousMonthCount: 0,
   },
+  activeProjects: {
+    monthlyData: [],
+    percentageChange: 0,
+    currentMonthCount: 0,
+    previousMonthCount: 0,
+  },
+  profileViews: {
+    monthlyData: [],
+    percentageChange: 0,
+    currentMonthCount: 0,
+    previousMonthCount: 0,
+  },
+  isLoading: false,
+  error: null,
+  lastFetched: null,
+};
+
+const statSlice = createSlice({
+  name: "stats",
+  initialState,
   reducers: {
-    resetStatisticsState: (state) => {
-      state.dashboard = null;
-      state.comparison = null;
-      state.loading = false;
-      state.error = null;
+    clearStats: (state) => {
+      return initialState;
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchDashboardStats.pending, (state) => {
-        state.loading = true;
+      .addCase(fetchArchitectStats.pending, (state) => {
+        state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchDashboardStats.fulfilled, (state, action) => {
-        state.loading = false;
-        state.dashboard = action.payload;
+      .addCase(fetchArchitectStats.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.clientGrowth = action.payload.clientGrowth;
+        state.activeProjects = action.payload.activeProjects;
+        state.profileViews = action.payload.profileViews;
+        state.lastFetched = new Date().toISOString();
       })
-      .addCase(fetchDashboardStats.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(incrementProfileViews.fulfilled, (state) => {
-        // Optionally handle the success response if needed
-      })
-      .addCase(fetchComparisonStats.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(fetchComparisonStats.fulfilled, (state, action) => {
-        state.loading = false;
-        state.comparison = action.payload;
-      })
-      .addCase(fetchComparisonStats.rejected, (state, action) => {
-        state.loading = false;
+      .addCase(fetchArchitectStats.rejected, (state, action) => {
+        state.isLoading = false;
         state.error = action.payload;
       });
   },
 });
 
-export const { resetStatisticsState } = statisticsSlice.actions;
-export default statisticsSlice.reducer;
+export const { clearStats } = statSlice.actions;
+
+// Selectors
+export const selectClientGrowthStats = (state) => state.stats.clientGrowth;
+export const selectActiveProjectsStats = (state) => state.stats.activeProjects;
+export const selectProfileViewsStats = (state) => state.stats.profileViews;
+export const selectStatsLoading = (state) => state.stats.isLoading;
+export const selectStatsError = (state) => state.stats.error;
+
+export default statSlice.reducer;

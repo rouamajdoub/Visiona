@@ -13,8 +13,6 @@ import {
   updateCategory,
   createSubcategory,
   updateSubcategory,
-  fetchCategoryById,
-  fetchSubcategoryById,
 } from "../../../../redux/slices/serviceCategoriesSlice";
 
 import {
@@ -180,7 +178,11 @@ const ServiceManagement = () => {
       });
       setSelectedSubcategory(subcategory);
     } else {
-      setSubcategoryForm({ name: "", description: "", parentCategory: "" });
+      setSubcategoryForm({
+        name: "",
+        description: "",
+        parentCategory: viewSubcategoriesFor || "", // Pre-select the category if we're viewing subcategories for a specific category
+      });
       setSelectedSubcategory(null);
     }
     setOpenSubcategoryDialog(true);
@@ -211,21 +213,11 @@ const ServiceManagement = () => {
 
   // Delete handlers
   const handleDeleteCategory = (categoryId) => {
-    // Check if category has subcategories
-    const hasSubcategories = subcategories.some(
-      (subcategory) => subcategory.parentCategory === categoryId
-    );
-
-    if (hasSubcategories) {
-      setSnackbarMessage(
-        "Cannot delete category with existing subcategories. Please delete the subcategories first."
-      );
-      setSnackbarSeverity("error");
-      setSnackbarOpen(true);
-      return;
-    }
-
-    if (window.confirm("Are you sure you want to delete this category?")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this category? All associated subcategories will also be deleted."
+      )
+    ) {
       dispatch(deleteCategory(categoryId));
     }
   };
@@ -247,108 +239,91 @@ const ServiceManagement = () => {
     setSnackbarOpen(false);
   };
 
-  // DataGrid columns for categories
+  // We can remove this function since we no longer use it
+  // Keeping getCategoryName for the subcategory view
+
+  // Helper to get category name by ID
+  const getCategoryName = (categoryId) => {
+    const category = Array.isArray(categories)
+      ? categories.find((cat) => cat._id === categoryId)
+      : null;
+    return category ? category.name : "";
+  };
+
+  // We can keep this function as it's still used in the UI when viewing subcategories for a specific category
+  // Even though we removed it from the table columns
+
+  // DataGrid columns for categories - Removed subcategoriesCount column
   const categoryColumns = [
     { field: "name", headerName: "Name", flex: 1 },
     { field: "description", headerName: "Description", flex: 2 },
     {
-      field: "subcategoriesCount",
-      headerName: "Subcategories",
-      flex: 1,
-      valueGetter: (params) => {
-        if (!params || !params.row) return 0;
-        return subcategories.filter(
-          (subcategory) => subcategory.parentCategory === params.row._id
-        ).length;
-      },
-    },
-    {
       field: "actions",
       headerName: "Actions",
       flex: 1,
-      renderCell: (params) => {
-        if (!params || !params.row) return null;
-        const { row } = params;
-        return (
-          <Box display="flex" justifyContent="center" gap="8px">
-            <Tooltip title="View Subcategories">
-              <IconButton
-                size="small"
-                onClick={() => handleViewSubcategories(row._id)}
-              >
-                <VisibilityIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Edit">
-              <IconButton
-                size="small"
-                onClick={() => handleOpenCategoryDialog("edit", row)}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Delete">
-              <IconButton
-                size="small"
-                onClick={() => handleDeleteCategory(row._id)}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        );
-      },
+      renderCell: (params) => (
+        <Box display="flex" justifyContent="center" gap="8px">
+          <Tooltip title="View Subcategories">
+            <IconButton
+              size="small"
+              onClick={() => handleViewSubcategories(params.row._id)}
+            >
+              <VisibilityIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Edit">
+            <IconButton
+              size="small"
+              onClick={() => handleOpenCategoryDialog("edit", params.row)}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <IconButton
+              size="small"
+              onClick={() => handleDeleteCategory(params.row._id)}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      ),
     },
   ];
 
-  // DataGrid columns for subcategories
+  // DataGrid columns for subcategories - Removed parent category column
   const subcategoryColumns = [
     { field: "name", headerName: "Name", flex: 1 },
     { field: "description", headerName: "Description", flex: 2 },
     {
-      field: "categoryName",
-      headerName: "Parent Category",
-      flex: 1,
-      valueGetter: (params) => {
-        if (!params || !params.row) return "Unknown";
-        const category = categories.find(
-          (cat) => cat._id === params.row.parentCategory
-        );
-        return category ? category.name : "Unknown";
-      },
-    },
-    {
       field: "actions",
       headerName: "Actions",
       flex: 1,
-      renderCell: (params) => {
-        if (!params || !params.row) return null;
-        const { row } = params;
-        return (
-          <Box display="flex" justifyContent="center" gap="8px">
-            <Tooltip title="Edit">
-              <IconButton
-                size="small"
-                onClick={() => handleOpenSubcategoryDialog("edit", row)}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Delete">
-              <IconButton
-                size="small"
-                onClick={() => handleDeleteSubcategory(row._id)}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        );
-      },
+      renderCell: (params) => (
+        <Box display="flex" justifyContent="center" gap="8px">
+          <Tooltip title="Edit">
+            <IconButton
+              size="small"
+              onClick={() => handleOpenSubcategoryDialog("edit", params.row)}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <IconButton
+              size="small"
+              onClick={() => handleDeleteSubcategory(params.row._id)}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      ),
     },
   ];
 
-  // Prepare rows for DataGrid
+  // Prepare rows for DataGrid - Fixed to ensure valid data
   const categoryRows = Array.isArray(categories)
     ? categories.map((category) => ({
         id: category._id || String(Math.random()),
@@ -358,7 +333,7 @@ const ServiceManagement = () => {
       }))
     : [];
 
-  // Filter subcategories if a category is selected for viewing
+  // Filter subcategories if a category is selected for viewing - Fixed filtering
   const subcategoryRows = Array.isArray(subcategories)
     ? subcategories
         .filter(
@@ -408,12 +383,10 @@ const ServiceManagement = () => {
         </Box>
       </Box>
 
-      {viewSubcategoriesFor && (
+      {viewSubcategoriesFor && activeTab === 1 && (
         <Box mb={2}>
           <Typography variant="h6">
-            Viewing subcategories for:{" "}
-            {categories.find((cat) => cat._id === viewSubcategoriesFor)?.name ||
-              "Unknown category"}
+            Viewing subcategories for: {getCategoryName(viewSubcategoriesFor)}
             <Button
               sx={{ ml: 2 }}
               size="small"
@@ -453,6 +426,8 @@ const ServiceManagement = () => {
             columns={categoryColumns}
             loading={loading}
             getRowId={(row) => row.id}
+            pageSize={10}
+            rowsPerPageOptions={[5, 10, 25]}
           />
         ) : (
           <DataGrid
@@ -460,6 +435,8 @@ const ServiceManagement = () => {
             columns={subcategoryColumns}
             loading={loading}
             getRowId={(row) => row.id}
+            pageSize={10}
+            rowsPerPageOptions={[5, 10, 25]}
           />
         )}
       </Box>
@@ -532,11 +509,12 @@ const ServiceManagement = () => {
               onChange={handleSubcategoryInputChange}
               label="Parent Category"
             >
-              {categories.map((category) => (
-                <MenuItem key={category._id} value={category._id}>
-                  {category.name}
-                </MenuItem>
-              ))}
+              {Array.isArray(categories) &&
+                categories.map((category) => (
+                  <MenuItem key={category._id} value={category._id}>
+                    {category.name}
+                  </MenuItem>
+                ))}
             </Select>
           </FormControl>
           <TextField

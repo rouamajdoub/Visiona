@@ -1,8 +1,7 @@
 // models/ServiceSubcategory.js
 const mongoose = require("mongoose");
-const { Schema } = mongoose;
 
-const ServiceSubcategorySchema = new Schema(
+const ServiceSubcategorySchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -14,6 +13,7 @@ const ServiceSubcategorySchema = new Schema(
       default: "",
     },
     parentCategory: {
+      // ✅ Match database field name
       type: mongoose.Schema.Types.ObjectId,
       ref: "ServiceCategory",
       required: true,
@@ -22,6 +22,7 @@ const ServiceSubcategorySchema = new Schema(
   { timestamps: true }
 );
 
+// Create a compound index to ensure unique subcategories within a category
 ServiceSubcategorySchema.index(
   { name: 1, parentCategory: 1 },
   { unique: true }

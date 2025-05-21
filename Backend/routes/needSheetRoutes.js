@@ -7,6 +7,7 @@ const {
   getNeedSheet,
   updateNeedSheet,
   deleteNeedSheet,
+  matchArchitectsForNeedSheet, // Add this new controller function
 } = require("../controllers/needsSheetController");
 const {
   protect,
@@ -32,5 +33,8 @@ router
   .get(getNeedSheet)
   .put(updateNeedSheet)
   .delete(deleteNeedSheet);
+
+// Match architects for a specific need sheet
+router.route("/:id/match").get(matchArchitectsForNeedSheet);
 
 module.exports = router;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import {
   createQuote,
   updateQuote,
@@ -12,20 +12,89 @@ import {
 import { fetchClients } from "../../../../../redux/slices/clientsSlice";
 import { fetchAllProjects } from "../../../../../redux/slices/ProjectSlice";
 import {
-  FaSave,
-  FaFileInvoice,
-  FaFileDownload,
-  FaTimes,
-  FaPaperPlane,
-  FaPlus,
-  FaTrash,
-  FaSpinner,
-} from "react-icons/fa";
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Grid,
+  Typography,
+  IconButton,
+  Snackbar,
+  Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  InputAdornment,
+  Divider,
+  CircularProgress,
+  Box,
+  Card,
+  CardHeader,
+  CardContent,
+} from "@mui/material";
+import {
+  Save as SaveIcon,
+  Receipt as ReceiptIcon,
+  GetApp as GetAppIcon,
+  Close as CloseIcon,
+  Send as SendIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+} from "@mui/icons-material";
+import { styled } from "@mui/material/styles";
 
-const QuoteForm = () => {
+// Create styled components with the new color scheme
+const StyledButton = styled(Button)(({ theme }) => ({
+  backgroundColor: "#ff919d",
+  color: "white",
+  "&:hover": {
+    backgroundColor: "#e57f8a",
+  },
+}));
+
+const OutlinedStyledButton = styled(Button)(({ theme }) => ({
+  color: "#ff919d",
+  borderColor: "#ff919d",
+  "&:hover": {
+    borderColor: "#e57f8a",
+  },
+}));
+
+// Custom styled TextField with blue text color
+const StyledTextField = styled(TextField)({
+  "& .MuiInputBase-input": {
+    color: "#242d49", // Set text color to blue as requested
+  },
+  "& .MuiInputLabel-root": {
+    color: "#242d49",
+  },
+  "& .MuiOutlinedInput-root": {
+    "&.Mui-focused fieldset": {
+      borderColor: "#ff919d",
+    },
+  },
+});
+
+// Custom styled Select with blue text color
+const StyledSelect = styled(Select)({
+  "& .MuiSelect-select": {
+    color: "#242d49", // Set text color to blue
+  },
+});
+
+const QuoteFormDialog = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
-  const navigate = useNavigate();
 
   const { currentQuote, loading, error, success } = useSelector(
     (state) => state.quotes
@@ -33,8 +102,14 @@ const QuoteForm = () => {
   const { clients } = useSelector((state) => state.clients);
   const { projects } = useSelector((state) => state.projects);
 
+  const [open, setOpen] = useState(true);
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const [formData, setFormData] = useState({
     client: "",
@@ -66,65 +141,13 @@ const QuoteForm = () => {
     notes: "",
   });
 
-  // Format currency utility function
+  // Format currency utility function for Tunisian Dinar (DT)
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("fr-TN", {
       style: "currency",
-      currency: "USD",
+      currency: "TND",
+      currencyDisplay: "symbol",
     }).format(amount);
-  };
-
-  // Spinner component
-  const Spinner = () => (
-    <div className="text-center my-5">
-      <FaSpinner className="fa-spin me-2" />
-      <span>Loading...</span>
-    </div>
-  );
-
-  // Confirm modal component
-  const ConfirmModal = ({ show, title, message, onHide, onConfirm }) => {
-    if (!show) return null;
-
-    return (
-      <div
-        className="modal show d-block"
-        tabIndex="-1"
-        style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-      >
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">{title}</h5>
-              <button
-                type="button"
-                className="btn-close"
-                onClick={onHide}
-              ></button>
-            </div>
-            <div className="modal-body">
-              <p>{message}</p>
-            </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={onHide}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={onConfirm}
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
   };
 
   // Fetch necessary data
@@ -254,25 +277,48 @@ const QuoteForm = () => {
 
   // Submit form
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
 
     if (id) {
       dispatch(updateQuote({ id, quoteData: formData })).then((result) => {
         if (!result.error) {
-          navigate(`/quotes/${id}`);
+          setSnackbar({
+            open: true,
+            message: "Quote updated successfully",
+            severity: "success",
+          });
+          // No redirection after update
+        } else {
+          setSnackbar({
+            open: true,
+            message: "Failed to update quote",
+            severity: "error",
+          });
         }
       });
     } else {
       dispatch(createQuote(formData)).then((result) => {
         if (!result.error) {
-          navigate(`/quotes/${result.payload.data._id}`);
+          setSnackbar({
+            open: true,
+            message: "Quote created successfully",
+            severity: "success",
+          });
+          // No redirection after creation
+        } else {
+          setSnackbar({
+            open: true,
+            message: "Failed to create quote",
+            severity: "error",
+          });
         }
       });
     }
   };
 
   // Handle quote status change
-  const handleStatusChange = (newStatus) => {
+  const handleStatusChange = (event) => {
+    const newStatus = event.target.value;
     if (newStatus === "sent") {
       setShowSendModal(true);
     } else {
@@ -289,7 +335,13 @@ const QuoteForm = () => {
           id,
           quoteData: { status: newStatus },
         })
-      );
+      ).then(() => {
+        setSnackbar({
+          open: true,
+          message: `Status updated to ${newStatus}`,
+          severity: "success",
+        });
+      });
     }
     setShowSendModal(false);
   };
@@ -303,7 +355,18 @@ const QuoteForm = () => {
   const confirmConversion = () => {
     dispatch(convertToInvoice(id)).then((result) => {
       if (!result.error) {
-        navigate(`/invoices/${result.payload.data._id}`);
+        setSnackbar({
+          open: true,
+          message: "Successfully converted to invoice",
+          severity: "success",
+        });
+        // No redirection after conversion
+      } else {
+        setSnackbar({
+          open: true,
+          message: "Failed to convert to invoice",
+          severity: "error",
+        });
       }
       setShowConvertModal(false);
     });
@@ -312,8 +375,25 @@ const QuoteForm = () => {
   // Generate PDF for the quote
   const handleGeneratePDF = () => {
     if (id) {
-      dispatch(generatePDF(id));
+      dispatch(generatePDF(id)).then(() => {
+        setSnackbar({
+          open: true,
+          message: "PDF generated successfully",
+          severity: "success",
+        });
+      });
     }
+  };
+
+  // Handle dialog close
+  const handleClose = () => {
+    setOpen(false);
+    // No redirect on close
+  };
+
+  // Handle snackbar close
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   // Quote Items Table component
@@ -345,9 +425,13 @@ const QuoteForm = () => {
       // Calculate item total
       if (field === "quantity" || field === "unitPrice") {
         const quantity =
-          field === "quantity" ? value : newItems[index].quantity;
+          field === "quantity"
+            ? parseFloat(value) || 0
+            : parseFloat(newItems[index].quantity) || 0;
         const unitPrice =
-          field === "unitPrice" ? value : newItems[index].unitPrice;
+          field === "unitPrice"
+            ? parseFloat(value) || 0
+            : parseFloat(newItems[index].unitPrice) || 0;
         newItems[index].total = Number((quantity * unitPrice).toFixed(2));
       }
 
@@ -355,195 +439,214 @@ const QuoteForm = () => {
     };
 
     return (
-      <div className="quote-items-table">
-        <div className="table-responsive">
-          <table className="table table-bordered">
-            <thead className="table-light">
-              <tr>
-                <th style={{ width: "40%" }}>Description</th>
-                <th style={{ width: "15%" }}>Category</th>
-                <th style={{ width: "10%" }}>Quantity</th>
-                <th style={{ width: "15%" }}>Unit Price</th>
-                <th style={{ width: "15%" }}>Total</th>
-                <th style={{ width: "5%" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {formData.items.map((item, index) => (
-                <tr key={index}>
-                  <td>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={item.description || ""}
-                      onChange={(e) =>
-                        handleItemChange(index, "description", e.target.value)
-                      }
-                      placeholder="Item description"
-                    />
-                  </td>
-                  <td>
-                    <select
-                      className="form-select"
+      <TableContainer component={Paper} elevation={0} variant="outlined">
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell width="40%">Description</TableCell>
+              <TableCell width="15%">Category</TableCell>
+              <TableCell width="10%" align="center">
+                Quantity
+              </TableCell>
+              <TableCell width="15%" align="right">
+                Unit Price
+              </TableCell>
+              <TableCell width="15%" align="right">
+                Total
+              </TableCell>
+              <TableCell width="5%" align="center">
+                Actions
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {formData.items.map((item, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  <StyledTextField
+                    fullWidth
+                    size="small"
+                    value={item.description || ""}
+                    onChange={(e) =>
+                      handleItemChange(index, "description", e.target.value)
+                    }
+                    placeholder="Item description"
+                  />
+                </TableCell>
+                <TableCell>
+                  <FormControl fullWidth size="small">
+                    <StyledSelect
                       value={item.category || "design"}
                       onChange={(e) =>
                         handleItemChange(index, "category", e.target.value)
                       }
+                      sx={{ color: "#242d49" }}
                     >
-                      <option value="design">Design</option>
-                      <option value="materials">Materials</option>
-                      <option value="labor">Labor</option>
-                      <option value="furniture">Furniture</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      className="form-control"
-                      value={item.quantity || 0}
-                      onChange={(e) =>
-                        handleItemChange(
-                          index,
-                          "quantity",
-                          parseFloat(e.target.value) || 0
-                        )
-                      }
-                      min="0"
-                      step="1"
-                    />
-                  </td>
-                  <td>
-                    <div className="input-group">
-                      <span className="input-group-text">$</span>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={item.unitPrice || 0}
-                        onChange={(e) =>
-                          handleItemChange(
-                            index,
-                            "unitPrice",
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                  </td>
-                  <td>
-                    <div className="input-group">
-                      <span className="input-group-text">$</span>
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={item.total || 0}
-                        readOnly
-                      />
-                    </div>
-                  </td>
-                  <td className="text-center">
-                    <button
-                      type="button"
-                      className="btn btn-outline-danger btn-sm"
-                      onClick={() => handleRemoveItem(index)}
-                      disabled={formData.items.length === 1}
-                    >
-                      <FaTrash />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan="6">
-                  <button
-                    type="button"
-                    className="btn btn-outline-primary"
-                    onClick={handleAddItem}
+                      <MenuItem value="design">Design</MenuItem>
+                      <MenuItem value="materials">Materials</MenuItem>
+                      <MenuItem value="labor">Labor</MenuItem>
+                      <MenuItem value="furniture">Furniture</MenuItem>
+                      <MenuItem value="other">Other</MenuItem>
+                    </StyledSelect>
+                  </FormControl>
+                </TableCell>
+                <TableCell>
+                  <StyledTextField
+                    type="number"
+                    size="small"
+                    fullWidth
+                    value={item.quantity || 0}
+                    onChange={(e) =>
+                      handleItemChange(index, "quantity", e.target.value)
+                    }
+                    inputProps={{ min: "0", step: "1" }}
+                  />
+                </TableCell>
+                <TableCell>
+                  <StyledTextField
+                    type="number"
+                    size="small"
+                    fullWidth
+                    value={item.unitPrice || 0}
+                    onChange={(e) =>
+                      handleItemChange(index, "unitPrice", e.target.value)
+                    }
+                    inputProps={{ min: "0", step: "0.01" }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">TND</InputAdornment>
+                      ),
+                    }}
+                  />
+                </TableCell>
+                <TableCell align="right">
+                  {formatCurrency(item.total || 0)}
+                </TableCell>
+                <TableCell align="center">
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={() => handleRemoveItem(index)}
+                    disabled={formData.items.length === 1}
                   >
-                    <FaPlus className="me-1" /> Add Item
-                  </button>
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+            <TableRow>
+              <TableCell colSpan={6} align="left">
+                <OutlinedStyledButton
+                  startIcon={<AddIcon />}
+                  onClick={handleAddItem}
+                  size="small"
+                  sx={{ mt: 1 }}
+                >
+                  Add Item
+                </OutlinedStyledButton>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </TableContainer>
     );
   };
 
-  // Quote Summary component
+  // Quote Summary component - Redesigned for better layout
   const QuoteSummary = () => {
     return (
-      <div className="card mb-4">
-        <div className="card-header">Quote Summary</div>
-        <div className="card-body">
-          <div className="quote-summary">
-            <div className="row mb-2">
-              <div className="col-6 text-end fw-bold">Subtotal:</div>
-              <div className="col-6 text-end">
+      <Card variant="outlined">
+        <CardHeader title="Quote Summary" />
+        <CardContent>
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <Typography fontWeight="bold" color="#242d49">
+                Subtotal:
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography align="right" color="#242d49">
                 {formatCurrency(formData.subtotal)}
-              </div>
-            </div>
+              </Typography>
+            </Grid>
 
-            <div className="row mb-2">
-              <div className="col-6 text-end fw-bold">Discount:</div>
-              <div className="col-6">
-                <div className="input-group">
-                  <span className="input-group-text">$</span>
-                  <input
-                    type="number"
-                    className="form-control text-end"
-                    name="discount"
-                    value={formData.discount || 0}
-                    onChange={handleFinancialChange}
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-              </div>
-            </div>
+            <Grid item xs={6}>
+              <Typography fontWeight="bold" color="#242d49">
+                Discount:
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <StyledTextField
+                type="number"
+                size="small"
+                name="discount"
+                value={formData.discount || 0}
+                onChange={handleFinancialChange}
+                inputProps={{ min: "0", step: "0.01" }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">TND</InputAdornment>
+                  ),
+                }}
+                fullWidth
+              />
+            </Grid>
 
-            <div className="row mb-2">
-              <div className="col-6 text-end fw-bold">Tax Rate:</div>
-              <div className="col-6">
-                <div className="input-group">
-                  <input
-                    type="number"
-                    className="form-control text-end"
-                    name="taxRate"
-                    value={formData.taxRate || 0}
-                    onChange={handleFinancialChange}
-                    min="0"
-                    max="100"
-                    step="0.1"
-                  />
-                  <span className="input-group-text">%</span>
-                </div>
-              </div>
-            </div>
+            <Grid item xs={6}>
+              <Typography fontWeight="bold" color="#242d49">
+                Tax Rate:
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <StyledTextField
+                type="number"
+                size="small"
+                name="taxRate"
+                value={formData.taxRate || 0}
+                onChange={handleFinancialChange}
+                inputProps={{ min: "0", max: "100", step: "0.1" }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">%</InputAdornment>
+                  ),
+                }}
+                fullWidth
+              />
+            </Grid>
 
-            <div className="row mb-2">
-              <div className="col-6 text-end fw-bold">Tax Amount:</div>
-              <div className="col-6 text-end">
+            <Grid item xs={6}>
+              <Typography fontWeight="bold" color="#242d49">
+                Tax Amount:
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography align="right" color="#242d49">
                 {formatCurrency(formData.taxAmount)}
-              </div>
-            </div>
+              </Typography>
+            </Grid>
 
-            <hr />
+            <Grid item xs={12}>
+              <Divider sx={{ my: 1 }} />
+            </Grid>
 
-            <div className="row">
-              <div className="col-6 text-end fw-bold">TOTAL:</div>
-              <div className="col-6 text-end fw-bold fs-5">
+            <Grid item xs={6}>
+              <Typography fontWeight="bold" variant="h6" color="#242d49">
+                TOTAL:
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography
+                fontWeight="bold"
+                variant="h6"
+                align="right"
+                color="#242d49"
+              >
                 {formatCurrency(formData.totalAmount)}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+              </Typography>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -554,314 +657,379 @@ const QuoteForm = () => {
   // Check if already converted
   const isConverted = currentQuote && currentQuote.convertedToInvoice;
 
-  if (loading && !formData.client) {
-    return <Spinner />;
-  }
+  // Confirm Dialog component
+  const ConfirmDialog = ({ open, title, message, onClose, onConfirm }) => (
+    <Dialog open={open} onClose={onClose}>
+      <DialogTitle>{title}</DialogTitle>
+      <DialogContent>
+        <Typography>{message}</Typography>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose} color="inherit">
+          Cancel
+        </Button>
+        <StyledButton onClick={onConfirm} autoFocus>
+          Confirm
+        </StyledButton>
+      </DialogActions>
+    </Dialog>
+  );
 
   return (
-    <div className="quote-form-container p-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>{id ? "Edit Quote" : "Create New Quote"}</h1>
-        <div className="action-buttons">
-          {id && (
+    <>
+      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="lg">
+        <DialogTitle>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Typography variant="h5" color="#242d49">
+              {id ? "Edit Quote" : "Create New Quote"}
+            </Typography>
+            <IconButton onClick={handleClose} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          {loading && !formData.client ? (
+            <Box display="flex" justifyContent="center" my={4}>
+              <CircularProgress style={{ color: "#ff919d" }} />
+            </Box>
+          ) : (
             <>
-              <button
-                type="button"
-                className="btn btn-outline-secondary me-2"
-                onClick={handleGeneratePDF}
-                disabled={loading}
-              >
-                <FaFileDownload className="me-1" /> Download PDF
-              </button>
-              {!isConverted && (
-                <button
-                  type="button"
-                  className="btn btn-outline-success me-2"
-                  onClick={handleConvertToInvoice}
-                  disabled={!canConvert || loading}
-                >
-                  <FaFileInvoice className="me-1" /> Convert to Invoice
-                </button>
+              {error && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                  {error}
+                </Alert>
               )}
-              {formData.status === "draft" && (
-                <button
-                  type="button"
-                  className="btn btn-outline-primary me-2"
-                  onClick={() => handleStatusChange("sent")}
-                  disabled={loading}
-                >
-                  <FaPaperPlane className="me-1" /> Send Quote
-                </button>
-              )}
+
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Card variant="outlined" sx={{ mb: 3 }}>
+                    <CardHeader title="Client & Project Information" />
+                    <CardContent>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                          <FormControl fullWidth margin="normal">
+                            <InputLabel
+                              id="client-label"
+                              sx={{ color: "#242d49" }}
+                            >
+                              Client
+                            </InputLabel>
+                            <StyledSelect
+                              labelId="client-label"
+                              id="client"
+                              name="client"
+                              value={formData.client}
+                              onChange={handleInputChange}
+                              label="Client"
+                              required
+                            >
+                              <MenuItem value="">Select Client</MenuItem>
+                              {clients.map((client) => (
+                                <MenuItem key={client._id} value={client._id}>
+                                  {client.name}
+                                </MenuItem>
+                              ))}
+                            </StyledSelect>
+                          </FormControl>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <FormControl fullWidth margin="normal">
+                            <InputLabel
+                              id="project-label"
+                              sx={{ color: "#242d49" }}
+                            >
+                              Project
+                            </InputLabel>
+                            <StyledSelect
+                              labelId="project-label"
+                              id="project"
+                              name="project"
+                              value={formData.project}
+                              onChange={handleInputChange}
+                              label="Project"
+                              required
+                            >
+                              <MenuItem value="">Select Project</MenuItem>
+                              {projects.map((project) => (
+                                <MenuItem key={project._id} value={project._id}>
+                                  {project.title}
+                                </MenuItem>
+                              ))}
+                            </StyledSelect>
+                          </FormControl>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                          <StyledTextField
+                            fullWidth
+                            label="Client Name"
+                            name="clientName"
+                            value={formData.clientName}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            margin="normal"
+                          />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                          <StyledTextField
+                            fullWidth
+                            label="Street"
+                            name="clientAddress.street"
+                            value={formData.clientAddress.street}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            margin="normal"
+                          />
+                        </Grid>
+
+                        <Grid item xs={6}>
+                          <StyledTextField
+                            fullWidth
+                            label="City"
+                            name="clientAddress.city"
+                            value={formData.clientAddress.city}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            margin="normal"
+                          />
+                        </Grid>
+
+                        <Grid item xs={6}>
+                          <StyledTextField
+                            fullWidth
+                            label="Zip Code"
+                            name="clientAddress.zipCode"
+                            value={formData.clientAddress.zipCode}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            margin="normal"
+                          />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                          <StyledTextField
+                            fullWidth
+                            label="Project Title"
+                            name="projectTitle"
+                            value={formData.projectTitle}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            margin="normal"
+                          />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                          <StyledTextField
+                            fullWidth
+                            label="Project Description"
+                            name="projectDescription"
+                            value={formData.projectDescription}
+                            multiline
+                            rows={3}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            margin="normal"
+                          />
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Card variant="outlined" sx={{ mb: 3 }}>
+                    <CardHeader title="Quote Information" />
+                    <CardContent>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          <FormControl fullWidth margin="normal">
+                            <InputLabel
+                              id="status-label"
+                              sx={{ color: "#242d49" }}
+                            >
+                              Status
+                            </InputLabel>
+                            <StyledSelect
+                              labelId="status-label"
+                              id="status"
+                              name="status"
+                              value={formData.status}
+                              onChange={handleStatusChange}
+                              label="Status"
+                              disabled={isConverted}
+                              endAdornment={
+                                isConverted && (
+                                  <InputAdornment position="end">
+                                    <Typography
+                                      variant="caption"
+                                      sx={{
+                                        bgcolor: "success.main",
+                                        color: "white",
+                                        px: 1,
+                                        py: 0.5,
+                                        borderRadius: 1,
+                                      }}
+                                    >
+                                      Converted to Invoice
+                                    </Typography>
+                                  </InputAdornment>
+                                )
+                              }
+                            >
+                              <MenuItem value="draft">Draft</MenuItem>
+                              <MenuItem value="sent">Sent</MenuItem>
+                              <MenuItem value="viewed">Viewed</MenuItem>
+                              <MenuItem value="accepted">Accepted</MenuItem>
+                              <MenuItem value="rejected">Rejected</MenuItem>
+                            </StyledSelect>
+                          </FormControl>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                          <StyledTextField
+                            fullWidth
+                            label="Terms & Conditions"
+                            name="termsConditions"
+                            value={formData.termsConditions || ""}
+                            onChange={handleInputChange}
+                            multiline
+                            rows={3}
+                            placeholder="Terms and conditions for this quote"
+                            margin="normal"
+                          />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                          <StyledTextField
+                            fullWidth
+                            label="Notes"
+                            name="notes"
+                            value={formData.notes || ""}
+                            onChange={handleInputChange}
+                            multiline
+                            rows={2}
+                            placeholder="Additional notes or comments"
+                            margin="normal"
+                          />
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+
+                  <QuoteSummary />
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Card variant="outlined" sx={{ mb: 3 }}>
+                    <CardHeader title="Quote Items" />
+                    <CardContent>
+                      <QuoteItemsTable />
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
             </>
           )}
-          <button
-            type="button"
-            className="btn btn-outline-danger me-2"
-            onClick={() => navigate("/quotes")}
-          >
-            <FaTimes className="me-1" /> Cancel
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            <FaSave className="me-1" /> {id ? "Update" : "Create"} Quote
-          </button>
-        </div>
-      </div>
+        </DialogContent>
 
-      {error && (
-        <div className="alert alert-danger" role="alert">
-          {error}
-        </div>
-      )}
+        <DialogActions sx={{ justifyContent: "space-between", px: 3, py: 2 }}>
+          <Box>
+            {id && (
+              <>
+                <OutlinedStyledButton
+                  startIcon={<GetAppIcon />}
+                  onClick={handleGeneratePDF}
+                  disabled={loading}
+                  sx={{ mr: 1 }}
+                >
+                  Download PDF
+                </OutlinedStyledButton>
+                {!isConverted && (
+                  <OutlinedStyledButton
+                    startIcon={<ReceiptIcon />}
+                    onClick={handleConvertToInvoice}
+                    disabled={!canConvert || loading}
+                    sx={{ mr: 1 }}
+                  >
+                    Convert to Invoice
+                  </OutlinedStyledButton>
+                )}
+                {formData.status === "draft" && (
+                  <OutlinedStyledButton
+                    startIcon={<SendIcon />}
+                    onClick={() => setShowSendModal(true)}
+                    disabled={loading}
+                    sx={{ mr: 1 }}
+                  >
+                    Send Quote
+                  </OutlinedStyledButton>
+                )}
+              </>
+            )}
+          </Box>
+          <Box>
+            <Button onClick={handleClose} color="inherit" sx={{ mr: 1 }}>
+              Cancel
+            </Button>
+            <StyledButton
+              onClick={handleSubmit}
+              disabled={loading}
+              startIcon={<SaveIcon />}
+            >
+              {id ? "Update" : "Create"} Quote
+            </StyledButton>
+          </Box>
+        </DialogActions>
+      </Dialog>
 
-      <form onSubmit={handleSubmit}>
-        <div className="row">
-          <div className="col-md-6">
-            <div className="card mb-4">
-              <div className="card-header">Client & Project Information</div>
-              <div className="card-body">
-                <div className="row mb-3">
-                  <div className="col-md-6">
-                    <label htmlFor="client" className="form-label">
-                      Client
-                    </label>
-                    <select
-                      className="form-select"
-                      id="client"
-                      name="client"
-                      value={formData.client}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="">Select Client</option>
-                      {clients.map((client) => (
-                        <option key={client._id} value={client._id}>
-                          {client.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="col-md-6">
-                    <label htmlFor="project" className="form-label">
-                      Project
-                    </label>
-                    <select
-                      className="form-select"
-                      id="project"
-                      name="project"
-                      value={formData.project}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="">Select Project</option>
-                      {projects.map((project) => (
-                        <option key={project._id} value={project._id}>
-                          {project.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={5000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
 
-                <div className="mb-3">
-                  <label htmlFor="clientName" className="form-label">
-                    Client Name
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="clientName"
-                    name="clientName"
-                    value={formData.clientName}
-                    onChange={handleInputChange}
-                    readOnly
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">Client Address</label>
-                  <input
-                    type="text"
-                    className="form-control mb-2"
-                    name="clientAddress.street"
-                    placeholder="Street"
-                    value={formData.clientAddress.street}
-                    onChange={handleInputChange}
-                    readOnly
-                  />
-                  <div className="row">
-                    <div className="col">
-                      <input
-                        type="text"
-                        className="form-control"
-                        name="clientAddress.city"
-                        placeholder="City"
-                        value={formData.clientAddress.city}
-                        onChange={handleInputChange}
-                        readOnly
-                      />
-                    </div>
-                    <div className="col">
-                      <input
-                        type="text"
-                        className="form-control"
-                        name="clientAddress.zipCode"
-                        placeholder="Zip Code"
-                        value={formData.clientAddress.zipCode}
-                        onChange={handleInputChange}
-                        readOnly
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label htmlFor="projectTitle" className="form-label">
-                    Project Title
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="projectTitle"
-                    name="projectTitle"
-                    value={formData.projectTitle}
-                    onChange={handleInputChange}
-                    readOnly
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label htmlFor="projectDescription" className="form-label">
-                    Project Description
-                  </label>
-                  <textarea
-                    className="form-control"
-                    id="projectDescription"
-                    name="projectDescription"
-                    rows="3"
-                    value={formData.projectDescription}
-                    onChange={handleInputChange}
-                    readOnly
-                  ></textarea>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="col-md-6">
-            <div className="card mb-4">
-              <div className="card-header">Quote Information</div>
-              <div className="card-body">
-                <div className="row mb-3">
-                  <div className="col">
-                    <label htmlFor="status" className="form-label">
-                      Status
-                    </label>
-                    <div className="input-group">
-                      <select
-                        className="form-select"
-                        id="status"
-                        name="status"
-                        value={formData.status}
-                        onChange={(e) => handleStatusChange(e.target.value)}
-                        disabled={isConverted}
-                      >
-                        <option value="draft">Draft</option>
-                        <option value="sent">Sent</option>
-                        <option value="viewed">Viewed</option>
-                        <option value="accepted">Accepted</option>
-                        <option value="rejected">Rejected</option>
-                      </select>
-                      {isConverted && (
-                        <span className="input-group-text bg-success text-white">
-                          Converted to Invoice
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mb-3">
-                  <label htmlFor="termsConditions" className="form-label">
-                    Terms & Conditions
-                  </label>
-                  <textarea
-                    className="form-control"
-                    id="termsConditions"
-                    name="termsConditions"
-                    rows="3"
-                    value={formData.termsConditions || ""}
-                    onChange={handleInputChange}
-                    placeholder="Terms and conditions for this quote"
-                  ></textarea>
-                </div>
-
-                <div className="mb-3">
-                  <label htmlFor="notes" className="form-label">
-                    Notes
-                  </label>
-                  <textarea
-                    className="form-control"
-                    id="notes"
-                    name="notes"
-                    rows="2"
-                    value={formData.notes || ""}
-                    onChange={handleInputChange}
-                    placeholder="Additional notes or comments"
-                  ></textarea>
-                </div>
-              </div>
-            </div>
-
-            <QuoteSummary />
-          </div>
-        </div>
-
-        <div className="card mb-4">
-          <div className="card-header">Quote Items</div>
-          <div className="card-body">
-            <QuoteItemsTable />
-          </div>
-        </div>
-
-        <div className="text-end mb-4">
-          <button
-            type="button"
-            className="btn btn-outline-danger me-2"
-            onClick={() => navigate("/quotes")}
-          >
-            <FaTimes className="me-1" /> Cancel
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={loading}>
-            <FaSave className="me-1" /> {id ? "Update" : "Create"} Quote
-          </button>
-        </div>
-      </form>
-
-      {/* Convert to Invoice Confirmation Modal */}
-      <ConfirmModal
-        show={showConvertModal}
+      {/* Convert to Invoice Confirmation Dialog */}
+      <ConfirmDialog
+        open={showConvertModal}
         title="Convert to Invoice"
         message="Are you sure you want to convert this quote to an invoice? This action cannot be undone."
-        onHide={() => setShowConvertModal(false)}
+        onClose={() => setShowConvertModal(false)}
         onConfirm={confirmConversion}
       />
 
-      {/* Send Quote Confirmation Modal */}
-      <ConfirmModal
-        show={showSendModal}
+      {/* Send Quote Confirmation Dialog */}
+      <ConfirmDialog
+        open={showSendModal}
         title="Send Quote"
         message="Are you sure you want to mark this quote as sent? This will update the status and can trigger email notifications if enabled."
-        onHide={() => setShowSendModal(false)}
+        onClose={() => setShowSendModal(false)}
         onConfirm={() => updateStatus("sent")}
       />
-    </div>
+    </>
   );
 };
 
-export default QuoteForm;
+export default QuoteFormDialog;

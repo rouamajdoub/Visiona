@@ -1,0 +1,316 @@
+/* MatchSteps Container */
+.visiona-match-steps-container {
+  position: relative;
+  padding: 120px 5%;
+  overflow: hidden;
+  background-color: white;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Content Container */
+.visiona-match-steps-content {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+
+/* Header Styles */
+.visiona-match-steps-header {
+  text-align: center;
+  margin-bottom: 80px;
+}
+
+.visiona-match-steps-title {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+  line-height: 1.2;
+}
+
+.visiona-match-steps-subtitle {
+  font-size: 1.25rem;
+  color: #5d6d7e;
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Steps List */
+.visiona-match-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+}
+
+/* Step Item */
+.visiona-match-steps-item {
+  position: relative;
+  padding-bottom: 40px;
+}
+
+.visiona-match-steps-item-content {
+  display: flex;
+  align-items: flex-start;
+  background-color: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.visiona-match-steps-item-content:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+}
+
+/* Step Number */
+.visiona-match-steps-number-container {
+  flex: 0 0 60px;
+  height: 60px;
+  margin-right: 24px;
+  position: relative;
+}
+
+.visiona-match-steps-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(90deg, #4f46e5, #818cf8);
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+  border-radius: 50%;
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+}
+
+/* Step Details */
+.visiona-match-steps-details {
+  flex: 1;
+  padding-right: 20px;
+}
+
+.visiona-match-steps-item-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #2c3e50;
+}
+
+.visiona-match-steps-item-description {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #5d6d7e;
+}
+
+/* Step Icon */
+.visiona-match-steps-icon-container {
+  flex: 0 0 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.visiona-match-steps-icon {
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, #f5f7fa, #e5e9f2);
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* Connector Line */
+.visiona-match-steps-connector {
+  position: absolute;
+  left: 30px;
+  top: 90px;
+  bottom: 0;
+  width: 2px;
+  z-index: 1;
+}
+
+.visiona-match-steps-connector-line {
+  height: 100%;
+  width: 2px;
+  background: linear-gradient(90deg, #4f46e5, #818cf8);
+}
+
+/* Background Element */
+.visiona-match-steps-background-element {
+  position: absolute;
+  top: -10%;
+  right: -5%;
+  width: 40%;
+  height: 70%;
+  background: radial-gradient(
+    circle,
+    rgba(52, 152, 219, 0.05) 0%,
+    rgba(52, 152, 219, 0) 70%
+  );
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* CTA Button */
+.visiona-match-steps-cta {
+  display: flex;
+  justify-content: center;
+  margin-top: 60px;
+}
+
+.visiona-match-steps-cta-button {
+  display: inline-block;
+  background: linear-gradient(90deg, #4f46e5, #818cf8);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 16px 36px;
+  border-radius: 50px;
+  text-decoration: none;
+  box-shadow: 0 10px 25px rgba(52, 152, 219, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.visiona-match-steps-cta-button:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(52, 152, 219, 0.4);
+}
+
+.visiona-match-steps-cta-button:active {
+  transform: translateY(-2px);
+}
+
+.visiona-match-steps-cta-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #818cf8);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.visiona-match-steps-cta-button:hover::before {
+  opacity: 1;
+}
+
+/* Responsive Styles */
+@media (min-width: 992px) {
+  .visiona-match-steps-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+
+  .visiona-match-steps-item {
+    padding-bottom: 0;
+  }
+
+  .visiona-match-steps-connector {
+    display: none;
+  }
+
+  .visiona-match-steps-item:nth-child(odd) {
+    transform: translateY(40px);
+  }
+}
+
+@media (max-width: 991px) {
+  .visiona-match-steps-title {
+    font-size: 2.5rem;
+  }
+
+  .visiona-match-steps-header {
+    margin-bottom: 60px;
+  }
+}
+
+@media (max-width: 768px) {
+  .visiona-match-steps-container {
+    padding: 80px 5%;
+  }
+
+  .visiona-match-steps-title {
+    font-size: 2.2rem;
+  }
+
+  .visiona-match-steps-subtitle {
+    font-size: 1.1rem;
+  }
+
+  .visiona-match-steps-item-content {
+    padding: 24px;
+    flex-direction: column;
+  }
+
+  .visiona-match-steps-number-container {
+    margin-right: 0;
+    margin-bottom: 20px;
+  }
+
+  .visiona-match-steps-details {
+    padding-right: 0;
+    margin-bottom: 20px;
+  }
+
+  .visiona-match-steps-icon-container {
+    align-self: center;
+  }
+
+  .visiona-match-steps-connector {
+    left: 30px;
+  }
+
+  .visiona-match-steps-cta {
+    margin-top: 40px;
+  }
+}
+
+@media (max-width: 576px) {
+  .visiona-match-steps-container {
+    padding: 60px 5%;
+  }
+
+  .visiona-match-steps-title {
+    font-size: 1.8rem;
+  }
+
+  .visiona-match-steps-header {
+    margin-bottom: 40px;
+  }
+
+  .visiona-match-steps-item-title {
+    font-size: 1.3rem;
+  }
+
+  .visiona-match-steps-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 2rem;
+  }
+
+  .visiona-match-steps-cta-button {
+    font-size: 1rem;
+    padding: 14px 30px;
+  }
+}

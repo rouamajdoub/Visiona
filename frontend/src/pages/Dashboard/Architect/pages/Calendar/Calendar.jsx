@@ -159,12 +159,7 @@ const Calendar = () => {
 
   return (
     <Box m="20px">
-      <Typography
-        variant="h1"
-        sx={{ color: "var(--black)", fontWeight: "bold", marginBottom: "20px" }}
-      >
-        Calendar
-      </Typography>
+      <h1 className="calendar-title">Calendar</h1>
 
       {showError && (
         <Alert severity="error" sx={{ mb: 2 }}>
