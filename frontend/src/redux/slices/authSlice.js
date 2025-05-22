@@ -102,9 +102,9 @@ export const loginUser = createAsyncThunk(
 
       localStorage.setItem("token", token);
       setupAuthInterceptor(token);
-
+      // store Current user
       // Additional verification for architects
-      if (user.role === "architect" && user.status !== "approved") {
+      if (user.role === "architect" && user.status === "approved") {
         dispatch(fetchUserProfile(user._id));
       }
 
@@ -216,6 +216,7 @@ export const fetchUserProfile = createAsyncThunk(
   async (userId, { rejectWithValue }) => {
     try {
       const response = await axios.get(`/api/auth/profile/${userId}`);
+      console.log("Fetched user profile:", response.data);
       return response.data;
     } catch (error) {
       return rejectWithValue(

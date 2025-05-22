@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
 const fileUpload = require("../middlewares/fileUpload");
+const { protect } = require("../middlewares/authMiddleware");
+
 // Routes already added from your code
 
 // Add this new route for token verification
@@ -12,5 +14,6 @@ router.post("/login", authController.login);
 router.post("/logout", authController.logout);
 router.post("/register-admin", authController.registerAdmin);
 router.get("/check", authController.checkAuth);
+router.get("/me", protect, loadMe);
 
 module.exports = router;

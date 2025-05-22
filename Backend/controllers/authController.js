@@ -529,6 +529,19 @@ exports.getProfile = asyncHandler(async (req, res) => {
     });
   }
 });
+// controllers/authController.js
+
+exports.loadMe = asyncHandler(async (req, res) => {
+  const user = req.user.toObject(); // req.user is already populated by `protect` middleware
+
+  delete user.password;
+  delete user.authTokens;
+
+  res.status(200).json({
+    success: true,
+    user,
+  });
+});
 
 // Logout
 exports.logout = asyncHandler(async (req, res) => {

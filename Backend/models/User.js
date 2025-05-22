@@ -14,10 +14,10 @@ const userSchema = new mongoose.Schema(
 
     // Auth methods
     auth0Id: { type: String },
-    googleId: { type: String }, // Add Google ID field
+    googleId: { type: String },
     authMethod: {
       type: String,
-      enum: ["auth0", "local", "google"], // Add "google" to auth methods
+      enum: ["auth0", "local", "google"],
       required: true,
     },
     role: {
@@ -113,7 +113,7 @@ userSchema.methods.toJSON = function () {
 };
 
 userSchema.index({ "location.coordinates": "2dsphere" });
-userSchema.index({ googleId: 1 }, { sparse: true }); // Add index for googleId
+userSchema.index({ googleId: 1 }, { sparse: true });
 
 const User = mongoose.model("User", userSchema);
 module.exports = User;
