@@ -12,6 +12,7 @@ const initialState = {
   appReviews: [],
   myReviews: [],
   suspiciousReviews: [],
+  allReviews: [], // For admin overview
   currentReview: null,
 
   // UI states
@@ -21,10 +22,15 @@ const initialState = {
   message: "",
 };
 
-// Async thunks for fetching project reviews
+// Enhanced async thunks with better validation
 export const getProjectReviews = createAsyncThunk(
   "reviews/getProjectReviews",
   async (projectId, thunkAPI) => {
+    // Add validation to catch undefined projectId
+    if (!projectId) {
+      return thunkAPI.rejectWithValue("Project ID is required");
+    }
+
     try {
       const response = await axios.get(
         `${API_URL}/projects/${projectId}/reviews`
@@ -37,10 +43,14 @@ export const getProjectReviews = createAsyncThunk(
   }
 );
 
-// Async thunks for fetching product reviews
 export const getProductReviews = createAsyncThunk(
   "reviews/getProductReviews",
   async (productId, thunkAPI) => {
+    // Add validation to catch undefined productId
+    if (!productId) {
+      return thunkAPI.rejectWithValue("Product ID is required");
+    }
+
     try {
       const response = await axios.get(
         `${API_URL}/products/${productId}/reviews`
@@ -53,7 +63,7 @@ export const getProductReviews = createAsyncThunk(
   }
 );
 
-// Async thunks for fetching app reviews
+// App reviews don't need ID validation
 export const getAppReviews = createAsyncThunk(
   "reviews/getAppReviews",
   async (_, thunkAPI) => {
@@ -71,6 +81,10 @@ export const getAppReviews = createAsyncThunk(
 export const getReviewById = createAsyncThunk(
   "reviews/getReviewById",
   async (reviewId, thunkAPI) => {
+    if (!reviewId) {
+      return thunkAPI.rejectWithValue("Review ID is required");
+    }
+
     try {
       const response = await axios.get(`${API_URL}/reviews/${reviewId}`);
       return response.data;
@@ -99,6 +113,10 @@ export const getMyReviews = createAsyncThunk(
 export const createProjectReview = createAsyncThunk(
   "reviews/createProjectReview",
   async ({ projectId, reviewData }, thunkAPI) => {
+    if (!projectId) {
+      return thunkAPI.rejectWithValue("Project ID is required");
+    }
+
     try {
       const response = await axios.post(
         `${API_URL}/projects/${projectId}/reviews`,
@@ -116,6 +134,10 @@ export const createProjectReview = createAsyncThunk(
 export const createProductReview = createAsyncThunk(
   "reviews/createProductReview",
   async ({ productId, reviewData }, thunkAPI) => {
+    if (!productId) {
+      return thunkAPI.rejectWithValue("Product ID is required");
+    }
+
     try {
       const response = await axios.post(
         `${API_URL}/products/${productId}/reviews`,
@@ -145,6 +167,62 @@ export const createAppReview = createAsyncThunk(
 
 // Admin actions
 
+// Get all reviews (admin overview)
+export const getAllReviews = createAsyncThunk(
+  "reviews/getAllReviews",
+  async (_, thunkAPI) => {
+    try {
+      const response = await axios.get(`${API_URL}/admin/all-reviews`);
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.error || error.message;
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Get all project reviews (admin)
+export const getAllProjectReviews = createAsyncThunk(
+  "reviews/getAllProjectReviews",
+  async (_, thunkAPI) => {
+    try {
+      const response = await axios.get(`${API_URL}/admin/project-reviews`);
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.error || error.message;
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Get all product reviews (admin)
+export const getAllProductReviews = createAsyncThunk(
+  "reviews/getAllProductReviews",
+  async (_, thunkAPI) => {
+    try {
+      const response = await axios.get(`${API_URL}/admin/product-reviews`);
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.error || error.message;
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Get all app reviews (admin)
+export const getAllAppReviews = createAsyncThunk(
+  "reviews/getAllAppReviews",
+  async (_, thunkAPI) => {
+    try {
+      const response = await axios.get(`${API_URL}/admin/app-reviews`);
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.error || error.message;
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 // Get suspicious reviews flagged by AI (admin only)
 export const getSuspiciousReviews = createAsyncThunk(
   "reviews/getSuspiciousReviews",
@@ -163,6 +241,10 @@ export const getSuspiciousReviews = createAsyncThunk(
 export const updateReviewStatus = createAsyncThunk(
   "reviews/updateReviewStatus",
   async ({ reviewId, statusData }, thunkAPI) => {
+    if (!reviewId) {
+      return thunkAPI.rejectWithValue("Review ID is required");
+    }
+
     try {
       const response = await axios.patch(
         `${API_URL}/reviews/${reviewId}/status`,
@@ -180,6 +262,10 @@ export const updateReviewStatus = createAsyncThunk(
 export const deleteReview = createAsyncThunk(
   "reviews/deleteReview",
   async (reviewId, thunkAPI) => {
+    if (!reviewId) {
+      return thunkAPI.rejectWithValue("Review ID is required");
+    }
+
     try {
       await axios.delete(`${API_URL}/reviews/${reviewId}`);
       return reviewId;
@@ -214,7 +300,7 @@ const reviewsSlice = createSlice({
       })
       .addCase(getProjectReviews.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.projectReviews = action.payload.data;
+        state.projectReviews = action.payload.data || [];
       })
       .addCase(getProjectReviews.rejected, (state, action) => {
         state.isLoading = false;
@@ -228,7 +314,7 @@ const reviewsSlice = createSlice({
       })
       .addCase(getProductReviews.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.productReviews = action.payload.data;
+        state.productReviews = action.payload.data || [];
       })
       .addCase(getProductReviews.rejected, (state, action) => {
         state.isLoading = false;
@@ -242,7 +328,7 @@ const reviewsSlice = createSlice({
       })
       .addCase(getAppReviews.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.appReviews = action.payload.data;
+        state.appReviews = action.payload.data || [];
       })
       .addCase(getAppReviews.rejected, (state, action) => {
         state.isLoading = false;
@@ -270,7 +356,7 @@ const reviewsSlice = createSlice({
       })
       .addCase(getMyReviews.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.myReviews = action.payload.data;
+        state.myReviews = action.payload.data || [];
       })
       .addCase(getMyReviews.rejected, (state, action) => {
         state.isLoading = false;
@@ -334,6 +420,63 @@ const reviewsSlice = createSlice({
         state.success = false;
       })
 
+      // Get all reviews (admin)
+      .addCase(getAllReviews.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getAllReviews.fulfilled, (state, action) => {
+        state.isLoading = false;
+        // You might want to store this in a separate field for admin overview
+        state.allReviews = action.payload.data || [];
+      })
+      .addCase(getAllReviews.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+
+      // Get all project reviews (admin)
+      .addCase(getAllProjectReviews.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getAllProjectReviews.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.projectReviews = action.payload.data || [];
+      })
+      .addCase(getAllProjectReviews.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+
+      // Get all product reviews (admin)
+      .addCase(getAllProductReviews.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getAllProductReviews.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.productReviews = action.payload.data || [];
+      })
+      .addCase(getAllProductReviews.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+
+      // Get all app reviews (admin)
+      .addCase(getAllAppReviews.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getAllAppReviews.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.appReviews = action.payload.data || [];
+      })
+      .addCase(getAllAppReviews.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+
       // Get suspicious reviews (admin)
       .addCase(getSuspiciousReviews.pending, (state) => {
         state.isLoading = true;
@@ -341,7 +484,7 @@ const reviewsSlice = createSlice({
       })
       .addCase(getSuspiciousReviews.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.suspiciousReviews = action.payload.data;
+        state.suspiciousReviews = action.payload.data || [];
       })
       .addCase(getSuspiciousReviews.rejected, (state, action) => {
         state.isLoading = false;

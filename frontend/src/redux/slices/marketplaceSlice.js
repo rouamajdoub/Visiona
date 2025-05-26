@@ -183,6 +183,20 @@ export const fetchOrderById = createAsyncThunk(
   }
 );
 
+export const createOrder = createAsyncThunk(
+  "marketplace/createOrder",
+  async (orderData, { rejectWithValue }) => {
+    try {
+      const res = await axios.post("/api/marketplace/orders", orderData);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.error || "Failed to create order"
+      );
+    }
+  }
+);
+
 export const updateOrderStatus = createAsyncThunk(
   "marketplace/updateOrderStatus",
   async ({ id, statusData }, { rejectWithValue }) => {
@@ -246,6 +260,37 @@ export const createProductReview = createAsyncThunk(
   }
 );
 
+export const updateProductReview = createAsyncThunk(
+  "marketplace/updateProductReview",
+  async ({ reviewId, reviewData }, { rejectWithValue }) => {
+    try {
+      const res = await axios.put(
+        `/api/marketplace/reviews/${reviewId}`,
+        reviewData
+      );
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.error || "Failed to update product review"
+      );
+    }
+  }
+);
+
+export const deleteProductReview = createAsyncThunk(
+  "marketplace/deleteProductReview",
+  async (reviewId, { rejectWithValue }) => {
+    try {
+      await axios.delete(`/api/marketplace/reviews/${reviewId}`);
+      return reviewId;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.error || "Failed to delete product review"
+      );
+    }
+  }
+);
+
 export const markReviewHelpful = createAsyncThunk(
   "marketplace/markReviewHelpful",
   async (reviewId, { rejectWithValue }) => {
@@ -272,6 +317,161 @@ export const fetchArchitectStats = createAsyncThunk(
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.error || "Failed to fetch stats"
+      );
+    }
+  }
+);
+
+// Cart Thunks
+export const getCart = createAsyncThunk(
+  "marketplace/getCart",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axios.get("/api/marketplace/cart");
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.error || "Failed to fetch cart"
+      );
+    }
+  }
+);
+
+export const addToCart = createAsyncThunk(
+  "marketplace/addToCart",
+  async ({ productId, quantity }, { rejectWithValue }) => {
+    try {
+      const res = await axios.post("/api/marketplace/cart", {
+        productId,
+        quantity,
+      });
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.error || "Failed to add to cart"
+      );
+    }
+  }
+);
+
+export const updateCartItem = createAsyncThunk(
+  "marketplace/updateCartItem",
+  async ({ itemId, quantity }, { rejectWithValue }) => {
+    try {
+      const res = await axios.put(`/api/marketplace/cart/${itemId}`, {
+        quantity,
+      });
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.error || "Failed to update cart item"
+      );
+    }
+  }
+);
+
+export const removeCartItem = createAsyncThunk(
+  "marketplace/removeCartItem",
+  async (itemId, { rejectWithValue }) => {
+    try {
+      const res = await axios.delete(`/api/marketplace/cart/${itemId}`);
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.error || "Failed to remove cart item"
+      );
+    }
+  }
+);
+
+export const clearCart = createAsyncThunk(
+  "marketplace/clearCart",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axios.delete("/api/marketplace/cart");
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.error || "Failed to clear cart"
+      );
+    }
+  }
+);
+
+// Favorites Thunks
+export const getFavorites = createAsyncThunk(
+  "marketplace/getFavorites",
+  async (queryParams = {}, { rejectWithValue }) => {
+    try {
+      const queryString = new URLSearchParams(queryParams).toString();
+      const res = await axios.get(`/api/marketplace/favorites?${queryString}`);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.error || "Failed to fetch favorites"
+      );
+    }
+  }
+);
+
+export const addToFavorites = createAsyncThunk(
+  "marketplace/addToFavorites",
+  async ({ productId, notes }, { rejectWithValue }) => {
+    try {
+      const res = await axios.post("/api/marketplace/favorites", {
+        productId,
+        notes,
+      });
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.error || "Failed to add to favorites"
+      );
+    }
+  }
+);
+
+export const removeFromFavorites = createAsyncThunk(
+  "marketplace/removeFromFavorites",
+  async (productId, { rejectWithValue }) => {
+    try {
+      const res = await axios.delete(`/api/marketplace/favorites/${productId}`);
+      return { productId, data: res.data };
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.error || "Failed to remove from favorites"
+      );
+    }
+  }
+);
+
+export const checkFavoriteStatus = createAsyncThunk(
+  "marketplace/checkFavoriteStatus",
+  async (productId, { rejectWithValue }) => {
+    try {
+      const res = await axios.get(
+        `/api/marketplace/favorites/check/${productId}`
+      );
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.error || "Failed to check favorite status"
+      );
+    }
+  }
+);
+
+export const updateFavoriteNotes = createAsyncThunk(
+  "marketplace/updateFavoriteNotes",
+  async ({ productId, notes }, { rejectWithValue }) => {
+    try {
+      const res = await axios.put(`/api/marketplace/favorites/${productId}`, {
+        notes,
+      });
+      return res.data.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.error || "Failed to update favorite notes"
       );
     }
   }
@@ -324,6 +524,24 @@ const initialState = {
     loading: false,
     error: null,
   },
+  cart: {
+    items: [],
+    totalAmount: 0,
+    itemCount: 0,
+    loading: false,
+    error: null,
+  },
+  favorites: {
+    list: [],
+    pagination: {
+      total: 0,
+      pages: 1,
+      page: 1,
+      limit: 10,
+    },
+    loading: false,
+    error: null,
+  },
 };
 
 const marketplaceSlice = createSlice({
@@ -342,11 +560,39 @@ const marketplaceSlice = createSlice({
     clearReviewError: (state) => {
       state.reviews.error = null;
     },
+    clearStatsError: (state) => {
+      state.stats.error = null;
+    },
     resetCurrentProduct: (state) => {
       state.products.currentProduct = null;
     },
     resetCurrentCategory: (state) => {
       state.categories.currentCategory = null;
+    },
+    resetCurrentOrder: (state) => {
+      state.orders.currentOrder = null;
+    },
+    clearCartError: (state) => {
+      state.cart.error = null;
+    },
+    clearFavoritesError: (state) => {
+      state.favorites.error = null;
+    },
+    resetProductsPagination: (state) => {
+      state.products.pagination = {
+        total: 0,
+        pages: 1,
+        page: 1,
+        limit: 10,
+      };
+    },
+    resetOrdersPagination: (state) => {
+      state.orders.pagination = {
+        total: 0,
+        pages: 1,
+        page: 1,
+        limit: 10,
+      };
     },
   },
   extraReducers: (builder) => {
@@ -388,6 +634,10 @@ const marketplaceSlice = createSlice({
         if (index !== -1) {
           state.categories.list[index] = action.payload;
         }
+        // Update current category if it's the same one
+        if (state.categories.currentCategory?._id === action.payload._id) {
+          state.categories.currentCategory = action.payload;
+        }
       })
       .addCase(updateCategory.rejected, (state, action) => {
         state.categories.loading = false;
@@ -402,6 +652,10 @@ const marketplaceSlice = createSlice({
         state.categories.list = state.categories.list.filter(
           (cat) => cat._id !== action.payload
         );
+        // Clear current category if it was deleted
+        if (state.categories.currentCategory?._id === action.payload) {
+          state.categories.currentCategory = null;
+        }
       })
       .addCase(deleteCategory.rejected, (state, action) => {
         state.categories.loading = false;
@@ -441,6 +695,8 @@ const marketplaceSlice = createSlice({
       .addCase(createProduct.fulfilled, (state, action) => {
         state.products.loading = false;
         state.products.list.unshift(action.payload);
+        // Update pagination total
+        state.products.pagination.total += 1;
       })
       .addCase(createProduct.rejected, (state, action) => {
         state.products.loading = false;
@@ -478,10 +734,19 @@ const marketplaceSlice = createSlice({
         if (state.products.currentProduct?._id === action.payload) {
           state.products.currentProduct = null;
         }
+        // Update pagination total
+        state.products.pagination.total = Math.max(
+          0,
+          state.products.pagination.total - 1
+        );
       })
       .addCase(deleteProduct.rejected, (state, action) => {
         state.products.loading = false;
         state.products.error = action.payload;
+      })
+      .addCase(deleteProductImage.pending, (state) => {
+        state.products.loading = true;
+        state.products.error = null;
       })
       .addCase(deleteProductImage.fulfilled, (state, action) => {
         state.products.loading = false;
@@ -499,6 +764,10 @@ const marketplaceSlice = createSlice({
         if (state.products.currentProduct?._id === updatedProduct._id) {
           state.products.currentProduct = updatedProduct;
         }
+      })
+      .addCase(deleteProductImage.rejected, (state, action) => {
+        state.products.loading = false;
+        state.products.error = action.payload;
       })
 
       // Orders
@@ -527,6 +796,24 @@ const marketplaceSlice = createSlice({
         state.orders.loading = false;
         state.orders.error = action.payload;
       })
+      .addCase(createOrder.pending, (state) => {
+        state.orders.loading = true;
+        state.orders.error = null;
+      })
+      .addCase(createOrder.fulfilled, (state, action) => {
+        state.orders.loading = false;
+        state.orders.list.unshift(action.payload);
+        // Update pagination total
+        state.orders.pagination.total += 1;
+      })
+      .addCase(createOrder.rejected, (state, action) => {
+        state.orders.loading = false;
+        state.orders.error = action.payload;
+      })
+      .addCase(updateOrderStatus.pending, (state) => {
+        state.orders.loading = true;
+        state.orders.error = null;
+      })
       .addCase(updateOrderStatus.fulfilled, (state, action) => {
         state.orders.loading = false;
         const updatedOrder = action.payload;
@@ -544,6 +831,14 @@ const marketplaceSlice = createSlice({
           state.orders.currentOrder = updatedOrder;
         }
       })
+      .addCase(updateOrderStatus.rejected, (state, action) => {
+        state.orders.loading = false;
+        state.orders.error = action.payload;
+      })
+      .addCase(cancelOrder.pending, (state) => {
+        state.orders.loading = true;
+        state.orders.error = null;
+      })
       .addCase(cancelOrder.fulfilled, (state, action) => {
         state.orders.loading = false;
         const updatedOrder = action.payload;
@@ -560,6 +855,10 @@ const marketplaceSlice = createSlice({
         if (state.orders.currentOrder?._id === updatedOrder._id) {
           state.orders.currentOrder = updatedOrder;
         }
+      })
+      .addCase(cancelOrder.rejected, (state, action) => {
+        state.orders.loading = false;
+        state.orders.error = action.payload;
       })
 
       // Reviews
@@ -583,10 +882,51 @@ const marketplaceSlice = createSlice({
       .addCase(createProductReview.fulfilled, (state, action) => {
         state.reviews.loading = false;
         state.reviews.list.unshift(action.payload);
+        // Update pagination total
+        state.reviews.pagination.total += 1;
       })
       .addCase(createProductReview.rejected, (state, action) => {
         state.reviews.loading = false;
         state.reviews.error = action.payload;
+      })
+      .addCase(updateProductReview.pending, (state) => {
+        state.reviews.loading = true;
+        state.reviews.error = null;
+      })
+      .addCase(updateProductReview.fulfilled, (state, action) => {
+        state.reviews.loading = false;
+        const index = state.reviews.list.findIndex(
+          (review) => review._id === action.payload._id
+        );
+        if (index !== -1) {
+          state.reviews.list[index] = action.payload;
+        }
+      })
+      .addCase(updateProductReview.rejected, (state, action) => {
+        state.reviews.loading = false;
+        state.reviews.error = action.payload;
+      })
+      .addCase(deleteProductReview.pending, (state) => {
+        state.reviews.loading = true;
+        state.reviews.error = null;
+      })
+      .addCase(deleteProductReview.fulfilled, (state, action) => {
+        state.reviews.loading = false;
+        state.reviews.list = state.reviews.list.filter(
+          (review) => review._id !== action.payload
+        );
+        // Update pagination total
+        state.reviews.pagination.total = Math.max(
+          0,
+          state.reviews.pagination.total - 1
+        );
+      })
+      .addCase(deleteProductReview.rejected, (state, action) => {
+        state.reviews.loading = false;
+        state.reviews.error = action.payload;
+      })
+      .addCase(markReviewHelpful.pending, (state) => {
+        state.reviews.error = null;
       })
       .addCase(markReviewHelpful.fulfilled, (state, action) => {
         const { reviewId, data } = action.payload;
@@ -596,6 +936,9 @@ const marketplaceSlice = createSlice({
         if (reviewIndex !== -1) {
           state.reviews.list[reviewIndex].helpfulVotes = data.helpfulVotes;
         }
+      })
+      .addCase(markReviewHelpful.rejected, (state, action) => {
+        state.reviews.error = action.payload;
       })
 
       // Architect stats
@@ -610,6 +953,157 @@ const marketplaceSlice = createSlice({
       .addCase(fetchArchitectStats.rejected, (state, action) => {
         state.stats.loading = false;
         state.stats.error = action.payload;
+      })
+
+      // Cart reducers
+      .addCase(getCart.pending, (state) => {
+        state.cart.loading = true;
+        state.cart.error = null;
+      })
+      .addCase(getCart.fulfilled, (state, action) => {
+        state.cart.loading = false;
+        state.cart.items = action.payload.items;
+        state.cart.totalAmount = action.payload.totalAmount;
+        state.cart.itemCount = action.payload.itemCount;
+      })
+      .addCase(getCart.rejected, (state, action) => {
+        state.cart.loading = false;
+        state.cart.error = action.payload;
+      })
+      .addCase(addToCart.pending, (state) => {
+        state.cart.loading = true;
+        state.cart.error = null;
+      })
+      .addCase(addToCart.fulfilled, (state, action) => {
+        state.cart.loading = false;
+        state.cart.items = action.payload.items;
+        state.cart.totalAmount = action.payload.totalAmount;
+        state.cart.itemCount = action.payload.itemCount;
+      })
+      .addCase(addToCart.rejected, (state, action) => {
+        state.cart.loading = false;
+        state.cart.error = action.payload;
+      })
+      .addCase(updateCartItem.pending, (state) => {
+        state.cart.loading = true;
+        state.cart.error = null;
+      })
+      .addCase(updateCartItem.fulfilled, (state, action) => {
+        state.cart.loading = false;
+        state.cart.items = action.payload.items;
+        state.cart.totalAmount = action.payload.totalAmount;
+        state.cart.itemCount = action.payload.itemCount;
+      })
+      .addCase(updateCartItem.rejected, (state, action) => {
+        state.cart.loading = false;
+        state.cart.error = action.payload;
+      })
+      .addCase(removeCartItem.pending, (state) => {
+        state.cart.loading = true;
+        state.cart.error = null;
+      })
+      .addCase(removeCartItem.fulfilled, (state, action) => {
+        state.cart.loading = false;
+        state.cart.items = action.payload.items;
+        state.cart.totalAmount = action.payload.totalAmount;
+        state.cart.itemCount = action.payload.itemCount;
+      })
+      .addCase(removeCartItem.rejected, (state, action) => {
+        state.cart.loading = false;
+        state.cart.error = action.payload;
+      })
+      .addCase(clearCart.pending, (state) => {
+        state.cart.loading = true;
+        state.cart.error = null;
+      })
+      .addCase(clearCart.fulfilled, (state) => {
+        state.cart.loading = false;
+        state.cart.items = [];
+        state.cart.totalAmount = 0;
+        state.cart.itemCount = 0;
+      })
+      .addCase(clearCart.rejected, (state, action) => {
+        state.cart.loading = false;
+        state.cart.error = action.payload;
+      })
+
+      // Favorites reducers
+      .addCase(getFavorites.pending, (state) => {
+        state.favorites.loading = true;
+        state.favorites.error = null;
+      })
+      .addCase(getFavorites.fulfilled, (state, action) => {
+        state.favorites.loading = false;
+        state.favorites.list = action.payload.data;
+        state.favorites.pagination = action.payload.pagination;
+      })
+      .addCase(getFavorites.rejected, (state, action) => {
+        state.favorites.loading = false;
+        state.favorites.error = action.payload;
+      })
+      .addCase(addToFavorites.pending, (state) => {
+        state.favorites.loading = true;
+        state.favorites.error = null;
+      })
+      .addCase(addToFavorites.fulfilled, (state, action) => {
+        state.favorites.loading = false;
+        state.favorites.list.unshift(action.payload);
+        // Update pagination total
+        state.favorites.pagination.total += 1;
+      })
+      .addCase(addToFavorites.rejected, (state, action) => {
+        state.favorites.loading = false;
+        state.favorites.error = action.payload;
+      })
+      .addCase(removeFromFavorites.pending, (state) => {
+        state.favorites.loading = true;
+        state.favorites.error = null;
+      })
+      .addCase(removeFromFavorites.fulfilled, (state, action) => {
+        state.favorites.loading = false;
+        state.favorites.list = state.favorites.list.filter(
+          (item) => item.product._id !== action.payload.productId
+        );
+        // Update pagination total
+        state.favorites.pagination.total = Math.max(
+          0,
+          state.favorites.pagination.total - 1
+        );
+      })
+      .addCase(removeFromFavorites.rejected, (state, action) => {
+        state.favorites.loading = false;
+        state.favorites.error = action.payload;
+      })
+      .addCase(checkFavoriteStatus.pending, (state) => {
+        state.favorites.error = null;
+      })
+      .addCase(checkFavoriteStatus.fulfilled, (state, action) => {
+        const index = state.favorites.list.findIndex(
+          (item) => item.product._id === action.payload.productId
+        );
+        if (index === -1 && action.payload.isFavorite) {
+          state.favorites.list.push(action.payload);
+        }
+      })
+      .addCase(checkFavoriteStatus.rejected, (state, action) => {
+        state.favorites.error = action.payload;
+      })
+      .addCase(updateFavoriteNotes.pending, (state) => {
+        state.favorites.loading = true;
+        state.favorites.error = null;
+      })
+      .addCase(updateFavoriteNotes.fulfilled, (state, action) => {
+        state.favorites.loading = false;
+        const index = state.favorites.list.findIndex(
+          (item) => item._id === action.payload._id
+        );
+        if (index !== -1) {
+          state.favorites.list[index].notes = action.payload.notes;
+        }
+      })
+      .addCase(updateFavoriteNotes.rejected, (state, action) => {
+        state.favorites.loading = false;
+        state.favorites.error = action.payload;
       });
   },
 });
@@ -619,8 +1113,14 @@ export const {
   clearProductError,
   clearOrderError,
   clearReviewError,
+  clearStatsError,
   resetCurrentProduct,
   resetCurrentCategory,
+  resetCurrentOrder,
+  clearCartError,
+  clearFavoritesError,
+  resetProductsPagination,
+  resetOrdersPagination,
 } = marketplaceSlice.actions;
 
 export default marketplaceSlice.reducer;

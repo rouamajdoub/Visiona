@@ -14,6 +14,6 @@ router.post("/login", authController.login);
 router.post("/logout", authController.logout);
 router.post("/register-admin", authController.registerAdmin);
 router.get("/check", authController.checkAuth);
-router.get("/me", protect, loadMe);
+router.get("/me", protect, authController.loadMe);
 
 module.exports = router;

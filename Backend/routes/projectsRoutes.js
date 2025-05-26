@@ -7,7 +7,7 @@ const router = express.Router();
 // Protect routes, allowing only authenticated architects
 router.use(protect, restrictTo("architect"));
 
-// Project search route
+// Project search route (should be before parameterized routes)
 router.get("/search", projectController.searchProjects);
 
 // Project management routes
@@ -23,6 +23,11 @@ router.get("/client/:clientId", projectController.getProjectsByClient);
 // Like/Unlike routes
 router.post("/:projectId/like", projectController.likeProject);
 router.get("/:projectId/likes", projectController.getProjectLikesCount);
+
+// NEW: Project file management routes
+router.post("/:projectId/files", projectController.addProjectFile);
+router.put("/:projectId/files/:fileId", projectController.updateProjectFile);
+router.delete("/:projectId/files/:fileId", projectController.deleteProjectFile);
 
 // Milestone management routes
 router.post("/:projectId/milestones", projectController.addMilestone);

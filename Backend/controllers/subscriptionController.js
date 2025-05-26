@@ -230,3 +230,175 @@ exports.checkExpiredSubscriptions = async () => {
     };
   }
 };
+// Additional methods for subscriptionController.js
+
+// Cancel subscription specifically
+exports.cancelSubscription = async (req, res) => {
+  try {
+    const subscription = await Subscription.findById(req.params.id);
+
+    if (!subscription) {
+      return res.status(404).json({ message: "Subscription not found" });
+    }
+
+    // Update subscription status
+    subscription.status = "cancelled";
+    await subscription.save();
+
+    // Update architect's subscription type
+    if (subscription.architectId) {
+      await User.findByIdAndUpdate(subscription.architectId, {
+        subscriptionType: "none",
+        hasAccess: false,
+      });
+    }
+
+    res.status(200).json({
+      message: "Subscription cancelled successfully",
+      subscription,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Renew subscription
+exports.renewSubscription = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentDetails } = req.body;
+
+    const subscription = await Subscription.findById(id);
+
+    if (!subscription) {
+      return res.status(404).json({ message: "Subscription not found" });
+    }
+
+    // Calculate new end date (1 year from current end date or now)
+    const baseDate =
+      subscription.endDate > new Date() ? subscription.endDate : new Date();
+    const newEndDate = new Date(baseDate);
+    newEndDate.setFullYear(newEndDate.getFullYear() + 1);
+
+    // Update subscription
+    subscription.endDate = newEndDate;
+    subscription.status = "active";
+
+    // Add transaction record
+    let price = 0;
+    switch (subscription.plan) {
+      case "premium":
+        price = 200;
+        break;
+      case "vip":
+        price = 120;
+        break;
+    }
+
+    subscription.transactions.push({
+      amount: price,
+      date: new Date(),
+      transactionId: paymentDetails?.transactionId || `renewal_${Date.now()}`,
+      status: "success",
+    });
+
+    await subscription.save();
+
+    // Update architect status
+    await User.findByIdAndUpdate(subscription.architectId, {
+      hasAccess: true,
+      subscriptionType: subscription.plan,
+    });
+
+    res.status(200).json({
+      message: "Subscription renewed successfully",
+      subscription,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get subscription statistics
+exports.getSubscriptionStats = async (req, res) => {
+  try {
+    const stats = await Subscription.aggregate([
+      {
+        $group: {
+          _id: "$plan",
+          count: { $sum: 1 },
+          activeCount: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "active"] }, 1, 0],
+            },
+          },
+          totalRevenue: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "active"] }, "$price", 0],
+            },
+          },
+        },
+      },
+    ]);
+
+    const totalSubscriptions = await Subscription.countDocuments();
+    const activeSubscriptions = await Subscription.countDocuments({
+      status: "active",
+    });
+    const expiredSubscriptions = await Subscription.countDocuments({
+      status: "expired",
+    });
+
+    res.status(200).json({
+      planStats: stats,
+      totalSubscriptions,
+      activeSubscriptions,
+      expiredSubscriptions,
+      conversionRate:
+        totalSubscriptions > 0
+          ? ((activeSubscriptions / totalSubscriptions) * 100).toFixed(2)
+          : 0,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Check subscription eligibility for features
+exports.checkFeatureAccess = async (req, res) => {
+  try {
+    const { architectId, feature } = req.params;
+
+    const subscription = await Subscription.findOne({
+      architectId,
+      status: "active",
+      endDate: { $gt: new Date() },
+    });
+
+    if (!subscription) {
+      return res.status(200).json({
+        hasAccess: false,
+        reason: "No active subscription",
+      });
+    }
+
+    // Define feature access rules
+    const featureAccess = {
+      basic: ["free", "premium", "vip"],
+      advanced: ["premium", "vip"],
+      premium: ["vip"],
+    };
+
+    const hasAccess =
+      featureAccess[feature]?.includes(subscription.plan) || false;
+
+    res.status(200).json({
+      hasAccess,
+      plan: subscription.plan,
+      feature,
+      subscription: subscription._id,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

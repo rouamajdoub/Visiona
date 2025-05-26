@@ -1,25 +1,47 @@
 const express = require("express");
 const router = express.Router();
 const architectController = require("../controllers/profileController");
-const authMiddleware = require("../middlewares/authMiddleware");
+const {
+  protect,
+  restrictTo,
+  requireApproved,
+} = require("../middlewares/authMiddleware");
+const upload = require("../middlewares/fileUpload");
 
-router.use(authMiddleware.protect);
-router.use(authMiddleware.restrictTo("architect"));
+// Public routes (accessible to clients)
+// Get all architects with filtering
+router.get("/", architectController.getAllArchitects);
 
-router.get("/me", architectController.getMyProfile);
-router.put(
-  "/me",
-  architectController.uploadFiles,
-  architectController.updateMyProfile
-);
-router.delete("/me", architectController.deleteMyProfile);
+// Get public architect profile by ID
+router.get("/:id", architectController.getArchitectProfile);
 
+// Get service categories and subcategories
+router.get("/options/services", architectController.getServiceOptions);
+
+// Get global options (certifications and software)
+router.get("/options/global", architectController.getGlobalOptions);
+
+// Protected routes for architects
+router.use(protect);
+router.use(restrictTo("architect"));
+router.use(requireApproved);
+
+// Get own profile
+router.get("/profile/me", architectController.getMyProfile);
+
+// Update profile with file uploads
+router.put("/profile/update", upload, architectController.updateProfile);
+
+// Remove portfolio image
 router.delete(
-  "/me/portfolio/:itemIndex",
-  architectController.deletePortfolioItem
+  "/profile/portfolio/:imageIndex",
+  architectController.removePortfolioImage
 );
 
-router.get("/me/stats", architectController.getMyStats);
-router.put("/me/payment", architectController.updatePaymentStatus);
+// Remove certification file
+router.delete(
+  "/profile/certification/:certIndex",
+  architectController.removeCertification
+);
 
 module.exports = router;

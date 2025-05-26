@@ -1,54 +1,22 @@
-import React, { useRef, useEffect } from "react";
-import { Link } from "react-router-dom"; // Import Link
+import React from "react";
 import "./HeroSection.css";
-import V from "../../img/logo.mp4";
+import HeroImage from "../../img/logo.png"; // Make sure to use a valid image format like .jpg or .png
 
 const HeroSection = () => {
-  const videoRef = useRef(null);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.addEventListener("loadeddata", () => {
-        console.log("Video loaded successfully");
-      });
-
-      videoRef.current.addEventListener("error", (e) => {
-        console.error("Error loading video:", e);
-      });
-
-      const playVideo = async () => {
-        try {
-          await videoRef.current.play();
-        } catch (err) {
-          console.error("Error playing video:", err);
-        }
-      };
-
-      playVideo();
-    }
-  }, []);
-
   return (
     <div className="hero-container">
-      <video
-        className="hero-video"
-        ref={videoRef}
-        autoPlay
-        loop
-        muted
-        playsInline
+      <img
+        className="hero-image"
+        src={HeroImage}
+        alt="Hero background"
         width="100%"
         height="100%"
-      >
-        <source src={V} type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
+      />
 
-      <div className="video-fallback"></div>
       <div className="hero-overlay"></div>
 
       <div className="hero-content">
-        <h1>Welcome to Visiona </h1>
+        <h1>Welcome to Visiona</h1>
         <p>
           Connect with talented interior architects, explore inspiring
           portfolios, and bring your dream space to life. With Visiona, matching

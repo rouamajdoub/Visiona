@@ -172,48 +172,108 @@ exports.getProduct = async (req, res) => {
  */
 exports.createProduct = async (req, res) => {
   try {
-    // Add the current user as the seller
-    req.body.seller = req.user.id;
+    const multer = require("multer");
+    const path = require("path");
+    const fs = require("fs");
 
-    // Validate category existence
-    if (req.body.category) {
-      const categoryExists = await Category.findById(req.body.category);
-      if (!categoryExists) {
+    // Configure multer for direct image upload
+    const storage = multer.diskStorage({
+      destination: function (req, file, cb) {
+        const uploadPath = "uploads/products/";
+        // Create directory if it doesn't exist
+        if (!fs.existsSync(uploadPath)) {
+          fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        cb(null, uploadPath);
+      },
+      filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+        cb(null, "product-" + uniqueSuffix + path.extname(file.originalname));
+      },
+    });
+
+    const upload = multer({
+      storage: storage,
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+      },
+      fileFilter: function (req, file, cb) {
+        const allowedTypes = /jpeg|jpg|png|gif|webp/;
+        const extname = allowedTypes.test(
+          path.extname(file.originalname).toLowerCase()
+        );
+        const mimetype = allowedTypes.test(file.mimetype);
+
+        if (mimetype && extname) {
+          return cb(null, true);
+        } else {
+          cb(new Error("Only image files are allowed"));
+        }
+      },
+    }).array("images", 10); // Allow up to 10 images
+
+    // Handle file upload
+    upload(req, res, async function (err) {
+      if (err) {
         return res.status(400).json({
           success: false,
-          error: "Category not found",
+          error: err.message,
         });
       }
-    }
 
-    // Handle uploaded images if they exist
-    if (req.files && req.files.productImages) {
-      const imageFiles = req.files.productImages;
-      const imageUrls = imageFiles.map(
-        (file) => `/uploads/products/${file.filename}`
-      );
+      try {
+        // Add the current user as the seller
+        req.body.seller = req.user.id;
 
-      // Add image URLs to the product data
-      req.body.images = imageUrls;
-    }
+        // Validate category existence
+        if (req.body.category) {
+          const categoryExists = await Category.findById(req.body.category);
+          if (!categoryExists) {
+            return res.status(400).json({
+              success: false,
+              error: "Category not found",
+            });
+          }
+        }
 
-    // Create product
-    const product = await Product.create(req.body);
+        // Handle uploaded images
+        if (req.files && req.files.length > 0) {
+          req.body.images = req.files.map(
+            (file) => `/uploads/products/${file.filename}`
+          );
+        }
 
-    res.status(201).json({
-      success: true,
-      data: product,
+        // Create product
+        const product = await Product.create(req.body);
+
+        // Populate the product for response
+        const populatedProduct = await Product.findById(product._id)
+          .populate("category", "name slug")
+          .populate("seller", "pseudo profilePicture");
+
+        res.status(201).json({
+          success: true,
+          data: populatedProduct,
+        });
+      } catch (error) {
+        if (error.name === "ValidationError") {
+          const messages = Object.values(error.errors).map(
+            (err) => err.message
+          );
+
+          return res.status(400).json({
+            success: false,
+            error: messages.join(", "),
+          });
+        }
+
+        res.status(500).json({
+          success: false,
+          error: "Server Error: " + error.message,
+        });
+      }
     });
   } catch (error) {
-    if (error.name === "ValidationError") {
-      const messages = Object.values(error.errors).map((err) => err.message);
-
-      return res.status(400).json({
-        success: false,
-        error: messages.join(", "),
-      });
-    }
-
     res.status(500).json({
       success: false,
       error: "Server Error: " + error.message,
@@ -631,8 +691,27 @@ exports.deleteCategory = async (req, res) => {
  */
 exports.getProductReviews = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    // Use your existing review controller
+    const reviewController = require("./reviewController");
 
+    // Set the product ID in params for the review controller
+    req.params.id = req.params.id;
+
+    // Call your existing getProductReviews function
+    return await reviewController.getProductReviews(req, res);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: "Server Error: " + error.message,
+    });
+  }
+};
+exports.createProductReview = async (req, res) => {
+  try {
+    const reviewController = require("./reviewController");
+
+    // Verify the product exists first
+    const product = await Product.findById(req.params.id);
     if (!product) {
       return res.status(404).json({
         success: false,
@@ -640,59 +719,8 @@ exports.getProductReviews = async (req, res) => {
       });
     }
 
-    // Pagination
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
-    const skip = (page - 1) * limit;
-
-    // Filter and sort options
-    const filterOptions = {
-      product: req.params.id,
-      reviewType: "ProductReview",
-      status: "published",
-    };
-    let sortOptions = {};
-
-    // Filter by rating if requested
-    if (req.query.rating) {
-      filterOptions.rating = parseInt(req.query.rating, 10);
-    }
-
-    // Sort options
-    if (req.query.sort === "recent") {
-      sortOptions = { createdAt: -1 };
-    } else if (req.query.sort === "helpful") {
-      sortOptions = { helpfulVotes: -1 };
-    } else if (req.query.sort === "rating-high") {
-      sortOptions = { rating: -1 };
-    } else if (req.query.sort === "rating-low") {
-      sortOptions = { rating: 1 };
-    } else {
-      sortOptions = { createdAt: -1 }; // Default sort
-    }
-
-    const { Review } = require("../models/Review"); // Import the base Review model
-
-    const reviews = await Review.find(filterOptions)
-      .populate("reviewer", "pseudo profilePicture")
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(limit);
-
-    // Get total count for pagination
-    const total = await Review.countDocuments(filterOptions);
-
-    res.status(200).json({
-      success: true,
-      count: reviews.length,
-      pagination: {
-        total,
-        pages: Math.ceil(total / limit),
-        page,
-        limit,
-      },
-      data: reviews,
-    });
+    // Call your existing createProductReview function
+    return await reviewController.createProductReview(req, res);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -1124,8 +1152,28 @@ exports.cancelOrder = async (req, res) => {
  */
 exports.getArchitectStats = async (req, res) => {
   try {
+    const { ProductReview } = require("../models/Review");
+
     // Total products count
     const totalProducts = await Product.countDocuments({ seller: req.user.id });
+
+    // Products by status
+    const productsByStatus = await Product.aggregate([
+      { $match: { seller: new mongoose.Types.ObjectId(req.user.id) } },
+      {
+        $group: {
+          _id: "$isPublished",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          status: { $cond: { if: "$_id", then: "published", else: "draft" } },
+          count: 1,
+          _id: 0,
+        },
+      },
+    ]);
 
     // Products by category
     const productsByCategory = await Product.aggregate([
@@ -1147,48 +1195,26 @@ exports.getArchitectStats = async (req, res) => {
     const topRatedProducts = await Product.find({ seller: req.user.id })
       .sort({ averageRating: -1, totalReviews: -1 })
       .limit(5)
-      .select("title slug averageRating totalReviews");
+      .select("title slug averageRating totalReviews images");
 
-    // Get order stats
-    const orderItems = await Order.aggregate([
-      { $match: { orderStatus: { $ne: "cancelled" } } },
-      { $unwind: "$items" },
-      {
-        $lookup: {
-          from: "products",
-          localField: "items.product",
-          foreignField: "_id",
-          as: "productInfo",
-        },
-      },
-      { $unwind: "$productInfo" },
-      {
-        $match: {
-          "productInfo.seller": new mongoose.Types.ObjectId(req.user.id),
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          totalSales: { $sum: "$items.totalPrice" },
-          totalItems: { $sum: "$items.quantity" },
-          orders: { $addToSet: "$_id" },
-        },
-      },
-    ]);
+    // Most viewed products
+    const mostViewedProducts = await Product.find({ seller: req.user.id })
+      .sort({ views: -1 })
+      .limit(5)
+      .select("title slug views images");
 
-    const salesStats = {
-      totalSales: orderItems.length > 0 ? orderItems[0].totalSales : 0,
-      totalItemsSold: orderItems.length > 0 ? orderItems[0].totalItems : 0,
-      totalOrders: orderItems.length > 0 ? orderItems[0].orders.length : 0,
-    };
+    // Recent products
+    const recentProducts = await Product.find({ seller: req.user.id })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("title slug createdAt isPublished images");
 
-    // Reviews stats
+    // Reviews stats using your ProductReview model
     const reviewsStats = await ProductReview.aggregate([
       {
         $lookup: {
           from: "products",
-          localField: "productId",
+          localField: "product",
           foreignField: "_id",
           as: "productInfo",
         },
@@ -1197,6 +1223,7 @@ exports.getArchitectStats = async (req, res) => {
       {
         $match: {
           "productInfo.seller": new mongoose.Types.ObjectId(req.user.id),
+          status: "published",
         },
       },
       {
@@ -1204,32 +1231,79 @@ exports.getArchitectStats = async (req, res) => {
           _id: null,
           totalReviews: { $sum: 1 },
           averageRating: { $avg: "$rating" },
-          ratingCounts: {
-            $push: {
-              rating: "$rating",
-            },
-          },
+          ratings: { $push: "$rating" },
         },
       },
     ]);
 
-    // Transform rating counts
+    // Transform rating distribution
     let ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-
-    if (reviewsStats.length > 0) {
-      reviewsStats[0].ratingCounts.forEach((item) => {
-        ratingDistribution[item.rating] =
-          (ratingDistribution[item.rating] || 0) + 1;
+    if (reviewsStats.length > 0 && reviewsStats[0].ratings) {
+      reviewsStats[0].ratings.forEach((rating) => {
+        ratingDistribution[rating] = (ratingDistribution[rating] || 0) + 1;
       });
     }
 
-    const stats = {
-      products: {
-        total: totalProducts,
-        byCategory: productsByCategory,
-        topRated: topRatedProducts,
+    // Recent reviews
+    const recentReviews = await ProductReview.find()
+      .populate({
+        path: "product",
+        match: { seller: req.user.id },
+        select: "title slug",
+      })
+      .populate("reviewer", "pseudo profilePicture")
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    // Filter out reviews where product is null (didn't match seller)
+    const filteredRecentReviews = recentReviews.filter(
+      (review) => review.product !== null
+    );
+
+    // Monthly stats for the last 6 months
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const monthlyStats = await Product.aggregate([
+      {
+        $match: {
+          seller: new mongoose.Types.ObjectId(req.user.id),
+          createdAt: { $gte: sixMonthsAgo },
+        },
       },
-      sales: salesStats,
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          productsCreated: { $sum: 1 },
+        },
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
+    ]);
+
+    const stats = {
+      overview: {
+        totalProducts,
+        publishedProducts:
+          productsByStatus.find((p) => p.status === "published")?.count || 0,
+        draftProducts:
+          productsByStatus.find((p) => p.status === "draft")?.count || 0,
+        totalReviews:
+          reviewsStats.length > 0 ? reviewsStats[0].totalReviews : 0,
+        averageRating:
+          reviewsStats.length > 0
+            ? parseFloat(reviewsStats[0].averageRating.toFixed(1))
+            : 0,
+      },
+      products: {
+        byCategory: productsByCategory,
+        byStatus: productsByStatus,
+        topRated: topRatedProducts,
+        mostViewed: mostViewedProducts,
+        recent: recentProducts,
+      },
       reviews: {
         total: reviewsStats.length > 0 ? reviewsStats[0].totalReviews : 0,
         averageRating:
@@ -1237,6 +1311,10 @@ exports.getArchitectStats = async (req, res) => {
             ? parseFloat(reviewsStats[0].averageRating.toFixed(1))
             : 0,
         distribution: ratingDistribution,
+        recent: filteredRecentReviews,
+      },
+      trends: {
+        monthlyProductCreation: monthlyStats,
       },
     };
 
@@ -1877,3 +1955,167 @@ exports.updateFavoriteNotes = async (req, res) => {
     });
   }
 };
+exports.getAdminMarketplaceStats = async (req, res) => {
+  try {
+    const {
+      ProductReview,
+      ProjectReview,
+      AppReview,
+    } = require("../models/Review");
+
+    // Total marketplace overview
+    const totalProducts = await Product.countDocuments();
+    const totalArchitects = await require("../models/User").countDocuments({
+      role: "architect",
+    });
+    const publishedProducts = await Product.countDocuments({
+      isPublished: true,
+    });
+
+    // Products by category
+    const productsByCategory = await Product.aggregate([
+      { $group: { _id: "$category", count: { $sum: 1 } } },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "_id",
+          foreignField: "_id",
+          as: "categoryInfo",
+        },
+      },
+      { $unwind: "$categoryInfo" },
+      { $project: { name: "$categoryInfo.name", count: 1 } },
+      { $sort: { count: -1 } },
+    ]);
+
+    // Top performing architects
+    const topArchitects = await Product.aggregate([
+      { $match: { isPublished: true } },
+      {
+        $group: {
+          _id: "$seller",
+          productCount: { $sum: 1 },
+          avgRating: { $avg: "$averageRating" },
+          totalReviews: { $sum: "$totalReviews" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "architectInfo",
+        },
+      },
+      { $unwind: "$architectInfo" },
+      {
+        $project: {
+          pseudo: "$architectInfo.pseudo",
+          profilePicture: "$architectInfo.profilePicture",
+          productCount: 1,
+          avgRating: { $round: ["$avgRating", 1] },
+          totalReviews: 1,
+        },
+      },
+      { $sort: { productCount: -1, avgRating: -1 } },
+      { $limit: 10 },
+    ]);
+
+    // Recent products
+    const recentProducts = await Product.find()
+      .populate("seller", "pseudo profilePicture")
+      .populate("category", "name")
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select("title slug createdAt isPublished images seller category");
+
+    // Review statistics across all platforms
+    const reviewStats = await Promise.all([
+      ProductReview.countDocuments({ status: "published" }),
+      ProjectReview.countDocuments({ status: "published" }),
+      AppReview.countDocuments({ status: "published" }),
+    ]);
+
+    const [productReviews, projectReviews, appReviews] = reviewStats;
+
+    // Pending reviews (admin moderation)
+    const pendingReviews = await Promise.all([
+      ProductReview.countDocuments({ status: "pending" }),
+      ProjectReview.countDocuments({ status: "pending" }),
+      AppReview.countDocuments({ status: "pending" }),
+    ]);
+
+    const [pendingProductReviews, pendingProjectReviews, pendingAppReviews] =
+      pendingReviews;
+
+    // Monthly growth stats
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const monthlyGrowth = await Product.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: sixMonthsAgo },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          productsCreated: { $sum: 1 },
+          publishedProducts: {
+            $sum: { $cond: ["$isPublished", 1, 0] },
+          },
+        },
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
+    ]);
+
+    const stats = {
+      overview: {
+        totalProducts,
+        publishedProducts,
+        draftProducts: totalProducts - publishedProducts,
+        totalArchitects,
+        totalReviews: productReviews + projectReviews + appReviews,
+        pendingReviews:
+          pendingProductReviews + pendingProjectReviews + pendingAppReviews,
+      },
+      products: {
+        byCategory: productsByCategory,
+        recent: recentProducts,
+      },
+      architects: {
+        topPerforming: topArchitects,
+      },
+      reviews: {
+        byType: {
+          products: productReviews,
+          projects: projectReviews,
+          app: appReviews,
+        },
+        pending: {
+          products: pendingProductReviews,
+          projects: pendingProjectReviews,
+          app: pendingAppReviews,
+        },
+      },
+      trends: {
+        monthlyGrowth,
+      },
+    };
+
+    res.status(200).json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: "Server Error: " + error.message,
+    });
+  }
+};
+//console.log("Exported functions:", Object.keys(module.exports));

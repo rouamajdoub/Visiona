@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowRight, faBars } from "@fortawesome/free-solid-svg-icons";
-import logo from "../../img/logo.png";
-import logo2 from "../../img/logo.png";
+import logo from "../../img/logo-alt.png";
+import logo2 from "../../img/logo-alt.png";
 import "./Header.css";
 
 const Header = () => {

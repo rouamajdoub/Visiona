@@ -1,22 +1,20 @@
 import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import { useSelector, useDispatch } from "react-redux";
 import "./Pricing.css";
 import Header from "./header/Header";
 import Diff from "./Diff/Diff";
 import {
-  purchaseSubscription,
-  selectPurchaseStatus,
-  selectCurrentSubscription,
-  fetchArchitectSubscription,
-  resetPurchaseStatus,
-} from "../../redux/slices/subscriptionSlice";
-import { toast } from "react-toastify";
+  createSubscription,
+  selectCreateStatus,
+  selectSubscriptionError,
+  clearErrors,
+  resetOperationStatus,
+} from "../../redux/slices/subscriptionSlice"; // Adjust path as needed
 
 const pricingTiers = [
   {
     title: "Free",
-    plan: "Free",
     monthlyPrice: 0,
     buttonText: "Get started for free",
     popular: false,
@@ -31,9 +29,8 @@ const pricingTiers = [
   },
   {
     title: "VIP",
-    plan: "VIP",
     monthlyPrice: 120,
-    buttonText: "Upgrade to VIP",
+    buttonText: "Upgrade to Pro",
     popular: true,
     inverse: true,
     features: [
@@ -49,13 +46,12 @@ const pricingTiers = [
   },
   {
     title: "Premium",
-    plan: "Premium",
     monthlyPrice: 200,
-    buttonText: "Get Premium Plan",
+    buttonText: "Get Business Plan",
     popular: false,
     inverse: false,
     features: [
-      "All VIP features included",
+      "All Pro features included",
       "Personalized architect selection assistance",
       "Priority access to top-rated architects",
       "Project milestone tracking",
@@ -69,131 +65,114 @@ const pricingTiers = [
 
 export const Pricing = () => {
   const dispatch = useDispatch();
-  const [processing, setProcessing] = useState(false);
+  const createStatus = useSelector(selectCreateStatus);
+  const subscriptionError = useSelector(selectSubscriptionError);
+
+  const [isProcessing, setIsProcessing] = useState(false);
   const [processingPlan, setProcessingPlan] = useState(null);
 
-  // Add logging to see what's in your state
-  const subscriptionsState = useSelector((state) => state.subscriptions);
-  console.log("Current subscriptions state:", subscriptionsState);
-
-  // Get the auth state to verify user data
-  const authState = useSelector((state) => state.auth);
-  console.log("Current auth state:", authState);
-
-  const purchaseStatus = useSelector(
-    (state) => state.subscriptions?.purchaseStatus || "idle"
-  );
-  const currentSubscription = useSelector(
-    (state) => state.subscriptions?.currentSubscription
-  );
-  const user = useSelector((state) => state.auth?.user);
+  // Get current user/architect ID - adjust this based on your auth implementation
+  const currentArchitect = useSelector((state) => state.auth?.user); // Adjust path as needed
+  const architectId = currentArchitect?._id || currentArchitect?.id;
 
   useEffect(() => {
-    // Debug log when component mounts
-    console.log("Pricing component mounted");
-
-    // Fetch current subscription if user is an architect
-    if (user && user._id && user.role === "architect") {
-      console.log("Fetching architect subscription for:", user._id);
-      dispatch(fetchArchitectSubscription(user._id));
-    } else {
-      console.log("User not eligible for fetching subscription:", user);
-    }
-  }, [dispatch, user]);
+    // Clear any previous errors when component mounts
+    dispatch(clearErrors());
+  }, [dispatch]);
 
   useEffect(() => {
-    // Log purchase status changes
-    console.log("Purchase status changed to:", purchaseStatus);
+    // Handle subscription creation status changes
+    if (createStatus === "succeeded" && processingPlan) {
+      // Subscription created successfully, redirect to Stripe
+      const selectedTier = pricingTiers.find(
+        (tier) => tier.title === processingPlan
+      );
+      if (selectedTier && selectedTier.link) {
+        window.open(selectedTier.link, "_blank");
+      }
 
-    // Handle purchase status changes
-    if (purchaseStatus === "succeeded") {
-      toast.success("Subscription purchased successfully!");
-      dispatch(resetPurchaseStatus());
+      // Reset states
+      setIsProcessing(false);
       setProcessingPlan(null);
-    } else if (purchaseStatus === "failed") {
-      toast.error("Failed to process subscription. Please try again.");
-      dispatch(resetPurchaseStatus());
+      dispatch(resetOperationStatus("create"));
+    } else if (createStatus === "failed") {
+      // Handle error
+      setIsProcessing(false);
       setProcessingPlan(null);
+      console.error("Subscription creation failed:", subscriptionError);
+      alert(
+        `Failed to create subscription: ${subscriptionError || "Unknown error"}`
+      );
+      dispatch(resetOperationStatus("create"));
     }
-  }, [purchaseStatus, dispatch]);
+  }, [createStatus, processingPlan, subscriptionError, dispatch]);
 
-  const handlePayment = async (tier) => {
-    console.log("Payment handler called for tier:", tier);
-
-    if (!user) {
-      console.log("No user found, showing login message");
-      toast.error("Please login to subscribe");
+  const handlePayment = async (plan, link, priceId) => {
+    // Handle free plan differently
+    if (plan === "Free") {
+      alert("You're already on the free plan!");
       return;
     }
 
-    if (user.role !== "architect") {
-      console.log("User is not an architect:", user.role);
-      toast.error("Only architects can subscribe to plans");
+    // Check if user is authenticated
+    if (!architectId) {
+      alert("Please log in to subscribe to a plan.");
       return;
     }
 
-    console.log("Proceeding with payment for architect:", user._id);
-    setProcessing(true);
-    setProcessingPlan(tier.plan);
+    // Check if already processing
+    if (isProcessing) {
+      return;
+    }
 
-    // For demo/testing purposes, simulate a successful transaction
-    const paymentDetails = {
-      method: "Card",
-      transactionId: `trx_${Date.now()}`,
-    };
-
-    console.log("Dispatching purchase subscription with:", {
-      architectId: user._id,
-      plan: tier.plan,
-    });
+    // Validate required data
+    if (!link) {
+      alert("Payment link not available. Please try again later.");
+      return;
+    }
 
     try {
-      const result = await dispatch(
-        purchaseSubscription({
-          architectId: user._id,
-          plan: tier.plan,
-          paymentDetails,
-        })
-      ).unwrap();
+      setIsProcessing(true);
+      setProcessingPlan(plan);
 
-      console.log("Purchase result:", result);
-      // Note: Success handling is done in the useEffect
+      // Calculate end date (1 year from now)
+      const now = new Date();
+      const endDate = new Date(now);
+      endDate.setFullYear(endDate.getFullYear() + 1);
+
+      // Create subscription data
+      const subscriptionData = {
+        architectId: architectId,
+        plan: plan,
+        startDate: new Date(),
+        endDate: endDate,
+        status: "pending", // Will be updated to "active" after successful payment
+        price: plan === "VIP" ? 120 : 200,
+        paymentMethod: "Stripe",
+        priceId: priceId,
+        stripePaymentLink: link,
+      };
+
+      // Dispatch create subscription action
+      dispatch(createSubscription(subscriptionData));
     } catch (error) {
-      console.error("Subscription purchase error:", error);
-      // Show a direct error message in case the useEffect isn't triggered
-      toast.error(`Subscription failed: ${error.message || "Unknown error"}`);
-    } finally {
-      setProcessing(false);
+      console.error("Error handling payment:", error);
+      alert("An error occurred. Please try again.");
+      setIsProcessing(false);
+      setProcessingPlan(null);
     }
   };
 
-  // Check if architect already has an active subscription
-  const isCurrentPlan = (tierPlan) => {
-    if (!currentSubscription) return false;
-    return (
-      currentSubscription.plan === tierPlan &&
-      currentSubscription.status === "active"
-    );
-  };
-
-  // Determine button text based on subscription status
   const getButtonText = (tier) => {
-    if (isCurrentPlan(tier.plan)) {
-      return "Current Plan";
-    }
-    if (processing && processingPlan === tier.plan) {
+    if (isProcessing && processingPlan === tier.title) {
       return "Processing...";
     }
     return tier.buttonText;
   };
 
-  // Debug info for rendering
-  console.log("Rendering Pricing component with:", {
-    processing,
-    processingPlan,
-    currentSubscription,
-    user: user ? { id: user._id, role: user.role } : null,
-  });
+  const isButtonDisabled = (tier) => {
+    return isProcessing || (tier.monthlyPrice > 0 && !architectId);
+  };
 
   return (
     <section className="pricing-section">
@@ -207,86 +186,106 @@ export const Pricing = () => {
           </p>
         </div>
 
-        {/* Debug info display (remove in production) */}
-        {process.env.NODE_ENV !== "production" && (
+        {/* Show authentication warning if not logged in */}
+        {!architectId && (
           <div
+            className="auth-warning"
             style={{
-              background: "#f5f5f5",
-              padding: "10px",
+              backgroundColor: "#fef3cd",
+              border: "1px solid #faebcc",
+              color: "#8a6d3b",
+              padding: "15px",
+              borderRadius: "4px",
               marginBottom: "20px",
-              fontSize: "12px",
+              textAlign: "center",
             }}
           >
-            <p>
-              <strong>Debug Info:</strong>
-            </p>
-            <p>User: {user ? `${user._id} (${user.role})` : "Not logged in"}</p>
-            <p>
-              Current Subscription:{" "}
-              {currentSubscription
-                ? `${currentSubscription.plan} (${currentSubscription.status})`
-                : "None"}
-            </p>
-            <p>Purchase Status: {purchaseStatus}</p>
+            Please log in to subscribe to a plan.
           </div>
         )}
 
         <div className="pricing-tiers">
-          {pricingTiers.map((tier, index) => (
-            <div
-              key={index}
-              className={`pricing-card ${tier.inverse ? "inverse" : ""}`}
-            >
-              <div className="card-header">
-                <h3
-                  className={`card-title ${
-                    tier.inverse ? "text-white" : "text-black"
-                  }`}
-                >
-                  {tier.title}
-                </h3>
-                {tier.popular && (
-                  <div className="popular-badge">
-                    <motion.span
-                      animate={{ backgroundPositionX: "100%" }}
-                      transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                        ease: "linear",
-                        repeatType: "loop",
-                      }}
-                      className="popular-text"
-                    >
-                      Popular
-                    </motion.span>
-                  </div>
+          {pricingTiers.map(
+            (
+              {
+                title,
+                monthlyPrice,
+                buttonText,
+                popular,
+                inverse,
+                features,
+                link,
+                priceId,
+              },
+              index
+            ) => (
+              <div
+                key={index}
+                className={`pricing-card ${inverse ? "inverse" : ""}`}
+              >
+                <div className="card-header">
+                  <h3
+                    className={`card-title ${
+                      inverse ? "text-white" : "text-black"
+                    }`}
+                  >
+                    {title}
+                  </h3>
+                  {popular && (
+                    <div className="popular-badge">
+                      <motion.span
+                        animate={{ backgroundPositionX: "100%" }}
+                        transition={{
+                          duration: 1,
+                          repeat: Infinity,
+                          ease: "linear",
+                          repeatType: "loop",
+                        }}
+                        className="popular-text"
+                      >
+                        Popular
+                      </motion.span>
+                    </div>
+                  )}
+                </div>
+                <div className="price">
+                  <span className="monthly-price">{monthlyPrice} TND</span>
+                  <span className="price-label">/Year</span>
+                </div>
+                {monthlyPrice >= 0 && (
+                  <button
+                    className={`pricing-button ${
+                      inverse ? "inverse-button" : ""
+                    } ${
+                      isButtonDisabled({ title, monthlyPrice })
+                        ? "disabled"
+                        : ""
+                    }`}
+                    onClick={() => handlePayment(title, link, priceId)}
+                    disabled={isButtonDisabled({ title, monthlyPrice })}
+                    style={{
+                      opacity: isButtonDisabled({ title, monthlyPrice })
+                        ? 0.6
+                        : 1,
+                      cursor: isButtonDisabled({ title, monthlyPrice })
+                        ? "not-allowed"
+                        : "pointer",
+                    }}
+                  >
+                    {getButtonText({ title, buttonText })}
+                  </button>
                 )}
+                <ul className="feature-list">
+                  {features.map((feature, index) => (
+                    <li className="feature-item" key={index}>
+                      <span className="checkmark">✔️</span>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <div className="price">
-                <span className="monthly-price">{tier.monthlyPrice} TND</span>
-                <span className="price-label">/Year</span>
-              </div>
-              {tier.monthlyPrice > 0 && (
-                <button
-                  className={`pricing-button ${
-                    tier.inverse ? "inverse-button" : ""
-                  }`}
-                  onClick={() => handlePayment(tier)}
-                  disabled={processing || isCurrentPlan(tier.plan)}
-                >
-                  {getButtonText(tier)}
-                </button>
-              )}
-              <ul className="feature-list">
-                {tier.features.map((feature, index) => (
-                  <li className="feature-item" key={index}>
-                    <span className="checkmark">✔️</span>
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+            )
+          )}
         </div>
         <Diff />
       </div>

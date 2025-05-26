@@ -1,20 +1,23 @@
+// Helper function to get subcategories for a specific category
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+
+// Updated imports for the new needsheet slice
 import {
-  createNeedSheet,
-  updateFormData,
-  resetFormData,
-  addService,
-  removeService,
-  updateLocation,
-  selectNeedSheetFormData,
-  selectNeedSheetLoading,
-  selectNeedSheetSuccess,
-  selectNeedSheetError,
-  selectNeedSheetServices,
-  selectNeedSheetLocation,
+  createNeedsheet,
+  clearErrors,
+  clearSuccess,
 } from "../../../../redux/slices/needSheetSlice";
+
+// Import service categories slice
+import {
+  fetchCategories,
+  fetchSubcategories,
+  selectAllCategories,
+  selectAllSubcategories,
+  selectServiceCategoriesStatus,
+} from "../../../../redux/slices/serviceCategoriesSlice";
 
 import "./NeedSheetForm.css";
 
@@ -22,16 +25,20 @@ const NeedSheetForm = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Redux state with updated selectors
-  const formData = useSelector(selectNeedSheetFormData);
-  const loading = useSelector(selectNeedSheetLoading);
-  const success = useSelector(selectNeedSheetSuccess);
-  const error = useSelector(selectNeedSheetError);
-  const services = useSelector(selectNeedSheetServices);
-  const location = useSelector(selectNeedSheetLocation);
+  // Redux state for needsheet - using direct state access
+  const needsheetState = useSelector((state) => state.needsheet || {});
+  const loading = needsheetState.loading?.create || false;
+  const success = needsheetState.success?.create || false;
+  const error = needsheetState.error?.create || null;
+
+  // Redux state for service categories
+  const categories = useSelector(selectAllCategories);
+  const subcategories = useSelector(selectAllSubcategories);
+  const serviceCategoriesStatus = useSelector(selectServiceCategoriesStatus);
 
   // Local state
   const [currentStep, setCurrentStep] = useState(1);
+  const [validationErrors, setValidationErrors] = useState({});
   const [formValues, setFormValues] = useState({
     projectTypes: [],
     propertyType: "",
@@ -44,7 +51,7 @@ const NeedSheetForm = () => {
     totalSurface: "",
     workSurface: "",
     ownershipStatus: "",
-    services: [],
+    services: [], // Updated structure: [{ category: "categoryId", subcategories: ["subcategoryId1", "subcategoryId2"] }]
     startTime: "",
     deadline: "",
     projectDescription: "",
@@ -74,111 +81,92 @@ const NeedSheetForm = () => {
   ];
 
   const ownershipStatusOptions = ["Owner", "Renter", "Representative"];
-
-  const serviceCategories = {
-    "Architectural Design": [
-      "Residential Architecture",
-      "Commercial Architecture",
-      "Industrial Architecture",
-      "Renovation and Adaptive Reuse",
-      "Space Programming and Planning",
-      "Conceptual/Schematic Design",
-      "Design Development",
-      "Construction Documentation",
-      "Building Code and Code Compliance",
-    ],
-    "Interior Design": [
-      "Client Consultation and Programming",
-      "Interior Space Planning",
-      "Interior Concept Development",
-      "3D Interior Renderings and Visualization",
-      "Material and Finish Selection",
-      "Lighting and Color Design",
-      "Furniture, Fixtures & Equipment (FF&E)",
-      "Interior Renovation and Restoration",
-      "Interior Project Coordination and Management",
-    ],
-    "Landscape Architecture": [
-      "Site Analysis and Conceptual Landscape Design",
-      "Landscape Master Planning",
-      "Planting Design",
-      "Hardscape Design",
-      "Water Feature Design",
-      "Sustainability and Environmental Landscape Design",
-      "Urban and Streetscape Design",
-      "Landscape Construction Documentation and Administration",
-      "Landscape Maintenance and Management Planning",
-    ],
-    "Urban Planning": [
-      "Land Use and Zoning Analysis",
-      "Site Planning and Subdivision Layout",
-      "Zoning Code Preparation",
-      "Comprehensive and Master Planning",
-      "Urban Design and Redevelopment",
-      "Resilience and Sustainability Planning",
-      "Community Engagement in Planning",
-      "GIS and Urban Data Analysis",
-    ],
-    "Specialized Consulting": [
-      "Sustainability Consulting",
-      "Heritage and Historic Preservation",
-      "Accessibility Consulting",
-    ],
-    "Project Management and Supervision": [
-      "Project Scheduling and Cost Control",
-      "Contract and Tender Management",
-      "Construction Supervision",
-      "Quality Assurance and Quality Control",
-      "Progress Monitoring and Reporting",
-      "Safety and Compliance Oversight",
-      "Punch List and Project Closeout",
-    ],
-    "Feasibility and Site Analysis": [
-      "Site Inventory and Analysis",
-      "Concept Feasibility Studies",
-      "Regulatory Feasibility Analysis",
-      "Market and Program Studies",
-      "Environmental and Impact Assessments",
-    ],
-    "3D Modeling and BIM": [
-      "3D CAD Modeling",
-      "Building Information Modeling (BIM)",
-      "3D Renderings and Visualizations",
-      "Virtual and Augmented Reality",
-      "Laser Scanning and Point-Cloud Services",
-    ],
-    "Permit Drawings and Approvals": [
-      "Permit Drawing Preparation",
-      "Regulatory Submissions",
-      "Code Compliance Documentation",
-      "Official Hearings and Negotiations",
-    ],
-  };
-
   const startTimeOptions = ["ASAP", "1-3 months", "6 months", "Flexible"];
 
+  // Fetch service categories and subcategories on component mount
   useEffect(() => {
-    // Initialize form with any saved data from Redux
-    if (Object.keys(formData).length > 0) {
-      setFormValues({
-        ...formValues,
-        ...formData,
-      });
-    }
-
-    return () => {
-      // Clean up when component unmounts
-      // dispatch(resetFormData());
-    };
-  }, []);
+    dispatch(fetchCategories());
+    dispatch(fetchSubcategories());
+  }, [dispatch]);
 
   useEffect(() => {
     // Handle form submission success
     if (success) {
+      // Clear success state after navigation
+      dispatch(clearSuccess());
       // Navigate to success page or list of need sheets
       navigate("/need-sheets");
     }
-  }, [success, navigate]);
+  }, [success, navigate, dispatch]);
+
+  // Clear errors when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(clearErrors());
+    };
+  }, [dispatch]);
+
+  // Validation functions
+  const validateBudget = (minBudget, maxBudget) => {
+    const errors = {};
+    const min = parseFloat(minBudget);
+    const max = parseFloat(maxBudget);
+
+    if (minBudget && maxBudget && min >= max) {
+      errors.budget = "Minimum budget must be less than maximum budget";
+    }
+
+    if (minBudget && min <= 0) {
+      errors.budgetMin = "Budget must be greater than 0";
+    }
+
+    if (maxBudget && max <= 0) {
+      errors.budgetMax = "Budget must be greater than 0";
+    }
+
+    return errors;
+  };
+
+  const validateSurface = (totalSurface, workSurface) => {
+    const errors = {};
+    const total = parseFloat(totalSurface);
+    const work = parseFloat(workSurface);
+
+    if (totalSurface && workSurface && work > total) {
+      errors.surface = "Work surface cannot be greater than total surface";
+    }
+
+    if (totalSurface && total <= 0) {
+      errors.totalSurface = "Total surface must be greater than 0";
+    }
+
+    if (workSurface && work <= 0) {
+      errors.workSurface = "Work surface must be greater than 0";
+    }
+
+    return errors;
+  };
+
+  // Update validation errors
+  const updateValidationErrors = (newErrors) => {
+    setValidationErrors((prev) => ({
+      ...prev,
+      ...newErrors,
+    }));
+  };
+
+  const clearValidationError = (errorKey) => {
+    setValidationErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[errorKey];
+      return newErrors;
+    });
+  };
+  const getSubcategoriesForCategory = (categoryId) => {
+    return subcategories.filter(
+      (subcategory) => subcategory.parentCategory === categoryId
+    );
+  };
 
   // Handle form input changes
   const handleInputChange = (e) => {
@@ -187,27 +175,13 @@ const NeedSheetForm = () => {
     // Handle nested objects (location, budget)
     if (name.includes(".")) {
       const [parent, child] = name.split(".");
-
-      // Special handling for location
-      if (parent === "location") {
-        dispatch(updateLocation({ [child]: value }));
-
-        setFormValues({
-          ...formValues,
-          [parent]: {
-            ...formValues[parent],
-            [child]: value,
-          },
-        });
-      } else {
-        setFormValues({
-          ...formValues,
-          [parent]: {
-            ...formValues[parent],
-            [child]: value,
-          },
-        });
-      }
+      setFormValues({
+        ...formValues,
+        [parent]: {
+          ...formValues[parent],
+          [child]: value,
+        },
+      });
     } else {
       setFormValues({
         ...formValues,
@@ -218,10 +192,8 @@ const NeedSheetForm = () => {
 
   // Handle checkbox changes for multi-select options
   const handleCheckboxChange = (field, value) => {
-    // Clone the current array
     const currentValues = [...formValues[field]];
 
-    // Toggle the value
     if (currentValues.includes(value)) {
       const newValues = currentValues.filter((item) => item !== value);
       setFormValues({
@@ -236,11 +208,10 @@ const NeedSheetForm = () => {
     }
   };
 
-  // Handle service selection with the updated structure
-  const handleServiceChange = (category, subcategory) => {
-    // Find if the category already exists in services
+  // Handle service selection with the updated structure using IDs
+  const handleServiceChange = (categoryId, subcategoryId) => {
     const existingServiceIndex = formValues.services.findIndex(
-      (service) => service.category === category
+      (service) => service.category === categoryId
     );
 
     if (existingServiceIndex !== -1) {
@@ -250,39 +221,21 @@ const NeedSheetForm = () => {
         updatedServices[existingServiceIndex].subcategories || [];
 
       // Toggle subcategory
-      if (currentSubcategories.includes(subcategory)) {
+      if (currentSubcategories.includes(subcategoryId)) {
         // Remove subcategory
         updatedServices[existingServiceIndex].subcategories =
-          currentSubcategories.filter((sub) => sub !== subcategory);
+          currentSubcategories.filter((sub) => sub !== subcategoryId);
 
         // If no subcategories left, remove the category
         if (updatedServices[existingServiceIndex].subcategories.length === 0) {
-          dispatch(removeService(category));
           updatedServices.splice(existingServiceIndex, 1);
-        } else {
-          // Update service with new subcategories
-          dispatch(
-            addService({
-              category: category,
-              subcategories:
-                updatedServices[existingServiceIndex].subcategories,
-            })
-          );
         }
       } else {
         // Add subcategory
         updatedServices[existingServiceIndex].subcategories = [
           ...currentSubcategories,
-          subcategory,
+          subcategoryId,
         ];
-
-        // Update service with new subcategories
-        dispatch(
-          addService({
-            category: category,
-            subcategories: updatedServices[existingServiceIndex].subcategories,
-          })
-        );
       }
 
       setFormValues({
@@ -292,11 +245,9 @@ const NeedSheetForm = () => {
     } else {
       // Category doesn't exist, add it with the subcategory
       const newService = {
-        category: category,
-        subcategories: [subcategory],
+        category: categoryId,
+        subcategories: [subcategoryId],
       };
-
-      dispatch(addService(newService));
 
       setFormValues({
         ...formValues,
@@ -306,22 +257,20 @@ const NeedSheetForm = () => {
   };
 
   // Check if a subcategory is selected
-  const isSubcategorySelected = (category, subcategory) => {
+  const isSubcategorySelected = (categoryId, subcategoryId) => {
     const serviceEntry = formValues.services.find(
-      (service) => service.category === category
+      (service) => service.category === categoryId
     );
 
     return (
       serviceEntry &&
       serviceEntry.subcategories &&
-      serviceEntry.subcategories.includes(subcategory)
+      serviceEntry.subcategories.includes(subcategoryId)
     );
   };
 
   // Navigate to the next step
   const handleNextStep = () => {
-    // Save current step data to Redux
-    dispatch(updateFormData(formValues));
     setCurrentStep(currentStep + 1);
     window.scrollTo(0, 0);
   };
@@ -335,16 +284,56 @@ const NeedSheetForm = () => {
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
-    dispatch(createNeedSheet(formValues));
+
+    // Transform the form data to match the expected API format
+    const transformedData = {
+      ...formValues,
+      // Convert services structure if needed
+      services: formValues.services.map((service) => ({
+        category: service.category,
+        subcategories: service.subcategories,
+      })),
+    };
+
+    dispatch(createNeedsheet(transformedData));
   };
 
-  // Number input validation
+  // Number input validation with range checking
   const handleNumberInput = (e, field) => {
     const value = e.target.value;
-    if (value === "" || /^\d*$/.test(value)) {
+    if (value === "" || /^\d*\.?\d*$/.test(value)) {
       handleInputChange({
         target: { name: field, value },
       });
+
+      // Validate based on field type
+      if (field.includes("budget")) {
+        // Clear budget related errors when user starts typing
+        clearValidationError("budget");
+        clearValidationError("budgetMin");
+        clearValidationError("budgetMax");
+
+        // Validate budget range
+        const budgetErrors = validateBudget(
+          field === "budget.min" ? value : formValues.budget.min,
+          field === "budget.max" ? value : formValues.budget.max
+        );
+        updateValidationErrors(budgetErrors);
+      }
+
+      if (field === "totalSurface" || field === "workSurface") {
+        // Clear surface related errors when user starts typing
+        clearValidationError("surface");
+        clearValidationError("totalSurface");
+        clearValidationError("workSurface");
+
+        // Validate surface range
+        const surfaceErrors = validateSurface(
+          field === "totalSurface" ? value : formValues.totalSurface,
+          field === "workSurface" ? value : formValues.workSurface
+        );
+        updateValidationErrors(surfaceErrors);
+      }
     }
   };
 
@@ -380,30 +369,40 @@ const NeedSheetForm = () => {
   // Validate the current step
   const validateStep = () => {
     switch (currentStep) {
-      case 1: // Project Type
+      case 1:
         return formValues.projectTypes.length > 0;
-      case 2: // Property Type
+      case 2:
         return formValues.propertyType !== "";
-      case 3: // Location
+      case 3:
         return (
           formValues.location.country !== "" &&
           formValues.location.region !== ""
         );
-      case 4: // Property Details
+      case 4:
+        const surfaceErrors = validateSurface(
+          formValues.totalSurface,
+          formValues.workSurface
+        );
         return (
           formValues.totalSurface !== "" &&
           formValues.workSurface !== "" &&
-          formValues.ownershipStatus !== ""
+          formValues.ownershipStatus !== "" &&
+          Object.keys(surfaceErrors).length === 0
         );
-      case 5: // Services
+      case 5:
         return formValues.services.length > 0;
-      case 6: // Timeline
+      case 6:
         return formValues.startTime !== "";
-      case 7: // Description & Budget
+      case 7:
+        const budgetErrors = validateBudget(
+          formValues.budget.min,
+          formValues.budget.max
+        );
         return (
           formValues.projectDescription !== "" &&
           formValues.budget.min !== "" &&
-          formValues.budget.max !== ""
+          formValues.budget.max !== "" &&
+          Object.keys(budgetErrors).length === 0
         );
       default:
         return true;
@@ -594,8 +593,12 @@ const NeedSheetForm = () => {
             value={formValues.totalSurface}
             onChange={(e) => handleNumberInput(e, "totalSurface")}
             placeholder="Total area in square meters"
+            className={validationErrors.totalSurface ? "error" : ""}
             required
           />
+          {validationErrors.totalSurface && (
+            <span className="error-text">{validationErrors.totalSurface}</span>
+          )}
         </div>
 
         <div className="form-group">
@@ -607,8 +610,15 @@ const NeedSheetForm = () => {
             value={formValues.workSurface}
             onChange={(e) => handleNumberInput(e, "workSurface")}
             placeholder="Area where work will be done"
+            className={validationErrors.workSurface ? "error" : ""}
             required
           />
+          {validationErrors.workSurface && (
+            <span className="error-text">{validationErrors.workSurface}</span>
+          )}
+          {validationErrors.surface && (
+            <span className="error-text">{validationErrors.surface}</span>
+          )}
         </div>
 
         <div className="form-group">
@@ -633,8 +643,28 @@ const NeedSheetForm = () => {
     );
   };
 
-  // Step 5: Services - Updated to use new service structure
+  // Step 5: Services - Updated to use fetched service categories
   const renderServicesStep = () => {
+    if (serviceCategoriesStatus.loading) {
+      return (
+        <div className="form-step">
+          <h2>What services do you need?</h2>
+          <div className="loading-message">Loading services...</div>
+        </div>
+      );
+    }
+
+    if (serviceCategoriesStatus.error) {
+      return (
+        <div className="form-step">
+          <h2>What services do you need?</h2>
+          <div className="error-message">
+            Error loading services: {serviceCategoriesStatus.error}
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="form-step">
         <h2>What services do you need?</h2>
@@ -643,31 +673,57 @@ const NeedSheetForm = () => {
         </p>
 
         <div className="services-container">
-          {Object.entries(serviceCategories).map(
-            ([category, subcategories]) => (
-              <div className="service-category" key={category}>
-                <h3>{category}</h3>
+          {categories.map((category) => {
+            const categorySubcategories = getSubcategoriesForCategory(
+              category._id
+            );
+
+            if (categorySubcategories.length === 0) {
+              return null; // Don't render categories without subcategories
+            }
+
+            return (
+              <div className="service-category" key={category._id}>
+                <h3>{category.name}</h3>
+                {category.description && (
+                  <p className="category-description">{category.description}</p>
+                )}
                 <div className="checkbox-grid">
-                  {subcategories.map((subcategory) => (
-                    <div className="checkbox-item" key={subcategory}>
+                  {categorySubcategories.map((subcategory) => (
+                    <div className="checkbox-item" key={subcategory._id}>
                       <input
                         type="checkbox"
-                        id={`service-${subcategory}`}
-                        checked={isSubcategorySelected(category, subcategory)}
+                        id={`service-${subcategory._id}`}
+                        checked={isSubcategorySelected(
+                          category._id,
+                          subcategory._id
+                        )}
                         onChange={() =>
-                          handleServiceChange(category, subcategory)
+                          handleServiceChange(category._id, subcategory._id)
                         }
                       />
-                      <label htmlFor={`service-${subcategory}`}>
-                        {subcategory}
+                      <label htmlFor={`service-${subcategory._id}`}>
+                        {subcategory.name}
+                        {subcategory.description && (
+                          <span className="subcategory-description">
+                            {" "}
+                            - {subcategory.description}
+                          </span>
+                        )}
                       </label>
                     </div>
                   ))}
                 </div>
               </div>
-            )
-          )}
+            );
+          })}
         </div>
+
+        {categories.length === 0 && !serviceCategoriesStatus.loading && (
+          <div className="no-services-message">
+            No service categories available at the moment.
+          </div>
+        )}
       </div>
     );
   };
@@ -755,8 +811,12 @@ const NeedSheetForm = () => {
                 value={formValues.budget.min}
                 onChange={(e) => handleNumberInput(e, "budget.min")}
                 placeholder="Min budget"
+                className={validationErrors.budgetMin ? "error" : ""}
                 required
               />
+              {validationErrors.budgetMin && (
+                <span className="error-text">{validationErrors.budgetMin}</span>
+              )}
             </div>
             <div className="budget-input">
               <label htmlFor="budgetMax">Maximum</label>
@@ -767,10 +827,17 @@ const NeedSheetForm = () => {
                 value={formValues.budget.max}
                 onChange={(e) => handleNumberInput(e, "budget.max")}
                 placeholder="Max budget"
+                className={validationErrors.budgetMax ? "error" : ""}
                 required
               />
+              {validationErrors.budgetMax && (
+                <span className="error-text">{validationErrors.budgetMax}</span>
+              )}
             </div>
           </div>
+          {validationErrors.budget && (
+            <span className="error-text">{validationErrors.budget}</span>
+          )}
         </div>
       </div>
     );

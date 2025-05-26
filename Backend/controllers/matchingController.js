@@ -12,15 +12,41 @@ const Match = require("../models/Match");
 function getValidCoordinates(location) {
   if (!location) return null;
 
-  // Handle both possible coordinate structures
   let coords = null;
+
+  // Handle GeoJSON format (most common in MongoDB)
   if (location.coordinates) {
-    coords = Array.isArray(location.coordinates)
-      ? location.coordinates
-      : location.coordinates.coordinates || null;
+    if (
+      location.coordinates.type === "Point" &&
+      Array.isArray(location.coordinates.coordinates)
+    ) {
+      coords = location.coordinates.coordinates;
+    } else if (Array.isArray(location.coordinates)) {
+      coords = location.coordinates;
+    }
   }
 
-  return Array.isArray(coords) && coords.length === 2 ? coords : null;
+  // Handle direct coordinate arrays
+  else if (Array.isArray(location) && location.length === 2) {
+    coords = location;
+  }
+
+  // Validate coordinates are numbers and within valid ranges
+  if (Array.isArray(coords) && coords.length === 2) {
+    const [lng, lat] = coords;
+    if (
+      typeof lng === "number" &&
+      typeof lat === "number" &&
+      lng >= -180 &&
+      lng <= 180 &&
+      lat >= -90 &&
+      lat <= 90
+    ) {
+      return coords;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -520,7 +546,12 @@ exports.matchNeedSheet = async (req, res) => {
         error: "needsheetId is required",
       });
     }
-
+    if (!needsheetId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid needsheet ID format",
+      });
+    }
     // Get needsheet with service categories and subcategories populated
     const needsheet = await NeedSheet.findById(needsheetId)
       .populate({
@@ -687,14 +718,31 @@ exports.matchNeedSheet = async (req, res) => {
       data: savedMatch,
     });
   } catch (error) {
-    console.error("Matching error:", error.message);
+    console.error("Matching error:", error);
+
+    // Handle specific error types
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid ID format",
+      });
+    }
+
+    if (error.code === "ECONNREFUSED") {
+      // LLM service is down, use rule-based matching
+      console.log("LLM service unavailable, using rule-based matching only");
+      // Continue with rule-based matching...
+    }
+
     res.status(500).json({
       success: false,
       error: "Matching failed. Please try again.",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
-
+//************************************* */
 /**
  * @desc    Update match status by client
  * @route   PUT /api/matching/:needsheetId/client-status

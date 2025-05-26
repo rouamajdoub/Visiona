@@ -9,8 +9,12 @@ const createDirectories = () => {
     "uploads/patents",
     "uploads/cin",
     "uploads/profiles",
+    "uploads/portfolio",
+    "uploads/company-logos",
+    "uploads/certifications",
     "uploads/other",
-    "uploads/products", // New directory for product images
+    "uploads/products",
+    "uploads/productImages",
   ];
   directories.forEach((dir) => {
     if (!fs.existsSync(dir)) {
@@ -32,6 +36,12 @@ const storage = multer.diskStorage({
       cb(null, "uploads/cin");
     } else if (file.fieldname === "profilePicture") {
       cb(null, "uploads/profiles");
+    } else if (file.fieldname === "portfolio") {
+      cb(null, "uploads/portfolio");
+    } else if (file.fieldname === "companyLogo") {
+      cb(null, "uploads/company-logos");
+    } else if (file.fieldname === "certifications") {
+      cb(null, "uploads/certifications");
     } else if (file.fieldname === "productImages") {
       cb(null, "uploads/products");
     } else {
@@ -65,11 +75,20 @@ const fileFilter = (req, file, cb) => {
     } else {
       cb(new Error("CIN file must be an image or PDF"), false);
     }
+  } else if (file.fieldname === "certifications") {
+    // Accept PDFs for certifications
+    if (file.mimetype === "application/pdf") {
+      cb(null, true);
+    } else {
+      cb(new Error("Certification files must be PDF documents"), false);
+    }
   } else if (
     file.fieldname === "profilePicture" ||
+    file.fieldname === "portfolio" ||
+    file.fieldname === "companyLogo" ||
     file.fieldname === "productImages"
   ) {
-    // Accept only images for profile pictures and product images
+    // Accept only images for profile pictures, portfolio, company logos, and product images
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
     } else {
@@ -81,7 +100,6 @@ const fileFilter = (req, file, cb) => {
 };
 
 // Create the multer upload object with all possible fields
-// This way we handle all possible files regardless of role
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
@@ -92,6 +110,9 @@ const upload = multer({
   { name: "patentFile", maxCount: 1 },
   { name: "cinFile", maxCount: 1 },
   { name: "profilePicture", maxCount: 1 },
+  { name: "portfolio", maxCount: 20 }, // Allow up to 20 portfolio images
+  { name: "companyLogo", maxCount: 1 },
+  { name: "certifications", maxCount: 10 }, // Allow up to 10 certification files
   { name: "productImages", maxCount: 5 }, // Allow up to 5 product images
 ]);
 

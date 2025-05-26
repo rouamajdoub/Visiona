@@ -93,6 +93,106 @@ exports.getProjectReviews = getReviewsFactory(ProjectReview, "project");
 exports.getProductReviews = getReviewsFactory(ProductReview, "product");
 exports.getAppReviews = getReviewsFactory(AppReview);
 
+// NEW: Admin-specific endpoints to get ALL reviews of each type
+exports.getAllProjectReviews = async (req, res) => {
+  try {
+    const reviews = await ProjectReview.find({})
+      .populate("reviewer", "pseudo profilePicture")
+      .populate("project", "title") // Populate project details
+      .sort("-createdAt");
+
+    res.status(200).json({
+      success: true,
+      count: reviews.length,
+      data: reviews,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+exports.getAllProductReviews = async (req, res) => {
+  try {
+    const reviews = await ProductReview.find({})
+      .populate("reviewer", "pseudo profilePicture")
+      .populate("product", "name") // Populate product details
+      .sort("-createdAt");
+
+    res.status(200).json({
+      success: true,
+      count: reviews.length,
+      data: reviews,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+exports.getAllAppReviews = async (req, res) => {
+  try {
+    const reviews = await AppReview.find({})
+      .populate("reviewer", "pseudo profilePicture")
+      .sort("-createdAt");
+
+    res.status(200).json({
+      success: true,
+      count: reviews.length,
+      data: reviews,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+// NEW: Get all reviews across all types (for admin dashboard overview)
+exports.getAllReviews = async (req, res) => {
+  try {
+    const [projectReviews, productReviews, appReviews] = await Promise.all([
+      ProjectReview.find({})
+        .populate("reviewer", "pseudo profilePicture")
+        .populate("project", "title")
+        .lean(),
+      ProductReview.find({})
+        .populate("reviewer", "pseudo profilePicture")
+        .populate("product", "name")
+        .lean(),
+      AppReview.find({}).populate("reviewer", "pseudo profilePicture").lean(),
+    ]);
+
+    // Add type field to distinguish between review types
+    const allReviews = [
+      ...projectReviews.map((review) => ({ ...review, reviewType: "project" })),
+      ...productReviews.map((review) => ({ ...review, reviewType: "product" })),
+      ...appReviews.map((review) => ({ ...review, reviewType: "app" })),
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.status(200).json({
+      success: true,
+      count: allReviews.length,
+      data: allReviews,
+      breakdown: {
+        projects: projectReviews.length,
+        products: productReviews.length,
+        app: appReviews.length,
+      },
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 /**
  * Get a single review by ID
  */

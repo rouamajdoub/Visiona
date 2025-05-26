@@ -4,19 +4,25 @@ import axios from "axios";
 // Base API URL
 const API_URL = "/api/subscriptions";
 
+// Helper function to extract error message
+const getErrorMessage = (error) => {
+  return (
+    error.response?.data?.message ||
+    error.response?.data ||
+    error.message ||
+    "An unexpected error occurred"
+  );
+};
+
 // Async thunks
 export const fetchAllSubscriptions = createAsyncThunk(
   "subscriptions/fetchAll",
   async (_, { rejectWithValue }) => {
     try {
       const response = await axios.get(API_URL);
-      console.log("Fetched subscriptions:", response.data);
       return response.data;
     } catch (error) {
-      console.error("Error fetching subscriptions:", error);
-      return rejectWithValue(
-        error.response?.data || "Failed to fetch subscriptions"
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -25,14 +31,13 @@ export const fetchSubscriptionById = createAsyncThunk(
   "subscriptions/fetchById",
   async (id, { rejectWithValue }) => {
     try {
+      if (!id) {
+        return rejectWithValue("Subscription ID is required");
+      }
       const response = await axios.get(`${API_URL}/${id}`);
-      console.log(`Fetched subscription ${id}:`, response.data);
       return response.data;
     } catch (error) {
-      console.error(`Error fetching subscription ${id}:`, error);
-      return rejectWithValue(
-        error.response?.data || "Failed to fetch subscription"
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -41,18 +46,13 @@ export const fetchArchitectSubscription = createAsyncThunk(
   "subscriptions/fetchByArchitect",
   async (architectId, { rejectWithValue }) => {
     try {
-      console.log(`Fetching subscription for architect ${architectId}`);
+      if (!architectId) {
+        return rejectWithValue("Architect ID is required");
+      }
       const response = await axios.get(`${API_URL}/architect/${architectId}`);
-      console.log(`Architect ${architectId} subscription:`, response.data);
       return response.data;
     } catch (error) {
-      console.error(
-        `Error fetching architect ${architectId} subscription:`,
-        error
-      );
-      return rejectWithValue(
-        error.response?.data || "Failed to fetch architect subscription"
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -61,24 +61,15 @@ export const createSubscription = createAsyncThunk(
   "subscriptions/create",
   async (subscriptionData, { rejectWithValue }) => {
     try {
-      console.log("Creating subscription with data:", subscriptionData);
-      const response = await axios.post(API_URL, subscriptionData);
-      console.log("Subscription created:", response.data);
-
-      // Optionally update architect's subscription reference
-      if (response.data._id) {
-        await axios.patch(`/api/architects/${subscriptionData.architectId}`, {
-          subscription: response.data._id,
-          subscriptionType: response.data.plan.toLowerCase(),
-        });
+      // Validate required fields
+      if (!subscriptionData.architectId || !subscriptionData.plan) {
+        return rejectWithValue("Architect ID and plan are required");
       }
 
+      const response = await axios.post(API_URL, subscriptionData);
       return response.data;
     } catch (error) {
-      console.error("Error creating subscription:", error);
-      return rejectWithValue(
-        error.response?.data || "Failed to create subscription"
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -87,23 +78,13 @@ export const updateSubscription = createAsyncThunk(
   "subscriptions/update",
   async ({ id, data }, { rejectWithValue }) => {
     try {
-      console.log(`Updating subscription ${id} with:`, data);
-      const response = await axios.put(`${API_URL}/${id}`, data);
-      console.log(`Subscription ${id} updated:`, response.data);
-
-      // Update architect's subscription type if plan is changed
-      if (data.plan && response.data.architectId) {
-        await axios.patch(`/api/architects/${response.data.architectId}`, {
-          subscriptionType: data.plan.toLowerCase(),
-        });
+      if (!id) {
+        return rejectWithValue("Subscription ID is required");
       }
-
+      const response = await axios.put(`${API_URL}/${id}`, data);
       return response.data;
     } catch (error) {
-      console.error(`Error updating subscription ${id}:`, error);
-      return rejectWithValue(
-        error.response?.data || "Failed to update subscription"
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -112,25 +93,30 @@ export const cancelSubscription = createAsyncThunk(
   "subscriptions/cancel",
   async (id, { rejectWithValue }) => {
     try {
-      console.log(`Cancelling subscription ${id}`);
-      const response = await axios.put(`${API_URL}/${id}`, {
-        status: "cancelled",
-      });
-      console.log(`Subscription ${id} cancelled:`, response.data);
-
-      // Update architect's subscription status
-      if (response.data.architectId) {
-        await axios.patch(`/api/architects/${response.data.architectId}`, {
-          subscriptionType: "none",
-        });
+      if (!id) {
+        return rejectWithValue("Subscription ID is required");
       }
-
+      const response = await axios.put(`${API_URL}/${id}/cancel`);
       return response.data;
     } catch (error) {
-      console.error(`Error cancelling subscription ${id}:`, error);
-      return rejectWithValue(
-        error.response?.data || "Failed to cancel subscription"
-      );
+      return rejectWithValue(getErrorMessage(error));
+    }
+  }
+);
+
+export const renewSubscription = createAsyncThunk(
+  "subscriptions/renew",
+  async ({ id, paymentDetails }, { rejectWithValue }) => {
+    try {
+      if (!id) {
+        return rejectWithValue("Subscription ID is required");
+      }
+      const response = await axios.put(`${API_URL}/${id}/renew`, {
+        paymentDetails,
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
@@ -139,106 +125,106 @@ export const deleteSubscription = createAsyncThunk(
   "subscriptions/delete",
   async (id, { rejectWithValue }) => {
     try {
-      console.log(`Deleting subscription ${id}`);
+      if (!id) {
+        return rejectWithValue("Subscription ID is required");
+      }
       await axios.delete(`${API_URL}/${id}`);
-      console.log(`Subscription ${id} deleted successfully`);
       return id;
     } catch (error) {
-      console.error(`Error deleting subscription ${id}:`, error);
-      return rejectWithValue(
-        error.response?.data || "Failed to delete subscription"
-      );
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
 
-export const purchaseSubscription = createAsyncThunk(
-  "subscriptions/purchase",
+export const processSubscriptionPayment = createAsyncThunk(
+  "subscriptions/processPayment",
   async ({ architectId, plan, paymentDetails }, { rejectWithValue }) => {
     try {
-      console.log(
-        `Processing subscription purchase: ${plan} for architect ${architectId}`
-      );
-
-      // Get pricing info based on the plan
-      let price, endDate;
-
-      switch (plan) {
-        case "Premium":
-          price = 200;
-          break;
-        case "VIP":
-          price = 120;
-          break;
-        default:
-          price = 0;
+      // Validate required fields
+      if (!architectId || !plan || !paymentDetails) {
+        return rejectWithValue(
+          "Architect ID, plan, and payment details are required"
+        );
       }
 
-      // Calculate end date (1 year from now)
-      const now = new Date();
-      endDate = new Date(now.setFullYear(now.getFullYear() + 1));
-
-      // Create subscription object
-      const subscriptionData = {
+      const response = await axios.post(`${API_URL}/process-payment`, {
         architectId,
         plan,
-        startDate: new Date(),
-        endDate: endDate,
-        status: "active",
-        price,
-        paymentMethod: paymentDetails.method,
-        transactions: [
-          {
-            amount: price,
-            date: new Date(),
-            transactionId: paymentDetails.transactionId,
-            status: "success",
-          },
-        ],
-      };
-
-      console.log("Sending subscription data:", subscriptionData);
-
-      // Create subscription
-      const response = await axios.post(API_URL, subscriptionData);
-      console.log("Subscription purchase response:", response.data);
-
-      // Update architect document
-      await axios.patch(`/api/architects/${architectId}`, {
-        subscription: response.data._id,
-        subscriptionType: plan.toLowerCase(),
-        hasAccess: true,
+        paymentDetails,
       });
-
       return response.data;
     } catch (error) {
-      console.error("Error purchasing subscription:", error);
-      return rejectWithValue(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to process subscription purchase"
+      return rejectWithValue(getErrorMessage(error));
+    }
+  }
+);
+
+// Check feature access
+export const checkFeatureAccess = createAsyncThunk(
+  "subscriptions/checkFeatureAccess",
+  async ({ architectId, feature }, { rejectWithValue }) => {
+    try {
+      if (!architectId || !feature) {
+        return rejectWithValue("Architect ID and feature are required");
+      }
+      const response = await axios.get(
+        `${API_URL}/feature-access/${architectId}/${feature}`
       );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
     }
   }
 );
 
 const subscriptionSlice = createSlice({
-  name: "subscriptions", // Make sure this matches your reducer name in store.js
+  name: "subscriptions",
   initialState: {
     items: [],
     currentSubscription: null,
+    featureAccess: null,
     loading: false,
     error: null,
-    purchaseStatus: "idle", // idle, loading, succeeded, failed
-    purchaseError: null,
+    operationStatus: {
+      create: "idle",
+      update: "idle",
+      delete: "idle",
+      cancel: "idle",
+      renew: "idle",
+      payment: "idle",
+    },
   },
   reducers: {
     clearErrors: (state) => {
       state.error = null;
-      state.purchaseError = null;
     },
-    resetPurchaseStatus: (state) => {
-      state.purchaseStatus = "idle";
+    clearCurrentSubscription: (state) => {
+      state.currentSubscription = null;
+    },
+    resetOperationStatus: (state, action) => {
+      const operation = action.payload;
+      if (operation && state.operationStatus[operation]) {
+        state.operationStatus[operation] = "idle";
+      } else {
+        // Reset all operation statuses
+        Object.keys(state.operationStatus).forEach((key) => {
+          state.operationStatus[key] = "idle";
+        });
+      }
+    },
+    // Optimistic update for better UX
+    optimisticUpdateSubscription: (state, action) => {
+      const { id, updates } = action.payload;
+      const index = state.items.findIndex((item) => item._id === id);
+      if (index !== -1) {
+        state.items[index] = { ...state.items[index], ...updates };
+      }
+      if (state.currentSubscription?._id === id) {
+        state.currentSubscription = {
+          ...state.currentSubscription,
+          ...updates,
+        };
+      }
     },
   },
   extraReducers: (builder) => {
@@ -246,175 +232,224 @@ const subscriptionSlice = createSlice({
       // Fetch all subscriptions
       .addCase(fetchAllSubscriptions.pending, (state) => {
         state.loading = true;
-        console.log("Fetch all subscriptions: pending");
+        state.error = null;
       })
       .addCase(fetchAllSubscriptions.fulfilled, (state, action) => {
         state.loading = false;
         state.items = action.payload;
-        console.log("Fetch all subscriptions: fulfilled");
       })
       .addCase(fetchAllSubscriptions.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-        console.error("Fetch all subscriptions: rejected", action.payload);
       })
 
       // Fetch subscription by ID
       .addCase(fetchSubscriptionById.pending, (state) => {
         state.loading = true;
-        console.log("Fetch subscription by ID: pending");
+        state.error = null;
       })
       .addCase(fetchSubscriptionById.fulfilled, (state, action) => {
         state.loading = false;
         state.currentSubscription = action.payload;
-        console.log("Fetch subscription by ID: fulfilled");
       })
       .addCase(fetchSubscriptionById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-        console.error("Fetch subscription by ID: rejected", action.payload);
       })
 
       // Fetch architect subscription
       .addCase(fetchArchitectSubscription.pending, (state) => {
         state.loading = true;
-        console.log("Fetch architect subscription: pending");
+        state.error = null;
       })
       .addCase(fetchArchitectSubscription.fulfilled, (state, action) => {
         state.loading = false;
         state.currentSubscription = action.payload;
-        console.log("Fetch architect subscription: fulfilled");
       })
       .addCase(fetchArchitectSubscription.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-        console.error("Fetch architect subscription: rejected", action.payload);
+        state.currentSubscription = null;
       })
 
       // Create subscription
       .addCase(createSubscription.pending, (state) => {
-        state.loading = true;
-        console.log("Create subscription: pending");
+        state.operationStatus.create = "loading";
+        state.error = null;
       })
       .addCase(createSubscription.fulfilled, (state, action) => {
-        state.loading = false;
+        state.operationStatus.create = "succeeded";
         state.items.push(action.payload);
         state.currentSubscription = action.payload;
-        console.log("Create subscription: fulfilled");
       })
       .addCase(createSubscription.rejected, (state, action) => {
-        state.loading = false;
+        state.operationStatus.create = "failed";
         state.error = action.payload;
-        console.error("Create subscription: rejected", action.payload);
       })
 
       // Update subscription
       .addCase(updateSubscription.pending, (state) => {
-        state.loading = true;
-        console.log("Update subscription: pending");
+        state.operationStatus.update = "loading";
+        state.error = null;
       })
       .addCase(updateSubscription.fulfilled, (state, action) => {
-        state.loading = false;
+        state.operationStatus.update = "succeeded";
         const index = state.items.findIndex(
           (item) => item._id === action.payload._id
         );
         if (index !== -1) {
           state.items[index] = action.payload;
         }
-        if (
-          state.currentSubscription &&
-          state.currentSubscription._id === action.payload._id
-        ) {
+        if (state.currentSubscription?._id === action.payload._id) {
           state.currentSubscription = action.payload;
         }
-        console.log("Update subscription: fulfilled");
       })
       .addCase(updateSubscription.rejected, (state, action) => {
-        state.loading = false;
+        state.operationStatus.update = "failed";
         state.error = action.payload;
-        console.error("Update subscription: rejected", action.payload);
       })
 
       // Cancel subscription
       .addCase(cancelSubscription.pending, (state) => {
-        state.loading = true;
-        console.log("Cancel subscription: pending");
+        state.operationStatus.cancel = "loading";
+        state.error = null;
       })
       .addCase(cancelSubscription.fulfilled, (state, action) => {
-        state.loading = false;
+        state.operationStatus.cancel = "succeeded";
         const index = state.items.findIndex(
           (item) => item._id === action.payload._id
         );
         if (index !== -1) {
           state.items[index] = action.payload;
         }
-        if (
-          state.currentSubscription &&
-          state.currentSubscription._id === action.payload._id
-        ) {
+        if (state.currentSubscription?._id === action.payload._id) {
           state.currentSubscription = action.payload;
         }
-        console.log("Cancel subscription: fulfilled");
       })
       .addCase(cancelSubscription.rejected, (state, action) => {
-        state.loading = false;
+        state.operationStatus.cancel = "failed";
         state.error = action.payload;
-        console.error("Cancel subscription: rejected", action.payload);
+      })
+
+      // Renew subscription
+      .addCase(renewSubscription.pending, (state) => {
+        state.operationStatus.renew = "loading";
+        state.error = null;
+      })
+      .addCase(renewSubscription.fulfilled, (state, action) => {
+        state.operationStatus.renew = "succeeded";
+        const index = state.items.findIndex(
+          (item) => item._id === action.payload._id
+        );
+        if (index !== -1) {
+          state.items[index] = action.payload;
+        }
+        if (state.currentSubscription?._id === action.payload._id) {
+          state.currentSubscription = action.payload;
+        }
+      })
+      .addCase(renewSubscription.rejected, (state, action) => {
+        state.operationStatus.renew = "failed";
+        state.error = action.payload;
       })
 
       // Delete subscription
       .addCase(deleteSubscription.pending, (state) => {
-        state.loading = true;
-        console.log("Delete subscription: pending");
+        state.operationStatus.delete = "loading";
+        state.error = null;
       })
       .addCase(deleteSubscription.fulfilled, (state, action) => {
-        state.loading = false;
+        state.operationStatus.delete = "succeeded";
         state.items = state.items.filter((item) => item._id !== action.payload);
-        if (
-          state.currentSubscription &&
-          state.currentSubscription._id === action.payload
-        ) {
+        if (state.currentSubscription?._id === action.payload) {
           state.currentSubscription = null;
         }
-        console.log("Delete subscription: fulfilled");
       })
       .addCase(deleteSubscription.rejected, (state, action) => {
-        state.loading = false;
+        state.operationStatus.delete = "failed";
         state.error = action.payload;
-        console.error("Delete subscription: rejected", action.payload);
       })
 
-      // Purchase subscription
-      .addCase(purchaseSubscription.pending, (state) => {
-        state.purchaseStatus = "loading";
-        console.log("Purchase subscription: pending");
+      // Process payment
+      .addCase(processSubscriptionPayment.pending, (state) => {
+        state.operationStatus.payment = "loading";
+        state.error = null;
       })
-      .addCase(purchaseSubscription.fulfilled, (state, action) => {
-        state.purchaseStatus = "succeeded";
+      .addCase(processSubscriptionPayment.fulfilled, (state, action) => {
+        state.operationStatus.payment = "succeeded";
         state.currentSubscription = action.payload;
-        state.items.push(action.payload);
-        console.log("Purchase subscription: fulfilled");
+        // Add to items if not already present
+        const exists = state.items.find(
+          (item) => item._id === action.payload._id
+        );
+        if (!exists) {
+          state.items.push(action.payload);
+        }
       })
-      .addCase(purchaseSubscription.rejected, (state, action) => {
-        state.purchaseStatus = "failed";
-        state.purchaseError = action.payload;
-        console.error("Purchase subscription: rejected", action.payload);
+      .addCase(processSubscriptionPayment.rejected, (state, action) => {
+        state.operationStatus.payment = "failed";
+        state.error = action.payload;
+      })
+
+      // Check feature access
+      .addCase(checkFeatureAccess.fulfilled, (state, action) => {
+        state.featureAccess = action.payload;
+      })
+      .addCase(checkFeatureAccess.rejected, (state, action) => {
+        state.error = action.payload;
       });
   },
 });
 
-export const { clearErrors, resetPurchaseStatus } = subscriptionSlice.actions;
+export const {
+  clearErrors,
+  clearCurrentSubscription,
+  resetOperationStatus,
+  optimisticUpdateSubscription,
+} = subscriptionSlice.actions;
 
-// Selectors
-export const selectAllSubscriptions = (state) => state.subscriptions?.items;
+// Enhanced selectors
+export const selectAllSubscriptions = (state) =>
+  state.subscriptions?.items || [];
 export const selectCurrentSubscription = (state) =>
   state.subscriptions?.currentSubscription;
 export const selectSubscriptionLoading = (state) =>
-  state.subscriptions?.loading;
+  state.subscriptions?.loading || false;
 export const selectSubscriptionError = (state) => state.subscriptions?.error;
-export const selectPurchaseStatus = (state) =>
-  state.subscriptions?.purchaseStatus;
-export const selectPurchaseError = (state) =>
-  state.subscriptions?.purchaseError;
+export const selectFeatureAccess = (state) =>
+  state.subscriptions?.featureAccess;
+
+// Operation status selectors
+export const selectCreateStatus = (state) =>
+  state.subscriptions?.operationStatus?.create || "idle";
+export const selectUpdateStatus = (state) =>
+  state.subscriptions?.operationStatus?.update || "idle";
+export const selectDeleteStatus = (state) =>
+  state.subscriptions?.operationStatus?.delete || "idle";
+export const selectCancelStatus = (state) =>
+  state.subscriptions?.operationStatus?.cancel || "idle";
+export const selectRenewStatus = (state) =>
+  state.subscriptions?.operationStatus?.renew || "idle";
+export const selectPaymentStatus = (state) =>
+  state.subscriptions?.operationStatus?.payment || "idle";
+
+// Derived selectors
+export const selectActiveSubscriptions = (state) => {
+  const items = selectAllSubscriptions(state);
+  return items.filter((sub) => sub.status === "active");
+};
+
+export const selectSubscriptionByArchitect = (architectId) => (state) => {
+  const items = selectAllSubscriptions(state);
+  return items.find((sub) => sub.architectId === architectId);
+};
+
+export const selectIsAnyOperationLoading = (state) => {
+  const statuses = state.subscriptions?.operationStatus || {};
+  return (
+    Object.values(statuses).some((status) => status === "loading") ||
+    state.subscriptions?.loading
+  );
+};
 
 export default subscriptionSlice.reducer;

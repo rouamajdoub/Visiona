@@ -7,7 +7,6 @@ const {
   requireVerified,
   requireApproved,
 } = require("../middlewares/authMiddleware");
-const upload = require("../middlewares/fileUpload");
 
 // Product routes
 router
@@ -18,17 +17,17 @@ router
     requireVerified,
     restrictTo("architect", "admin"),
     requireApproved,
-    upload,
     marketplaceController.createProduct
   );
 
 // Route for deleting a single product image
-router.route("/products/:id/images/:imageIndex").delete(protect);
-
+router
+  .route("/products/:id/images/:imageIndex")
+  .delete(protect, marketplaceController.deleteProductImage);
 router
   .route("/products/:id")
   .get(marketplaceController.getProduct)
-  .put(protect, upload, marketplaceController.updateProduct)
+  .put(protect, marketplaceController.updateProduct)
   .delete(protect, marketplaceController.deleteProduct);
 
 // Category routes
@@ -43,10 +42,17 @@ router
   .put(protect, restrictTo("admin"), marketplaceController.updateCategory)
   .delete(protect, restrictTo("admin"), marketplaceController.deleteCategory);
 
-// Product review routes - Note: Create review is now handled by a centralized review controller
+// Product review routes - Updated to use your review system
 router
   .route("/products/:id/reviews")
-  .get(marketplaceController.getProductReviews);
+  .get(marketplaceController.getProductReviews)
+  .post(
+    protect,
+    requireVerified,
+    requireApproved,
+    restrictTo("client", "architect"),
+    marketplaceController.createProductReview
+  );
 
 // Review helpful marking
 router
@@ -73,6 +79,7 @@ router
   .route("/orders/:id/cancel")
   .put(protect, marketplaceController.cancelOrder);
 
+// Statistics routes
 // Architect statistics route
 router
   .route("/architect/stats")
@@ -81,6 +88,15 @@ router
     restrictTo("architect"),
     requireApproved,
     marketplaceController.getArchitectStats
+  );
+
+// Admin marketplace statistics route
+router
+  .route("/admin/stats")
+  .get(
+    protect,
+    restrictTo("admin"),
+    marketplaceController.getAdminMarketplaceStats
   );
 
 // Cart routes

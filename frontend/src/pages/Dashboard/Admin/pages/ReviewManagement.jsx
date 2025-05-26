@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  getProjectReviews,
-  getProductReviews,
-  getAppReviews,
+  getAllProjectReviews,
+  getAllProductReviews,
+  getAllAppReviews,
   getSuspiciousReviews,
   updateReviewStatus,
   deleteReview,
@@ -121,11 +121,11 @@ const ReviewManagement = () => {
 
   const filteredReviews = getFilteredReviews();
 
-  // Fetch all reviews on component mount
+  // Fetch all reviews on component mount - using admin endpoints
   useEffect(() => {
-    dispatch(getProjectReviews());
-    dispatch(getProductReviews());
-    dispatch(getAppReviews());
+    dispatch(getAllProjectReviews());
+    dispatch(getAllProductReviews());
+    dispatch(getAllAppReviews());
     dispatch(getSuspiciousReviews());
   }, [dispatch]);
 
@@ -239,7 +239,7 @@ const ReviewManagement = () => {
       flex: 1.5,
       minWidth: 200,
       renderCell: ({ row }) => (
-        <Tooltip title={row.comment} arrow placement="top-start">
+        <Tooltip title={row.comment || ""} arrow placement="top-start">
           <Typography
             sx={{
               overflow: "hidden",
@@ -247,9 +247,9 @@ const ReviewManagement = () => {
               whiteSpace: "nowrap",
             }}
           >
-            {row.comment.length > 50
+            {row.comment && row.comment.length > 50
               ? `${row.comment.substring(0, 50)}...`
-              : row.comment}
+              : row.comment || "No comment"}
           </Typography>
         </Tooltip>
       ),
@@ -305,7 +305,8 @@ const ReviewManagement = () => {
       headerName: "Date",
       flex: 0.7,
       minWidth: 120,
-      renderCell: ({ row }) => new Date(row.createdAt).toLocaleDateString(),
+      renderCell: ({ row }) =>
+        row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "N/A",
     },
     {
       field: "actions",
@@ -514,7 +515,10 @@ const ReviewManagement = () => {
               </Typography>
 
               <Typography variant="subtitle1" gutterBottom>
-                Date: {new Date(currentReview.createdAt).toLocaleString()}
+                Date:{" "}
+                {currentReview.createdAt
+                  ? new Date(currentReview.createdAt).toLocaleString()
+                  : "N/A"}
               </Typography>
 
               <Typography variant="subtitle1" gutterBottom>
@@ -528,7 +532,7 @@ const ReviewManagement = () => {
                   borderRadius: 1,
                 }}
               >
-                {currentReview.comment}
+                {currentReview.comment || "No comment provided"}
               </Typography>
 
               <Typography variant="subtitle1" gutterBottom>

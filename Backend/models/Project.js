@@ -8,7 +8,6 @@ const projectSchema = new mongoose.Schema(
       required: true,
     },
     //for the architect dash
-
     architectId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -16,7 +15,15 @@ const projectSchema = new mongoose.Schema(
     title: { type: String, required: true },
     shortDescription: { type: String, required: true },
     description: { type: String, required: true },
-    category: { type: String, required: true },
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ServiceCategory",
+      required: true,
+    },
+    subcategory: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ServiceSubcategory",
+    },
     status: {
       type: String,
       enum: ["pending", "in_progress", "completed", "canceled"],
@@ -26,7 +33,7 @@ const projectSchema = new mongoose.Schema(
     startDate: { type: Date },
     endDate: { type: Date },
     actualEndDate: { type: Date }, // Actual completion date that may differ from planned
-    //clinet dash
+    //client dash
     isPublic: { type: Boolean, default: false },
     showroomStatus: {
       type: String,
@@ -39,6 +46,31 @@ const projectSchema = new mongoose.Schema(
     beforePhotos: [{ type: String }],
     afterPhotos: [{ type: String }],
     videos: [{ type: String }],
+
+    // NEW: Additional project files
+    projectFiles: [
+      {
+        filename: { type: String, required: true },
+        originalName: { type: String, required: true },
+        filePath: { type: String, required: true },
+        fileType: {
+          type: String,
+          enum: [
+            "plan",
+            "document",
+            "drawing",
+            "specification",
+            "contract",
+            "other",
+          ],
+          default: "document",
+        },
+        fileSize: { type: Number }, // Size in bytes
+        uploadDate: { type: Date, default: Date.now },
+        description: { type: String }, // Optional description for the file
+      },
+    ],
+
     //for the stats and interactions
     views: { type: Number, default: 0 },
     likes: [
@@ -105,6 +137,23 @@ projectSchema.virtual("architectName", {
   foreignField: "_id",
   justOne: true,
 });
+
+// Virtual field for category name
+projectSchema.virtual("categoryName", {
+  ref: "ServiceCategory",
+  localField: "category",
+  foreignField: "_id",
+  justOne: true,
+});
+
+// Virtual field for subcategory name
+projectSchema.virtual("subcategoryName", {
+  ref: "ServiceSubcategory",
+  localField: "subcategory",
+  foreignField: "_id",
+  justOne: true,
+});
+
 // Validation for end date to be after start date
 projectSchema.pre("validate", function (next) {
   if (this.startDate && this.endDate && this.startDate > this.endDate) {
@@ -112,5 +161,6 @@ projectSchema.pre("validate", function (next) {
   }
   next();
 });
+
 // Exporting the model
 module.exports = mongoose.model("Project", projectSchema);

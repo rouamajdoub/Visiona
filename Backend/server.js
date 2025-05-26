@@ -35,6 +35,7 @@ const serviceCategoryRoutes = require("./routes/serviceCategoryRoutes");
 const analysis = require("./routes/analysis");
 const globalOptionRoutes = require("./routes/GlobalOptionRoutes");
 const matchingRoutes = require("./routes/matchingRoutes");
+const locationRoutes = require("./routes/locationRoutes");
 require("./config/passport");
 
 // Stripe
@@ -142,7 +143,7 @@ app.use("/api/projects", projects);
 app.use("/api/kanban", kanbanRoutes);
 app.use("/api/admin/service-subcategories", serviceSubcategoryRoutes);
 app.use("/api/admin/service-categories", serviceCategoryRoutes);
-
+app.use("/api/locations", locationRoutes);
 app.use("/api/global-options", globalOptionRoutes);
 app.use("/api/analysis", analysis);
 app.use(webhookRoutes);

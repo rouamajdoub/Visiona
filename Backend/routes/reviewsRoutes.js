@@ -40,6 +40,14 @@ router.get("/my-reviews", reviewController.getMyReviews);
 // Admin-only routes
 router.use(auth.restrictTo("admin"));
 
+// Get all reviews (admin overview)
+router.get("/admin/all-reviews", reviewController.getAllReviews);
+
+// Get all reviews by type (admin)
+router.get("/admin/project-reviews", reviewController.getAllProjectReviews);
+router.get("/admin/product-reviews", reviewController.getAllProductReviews);
+router.get("/admin/app-reviews", reviewController.getAllAppReviews);
+
 // Get suspicious reviews flagged by AI
 router.get("/reviews/suspicious", reviewController.getSuspiciousReviews);
 

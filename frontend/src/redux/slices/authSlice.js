@@ -41,13 +41,46 @@ const setupAuthInterceptor = (token) => {
   );
 };
 
+// Load current user from token (NEW FUNCTION)
+export const loadMe = createAsyncThunk(
+  "auth/loadMe",
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const { auth } = getState();
+      const token = auth.token || localStorage.getItem("token");
+
+      if (!token) {
+        return rejectWithValue("No token available");
+      }
+
+      // Set up the interceptor with current token
+      setupAuthInterceptor(token);
+
+      const response = await axios.get("/api/auth/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return {
+        user: response.data.user,
+        token: token, // Keep the existing token
+      };
+    } catch (error) {
+      // If token is invalid, remove it
+      localStorage.removeItem("token");
+      return rejectWithValue(
+        error.response?.data?.error || "Failed to load user data"
+      );
+    }
+  }
+);
+
 // Register new user
 export const registerUser = createAsyncThunk(
   "auth/register",
   async (userData, { rejectWithValue }) => {
     try {
-      // We expect userData to be a FormData object that contains all fields
-      // including any files that need to be uploaded
       const response = await axios.post("/api/auth/register", userData, {
         headers: {
           "Content-Type": "multipart/form-data",
@@ -102,11 +135,6 @@ export const loginUser = createAsyncThunk(
 
       localStorage.setItem("token", token);
       setupAuthInterceptor(token);
-      // store Current user
-      // Additional verification for architects
-      if (user.role === "architect" && user.status === "approved") {
-        dispatch(fetchUserProfile(user._id));
-      }
 
       return { token, user, isFirstLogin };
     } catch (error) {
@@ -129,12 +157,10 @@ export const verifyGoogleToken = createAsyncThunk(
         }
       );
 
-      // If verification successful, save token and set up interceptor
       if (response.data.success) {
         localStorage.setItem("token", token);
         setupAuthInterceptor(token);
 
-        // Additional verification for architects
         if (
           response.data.user.role === "architect" &&
           response.data.user.status !== "approved"
@@ -165,7 +191,6 @@ export const setCredentials = createAsyncThunk(
     localStorage.setItem("token", token);
     setupAuthInterceptor(token);
 
-    // Additional verification for architects
     if (user.role === "architect" && user.status !== "approved") {
       dispatch(fetchUserProfile(user._id));
     }
@@ -241,6 +266,16 @@ const authSlice = createSlice({
     clearFirstLoginFlag: (state) => {
       state.isFirstLogin = false;
     },
+    // Add a reducer to set token directly (useful for initialization)
+    setToken: (state, action) => {
+      state.token = action.payload;
+      if (action.payload) {
+        localStorage.setItem("token", action.payload);
+        setupAuthInterceptor(action.payload);
+      } else {
+        localStorage.removeItem("token");
+      }
+    },
   },
   extraReducers(builder) {
     const handlePendingState = (state) => {
@@ -256,6 +291,40 @@ const authSlice = createSlice({
     };
 
     builder
+      // Load Me (NEW CASES)
+      .addCase(loadMe.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(loadMe.fulfilled, (state, action) => {
+        state.isAuthenticated = true;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+        state.isLoading = false;
+        state.error = null;
+        state.status = "succeeded";
+
+        // Determine auth method based on user data
+        if (action.payload.user.authMethod) {
+          state.authMethod = action.payload.user.authMethod;
+        }
+
+        // Set architect status if applicable
+        if (action.payload.user.role === "architect") {
+          state.architectStatus = action.payload.user.status;
+        }
+      })
+      .addCase(loadMe.rejected, (state, action) => {
+        state.isAuthenticated = false;
+        state.user = null;
+        state.token = null;
+        state.authMethod = null;
+        state.isLoading = false;
+        state.error = action.payload;
+        state.status = "failed";
+        state.architectStatus = null;
+      })
+
       // Register user
       .addCase(registerUser.pending, handlePendingState)
       .addCase(registerUser.fulfilled, (state) => {
@@ -308,7 +377,7 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.user = action.payload.user;
         state.token = action.payload.token;
-        state.authMethod = "google"; // Assuming this is only used for OAuth
+        state.authMethod = "google";
         state.isLoading = false;
         state.error = null;
         state.isFirstLogin = action.payload.isFirstLogin || false;
@@ -356,7 +425,6 @@ const authSlice = createSlice({
         state.globalOptions.error = null;
       })
       .addCase(fetchGlobalOptions.fulfilled, (state, action) => {
-        // Update the appropriate options array based on the type
         if (action.payload.type === "certification") {
           state.globalOptions.certifications = action.payload.data;
         } else if (action.payload.type === "software") {
@@ -385,7 +453,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { resetStatus, clearError, clearFirstLoginFlag } =
+export const { resetStatus, clearError, clearFirstLoginFlag, setToken } =
   authSlice.actions;
 
 // Selectors
@@ -399,6 +467,7 @@ export const selectAuthMethod = (state) => state.auth.authMethod;
 export const selectSubscriptionStatus = (state) =>
   state.auth.user?.subscription?.status;
 export const selectIsFirstLogin = (state) => state.auth.isFirstLogin;
+export const selectToken = (state) => state.auth.token; // NEW SELECTOR
 
 // New selectors for dropdown options
 export const selectCertifications = (state) =>

@@ -33,6 +33,9 @@ import {
   createProject,
   resetProjectState,
   clearErrors,
+  fetchServiceCategories,
+  fetchServiceSubcategories,
+  clearServiceSubcategories,
 } from "../../../../../redux/slices/ProjectSlice";
 import { fetchClients } from "../../../../../redux/slices/clientsSlice";
 
@@ -43,15 +46,26 @@ const AddProject = ({ onCancel }) => {
   const { clients, loading: clientsLoading } = useSelector(
     (state) => state.clients
   );
-  const { isLoading, error, success, message } = useSelector(
-    (state) => state.projects
-  );
+
+  // Updated to use the new state structure from your slice
+  const {
+    loading: isLoading,
+    error,
+    success,
+    message,
+    projectState,
+    serviceCategories,
+    selectedCategorySubcategories,
+    categoriesLoading,
+    subcategoriesLoading,
+  } = useSelector((state) => state.projects);
 
   const [projectData, setProjectData] = useState({
     title: "",
     shortDescription: "",
     description: "",
     category: "",
+    subcategory: "", // Add subcategory field
     budget: "",
     startDate: "",
     endDate: "",
@@ -67,20 +81,36 @@ const AddProject = ({ onCancel }) => {
   const [beforePhotos, setBeforePhotos] = useState([]);
   const [afterPhotos, setAfterPhotos] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [tag, setTag] = useState("");
 
-  // Fetch architect's clients when component mounts
+  // Fetch architect's clients and service categories when component mounts
   useEffect(() => {
     if (user && user._id) {
       dispatch(fetchClients());
+      dispatch(fetchServiceCategories());
     }
 
     // Clean up on unmount
     return () => {
       dispatch(resetProjectState());
+      dispatch(clearServiceSubcategories());
     };
   }, [dispatch, user]);
+
+  // Fetch subcategories when category changes
+  useEffect(() => {
+    if (selectedCategory && selectedCategory._id) {
+      dispatch(fetchServiceSubcategories(selectedCategory._id));
+      // Reset subcategory selection when category changes
+      setSelectedSubcategory(null);
+      setProjectData((prev) => ({ ...prev, subcategory: "" }));
+    } else {
+      dispatch(clearServiceSubcategories());
+    }
+  }, [selectedCategory, dispatch]);
 
   // Show snackbar when operation succeeds and redirect
   useEffect(() => {
@@ -107,6 +137,24 @@ const AddProject = ({ onCancel }) => {
     setProjectData({
       ...projectData,
       clientId: client ? client._id : "",
+    });
+  };
+
+  // Handle category selection
+  const handleCategorySelect = (event, category) => {
+    setSelectedCategory(category);
+    setProjectData({
+      ...projectData,
+      category: category ? category._id : "",
+    });
+  };
+
+  // Handle subcategory selection
+  const handleSubcategorySelect = (event, subcategory) => {
+    setSelectedSubcategory(subcategory);
+    setProjectData({
+      ...projectData,
+      subcategory: subcategory ? subcategory._id : "",
     });
   };
 
@@ -229,37 +277,31 @@ const AddProject = ({ onCancel }) => {
     // Clear any previous errors
     dispatch(clearErrors());
 
-    // Create FormData object for multipart/form-data
-    const formData = new FormData();
+    // Create the project data object that matches your Redux slice expectations
+    const formDataObject = {
+      // Basic project data
+      title: projectData.title,
+      shortDescription: projectData.shortDescription,
+      description: projectData.description,
+      category: projectData.category,
+      subcategory: projectData.subcategory, // Include subcategory
+      budget: projectData.budget,
+      startDate: projectData.startDate,
+      endDate: projectData.endDate,
+      isPublic: projectData.isPublic,
+      showroomStatus: projectData.showroomStatus,
+      clientId: projectData.clientId,
+      status: projectData.status,
+      tags: projectData.tags,
 
-    // Append project data
-    Object.keys(projectData).forEach((key) => {
-      if (key !== "coverImage" && key !== "tags") {
-        formData.append(key, projectData[key]);
-      }
-    });
+      // Files - extract just the file objects
+      coverImage: projectData.coverImage,
+      beforePhotos: beforePhotos.map((photo) => photo.file),
+      afterPhotos: afterPhotos.map((photo) => photo.file),
+    };
 
-    // Append tags as JSON string
-    if (projectData.tags.length > 0) {
-      formData.append("tags", JSON.stringify(projectData.tags));
-    }
-
-    // Append cover image if exists
-    if (projectData.coverImage) {
-      formData.append("coverImage", projectData.coverImage);
-    }
-
-    // Append before photos
-    beforePhotos.forEach((photo) => {
-      formData.append("beforePhotos", photo.file);
-    });
-
-    // Append after photos
-    afterPhotos.forEach((photo) => {
-      formData.append("afterPhotos", photo.file);
-    });
-
-    dispatch(createProject(formData));
+    // Dispatch the action - your Redux slice will handle FormData creation
+    dispatch(createProject(formDataObject));
   };
 
   // Clean up object URLs when component unmounts
@@ -271,18 +313,36 @@ const AddProject = ({ onCancel }) => {
     };
   }, []);
 
+  // Helper function to safely render error messages
+  const getErrorMessage = (error) => {
+    if (typeof error === "string") return error;
+    if (error && typeof error === "object") {
+      return error.message || JSON.stringify(error);
+    }
+    return "An error occurred";
+  };
+
+  // Helper function to safely render success/info messages
+  const getSuccessMessage = (msg) => {
+    if (typeof msg === "string") return msg;
+    if (msg && typeof msg === "object") {
+      return msg.message || JSON.stringify(msg);
+    }
+    return "Operation completed successfully!";
+  };
+
   return (
     <Paper
       elevation={3}
       className="add-project-container"
       sx={{
         p: 3,
-        backgroundColor: "#f9f9f9", // Consistent background color
+        backgroundColor: "#f9f9f9",
         borderRadius: 2,
         position: "relative",
       }}
     >
-      {/* Single header with one close button */}
+      {/* Header */}
       <Box
         sx={{
           display: "flex",
@@ -312,13 +372,15 @@ const AddProject = ({ onCancel }) => {
       </Box>
       <Divider sx={{ mb: 4 }} />
 
-      {error && (
+      {/* Error handling - Fixed to prevent object rendering */}
+      {(error || projectState?.error) && (
         <Alert severity="error" sx={{ mb: 3 }}>
-          {error.message || "An error occurred while creating the project."}
+          {getErrorMessage(error || projectState?.error)}
         </Alert>
       )}
 
       <form onSubmit={handleSubmit}>
+        {/* Client Information Section */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="subtitle1" fontWeight="bold">
             Client Information
@@ -327,8 +389,8 @@ const AddProject = ({ onCancel }) => {
 
           <Autocomplete
             id="client-select"
-            options={clients || []}
-            getOptionLabel={(option) => option.name || ""}
+            options={Array.isArray(clients) ? clients : []}
+            getOptionLabel={(option) => option?.name || ""}
             value={selectedClient}
             onChange={handleClientSelect}
             loading={clientsLoading}
@@ -362,16 +424,16 @@ const AddProject = ({ onCancel }) => {
             renderOption={(props, option) => (
               <li {...props}>
                 <Box>
-                  <Typography variant="body1">{option.name}</Typography>
+                  <Typography variant="body1">{option?.name || ""}</Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {option.email}
+                    {option?.email || ""}
                   </Typography>
                 </Box>
               </li>
             )}
           />
 
-          {!clients?.length && (
+          {(!clients || !Array.isArray(clients) || clients.length === 0) && (
             <Typography
               variant="caption"
               color="error"
@@ -383,6 +445,7 @@ const AddProject = ({ onCancel }) => {
           )}
         </Box>
 
+        {/* Project Details Section */}
         <Box sx={{ mb: 4 }}>
           <Typography variant="subtitle1" fontWeight="bold">
             Project Details
@@ -401,25 +464,123 @@ const AddProject = ({ onCancel }) => {
                 required
               />
             </Grid>
+
+            {/* Service Category Selection */}
             <Grid item xs={12} md={6}>
-              <TextField
-                select
-                fullWidth
-                label="Category"
-                name="category"
-                value={projectData.category}
-                onChange={handleChange}
-                margin="normal"
-                required
-              >
-                <MenuItem value="Residential">Residential</MenuItem>
-                <MenuItem value="Commercial">Commercial</MenuItem>
-                <MenuItem value="Interior Design">Interior Design</MenuItem>
-                <MenuItem value="Landscape">Landscape</MenuItem>
-                <MenuItem value="Industrial">Industrial</MenuItem>
-                <MenuItem value="Urban Planning">Urban Planning</MenuItem>
-              </TextField>
+              <Autocomplete
+                id="category-select"
+                options={
+                  Array.isArray(serviceCategories) ? serviceCategories : []
+                }
+                getOptionLabel={(option) => option?.name || ""}
+                value={selectedCategory}
+                onChange={handleCategorySelect}
+                loading={categoriesLoading}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Service Category"
+                    variant="outlined"
+                    required
+                    fullWidth
+                    margin="normal"
+                    error={
+                      !projectData.category && projectData.title.length > 0
+                    }
+                    helperText={
+                      !projectData.category && projectData.title.length > 0
+                        ? "Service category is required"
+                        : ""
+                    }
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {categoriesLoading ? (
+                            <CircularProgress color="inherit" size={20} />
+                          ) : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props}>
+                    <Box>
+                      <Typography variant="body1">
+                        {option?.name || ""}
+                      </Typography>
+                      {option?.description && (
+                        <Typography variant="caption" color="text.secondary">
+                          {option.description}
+                        </Typography>
+                      )}
+                    </Box>
+                  </li>
+                )}
+              />
             </Grid>
+
+            {/* Service Subcategory Selection */}
+            <Grid item xs={12} md={6}>
+              <Autocomplete
+                id="subcategory-select"
+                options={
+                  Array.isArray(selectedCategorySubcategories)
+                    ? selectedCategorySubcategories
+                    : []
+                }
+                getOptionLabel={(option) => option?.name || ""}
+                value={selectedSubcategory}
+                onChange={handleSubcategorySelect}
+                loading={subcategoriesLoading}
+                disabled={!selectedCategory}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select Service Subcategory"
+                    variant="outlined"
+                    fullWidth
+                    margin="normal"
+                    helperText={
+                      !selectedCategory
+                        ? "Please select a category first"
+                        : !selectedCategorySubcategories ||
+                          selectedCategorySubcategories.length === 0
+                        ? "No subcategories available for selected category"
+                        : ""
+                    }
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {subcategoriesLoading ? (
+                            <CircularProgress color="inherit" size={20} />
+                          ) : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <li {...props}>
+                    <Box>
+                      <Typography variant="body1">
+                        {option?.name || ""}
+                      </Typography>
+                      {option?.description && (
+                        <Typography variant="caption" color="text.secondary">
+                          {option.description}
+                        </Typography>
+                      )}
+                    </Box>
+                  </li>
+                )}
+              />
+            </Grid>
+
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -519,15 +680,16 @@ const AddProject = ({ onCancel }) => {
                 </Button>
               </Box>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-                {projectData.tags.map((tag, index) => (
-                  <Chip
-                    key={index}
-                    label={tag}
-                    onDelete={() => removeTag(tag)}
-                    color="primary"
-                    variant="outlined"
-                  />
-                ))}
+                {Array.isArray(projectData.tags) &&
+                  projectData.tags.map((tagItem, index) => (
+                    <Chip
+                      key={index}
+                      label={tagItem}
+                      onDelete={() => removeTag(tagItem)}
+                      color="primary"
+                      variant="outlined"
+                    />
+                  ))}
               </Box>
             </Grid>
 
@@ -723,16 +885,26 @@ const AddProject = ({ onCancel }) => {
         <Box
           sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}
         >
-          <Button variant="outlined" onClick={onCancel} disabled={isLoading}>
+          <Button
+            variant="outlined"
+            onClick={onCancel}
+            disabled={isLoading || projectState?.loading}
+          >
             Cancel
           </Button>
           <Button
             type="submit"
             variant="contained"
             color="primary"
-            disabled={isLoading || !projectData.clientId || !projectData.title}
+            disabled={
+              isLoading ||
+              projectState?.loading ||
+              !projectData.clientId ||
+              !projectData.title ||
+              !projectData.category
+            }
           >
-            {isLoading ? (
+            {isLoading || projectState?.loading ? (
               <>
                 <CircularProgress size={24} sx={{ mr: 1 }} color="inherit" />
                 Creating...
@@ -743,6 +915,7 @@ const AddProject = ({ onCancel }) => {
           </Button>
         </Box>
       </form>
+
       {/* Success Snackbar */}
       <Snackbar
         open={snackbarOpen}
@@ -755,7 +928,7 @@ const AddProject = ({ onCancel }) => {
           severity="success"
           sx={{ width: "100%" }}
         >
-          {message || "Project created successfully!"}
+          {getSuccessMessage(message || projectState?.message)}
         </Alert>
       </Snackbar>
     </Paper>

@@ -3,7 +3,7 @@ import "./Style.css";
 import Sidebar from "./content/Sidebar/Sidebar";
 import MainDash from "./content/MainDash/MainDash";
 import RightSide from "./content/RightSide/RightSide";
-import Profile from "./pages/Profile/Profile";
+import ArchitectProfile from "./pages/Profile/ArchitectProfile";
 import Calendar from "./pages/Calendar/Calendar";
 import Project from "./pages/Project/Project";
 import Market from "./pages/Market/Market";
@@ -11,6 +11,7 @@ import Invoices from "./pages/Invoice/Invoices";
 import Quotes from "./pages/Quote/Quotes";
 import Matching from "./pages/Matching/Matching";
 import Clients from "./pages/Clients/ClientManagement";
+import KanbanBoard from "./pages/Project/kanban/KanbanBoard";
 const Main = () => {
   const [expanded, setExpanded] = useState(true);
   const [selectedItem, setSelectedItem] = useState("dashboard");
@@ -24,7 +25,7 @@ const Main = () => {
           </div>
         );
       case "profile":
-        return <Profile />;
+        return <ArchitectProfile />;
       case "calendar":
         return <Calendar />;
       case "projects":
@@ -39,6 +40,8 @@ const Main = () => {
         return <Matching />;
       case "client":
         return <Clients />;
+      case "kanban":
+        return <KanbanBoard />;
       default:
         return (
           <div className="main-dash-container">

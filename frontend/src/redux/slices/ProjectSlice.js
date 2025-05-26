@@ -4,9 +4,14 @@ import axios from "axios";
 // API base URL
 const API_URL = "/api/projects";
 
-// Existing async thunks
+// Configure axios defaults
+axios.defaults.withCredentials = true;
+
+// Async thunks for API calls
+
+// Fetch all projects (renamed from getProjects)
 export const fetchAllProjects = createAsyncThunk(
-  "projects/fetchAll",
+  "projects/fetchAllProjects",
   async (_, { rejectWithValue }) => {
     try {
       const response = await axios.get(API_URL);
@@ -19,8 +24,9 @@ export const fetchAllProjects = createAsyncThunk(
   }
 );
 
+// Fetch project by ID (renamed from getProjectById)
 export const fetchProjectById = createAsyncThunk(
-  "projects/fetchById",
+  "projects/fetchProjectById",
   async (projectId, { rejectWithValue }) => {
     try {
       const response = await axios.get(`${API_URL}/${projectId}`);
@@ -33,117 +39,9 @@ export const fetchProjectById = createAsyncThunk(
   }
 );
 
-export const createProject = createAsyncThunk(
-  "projects/create",
-  async (formData, { rejectWithValue }) => {
-    try {
-      // Set headers for form data with proper boundary handling
-      const config = {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      };
-
-      const response = await axios.post(API_URL, formData, config);
-      return response.data.project;
-    } catch (error) {
-      console.error("Project creation error:", error);
-      return rejectWithValue(
-        error.response?.data || { message: error.message }
-      );
-    }
-  }
-);
-
-export const updateProject = createAsyncThunk(
-  "projects/update",
-  async (params, { rejectWithValue }) => {
-    try {
-      const { projectId, formData } = params;
-
-      // Set headers for form data
-      const config = {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      };
-
-      const response = await axios.put(
-        `${API_URL}/${projectId}`,
-        formData,
-        config
-      );
-      return response.data.project;
-    } catch (error) {
-      console.error("Project update error:", error);
-      return rejectWithValue(
-        error.response?.data || { message: error.message }
-      );
-    }
-  }
-);
-
-export const deleteProject = createAsyncThunk(
-  "projects/delete",
-  async (projectId, { rejectWithValue }) => {
-    try {
-      await axios.delete(`${API_URL}/${projectId}`);
-      return projectId;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data || { message: error.message }
-      );
-    }
-  }
-);
-
-export const searchProjects = createAsyncThunk(
-  "projects/search",
-  async (searchParams, { rejectWithValue }) => {
-    try {
-      const queryString = new URLSearchParams(searchParams).toString();
-      const response = await axios.get(`${API_URL}/search?${queryString}`);
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data || { message: error.message }
-      );
-    }
-  }
-);
-
-export const likeProject = createAsyncThunk(
-  "projects/like",
-  async ({ projectId, userId }, { rejectWithValue }) => {
-    try {
-      const response = await axios.post(`${API_URL}/${projectId}/like`, {
-        userId,
-      });
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data || { message: error.message }
-      );
-    }
-  }
-);
-
-export const getProjectLikesCount = createAsyncThunk(
-  "projects/getLikesCount",
-  async (projectId, { rejectWithValue }) => {
-    try {
-      const response = await axios.get(`${API_URL}/${projectId}/likes`);
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data || { message: error.message }
-      );
-    }
-  }
-);
-
+// Fetch projects by client (renamed from getProjectsByClient)
 export const fetchProjectsByClient = createAsyncThunk(
-  "projects/fetchByClient",
+  "projects/fetchProjectsByClient",
   async (clientId, { rejectWithValue }) => {
     try {
       const response = await axios.get(`${API_URL}/client/${clientId}`);
@@ -156,6 +54,261 @@ export const fetchProjectsByClient = createAsyncThunk(
   }
 );
 
+// Create a new project
+export const createProject = createAsyncThunk(
+  "projects/createProject",
+  async (projectData, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+
+      // Append text fields
+      Object.keys(projectData).forEach((key) => {
+        if (
+          key !== "coverImage" &&
+          key !== "beforePhotos" &&
+          key !== "afterPhotos" &&
+          key !== "projectFiles"
+        ) {
+          if (
+            typeof projectData[key] === "object" &&
+            projectData[key] !== null
+          ) {
+            formData.append(key, JSON.stringify(projectData[key]));
+          } else {
+            formData.append(key, projectData[key]);
+          }
+        }
+      });
+
+      // Append files
+      if (projectData.coverImage) {
+        formData.append("coverImage", projectData.coverImage);
+      }
+
+      if (projectData.beforePhotos) {
+        projectData.beforePhotos.forEach((file) => {
+          formData.append("beforePhotos", file);
+        });
+      }
+
+      if (projectData.afterPhotos) {
+        projectData.afterPhotos.forEach((file) => {
+          formData.append("afterPhotos", file);
+        });
+      }
+
+      if (projectData.projectFiles) {
+        projectData.projectFiles.forEach((file) => {
+          formData.append("projectFiles", file);
+        });
+      }
+
+      const response = await axios.post(API_URL, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    }
+  }
+);
+
+// Update project
+export const updateProject = createAsyncThunk(
+  "projects/updateProject",
+  async ({ projectId, projectData }, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+
+      // Append text fields
+      Object.keys(projectData).forEach((key) => {
+        if (
+          key !== "coverImage" &&
+          key !== "beforePhotos" &&
+          key !== "afterPhotos" &&
+          key !== "projectFiles"
+        ) {
+          if (
+            typeof projectData[key] === "object" &&
+            projectData[key] !== null
+          ) {
+            formData.append(key, JSON.stringify(projectData[key]));
+          } else {
+            formData.append(key, projectData[key]);
+          }
+        }
+      });
+
+      // Append files
+      if (projectData.coverImage) {
+        formData.append("coverImage", projectData.coverImage);
+      }
+
+      if (projectData.beforePhotos) {
+        projectData.beforePhotos.forEach((file) => {
+          formData.append("beforePhotos", file);
+        });
+      }
+
+      if (projectData.afterPhotos) {
+        projectData.afterPhotos.forEach((file) => {
+          formData.append("afterPhotos", file);
+        });
+      }
+
+      if (projectData.projectFiles) {
+        projectData.projectFiles.forEach((file) => {
+          formData.append("projectFiles", file);
+        });
+      }
+
+      const response = await axios.put(`${API_URL}/${projectId}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    }
+  }
+);
+
+// Delete project
+export const deleteProject = createAsyncThunk(
+  "projects/deleteProject",
+  async (projectId, { rejectWithValue }) => {
+    try {
+      const response = await axios.delete(`${API_URL}/${projectId}`);
+      return { ...response.data, projectId };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    }
+  }
+);
+
+// Search projects
+export const searchProjects = createAsyncThunk(
+  "projects/searchProjects",
+  async (searchParams, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_URL}/search`, {
+        params: searchParams,
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    }
+  }
+);
+
+// Like/Unlike project
+export const likeProject = createAsyncThunk(
+  "projects/likeProject",
+  async ({ projectId, userId }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(`${API_URL}/${projectId}/like`, {
+        userId,
+      });
+      return { ...response.data, projectId };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    }
+  }
+);
+
+// Get project likes count
+export const getProjectLikesCount = createAsyncThunk(
+  "projects/getProjectLikesCount",
+  async (projectId, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${API_URL}/${projectId}/likes`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    }
+  }
+);
+
+// Project file management
+export const addProjectFile = createAsyncThunk(
+  "projects/addProjectFile",
+  async ({ projectId, file, fileType, description }, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append("projectFile", file);
+      if (fileType) formData.append("fileType", fileType);
+      if (description) formData.append("description", description);
+
+      const response = await axios.post(
+        `${API_URL}/${projectId}/files`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    }
+  }
+);
+
+export const updateProjectFile = createAsyncThunk(
+  "projects/updateProjectFile",
+  async ({ projectId, fileId, description, fileType }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(
+        `${API_URL}/${projectId}/files/${fileId}`,
+        {
+          description,
+          fileType,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    }
+  }
+);
+
+export const deleteProjectFile = createAsyncThunk(
+  "projects/deleteProjectFile",
+  async ({ projectId, fileId }, { rejectWithValue }) => {
+    try {
+      const response = await axios.delete(
+        `${API_URL}/${projectId}/files/${fileId}`
+      );
+      return { ...response.data, fileId };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data || { message: error.message }
+      );
+    }
+  }
+);
+
+// Milestone management
 export const addMilestone = createAsyncThunk(
   "projects/addMilestone",
   async ({ projectId, milestoneData }, { rejectWithValue }) => {
@@ -206,14 +359,14 @@ export const deleteMilestone = createAsyncThunk(
   }
 );
 
+// Progress management
 export const updateProjectProgress = createAsyncThunk(
-  "projects/updateProgress",
-  async ({ projectId, progressData }, { rejectWithValue }) => {
+  "projects/updateProjectProgress",
+  async ({ projectId, progressPercentage }, { rejectWithValue }) => {
     try {
-      const response = await axios.put(
-        `${API_URL}/${projectId}/progress`,
-        progressData
-      );
+      const response = await axios.put(`${API_URL}/${projectId}/progress`, {
+        progressPercentage,
+      });
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -223,6 +376,7 @@ export const updateProjectProgress = createAsyncThunk(
   }
 );
 
+// Payment management
 export const addPayment = createAsyncThunk(
   "projects/addPayment",
   async ({ projectId, paymentData }, { rejectWithValue }) => {
@@ -242,11 +396,11 @@ export const addPayment = createAsyncThunk(
 
 export const updatePaymentStatus = createAsyncThunk(
   "projects/updatePaymentStatus",
-  async ({ projectId, statusData }, { rejectWithValue }) => {
+  async ({ projectId, paymentStatus }, { rejectWithValue }) => {
     try {
       const response = await axios.put(
         `${API_URL}/${projectId}/payment-status`,
-        statusData
+        { paymentStatus }
       );
       return response.data;
     } catch (error) {
@@ -273,445 +427,715 @@ export const deletePayment = createAsyncThunk(
   }
 );
 
+// Fetch service categories
+export const fetchServiceCategories = createAsyncThunk(
+  "projects/fetchServiceCategories",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get("/api/admin/service-categories");
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Failed to fetch service categories"
+      );
+    }
+  }
+);
+
+// Fetch service subcategories by category ID
+export const fetchServiceSubcategories = createAsyncThunk(
+  "projects/fetchServiceSubcategories",
+  async (categoryId, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(
+        `/api/admin/service-categories/${categoryId}/subcategories`
+      );
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Failed to fetch service subcategories"
+      );
+    }
+  }
+);
+
+// Fetch all service subcategories (if needed)
+export const fetchAllServiceSubcategories = createAsyncThunk(
+  "projects/fetchAllServiceSubcategories",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get("/api/admin/service-subcategories");
+      return response.data.data || response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Failed to fetch service subcategories"
+      );
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   projects: [],
   currentProject: null,
   searchResults: [],
-  isLoading: false,
+  clientProjects: [],
+  serviceCategories: [],
+  serviceSubcategories: [],
+  selectedCategorySubcategories: [], // subcategories for selected category
+  categoriesLoading: false,
+  subcategoriesLoading: false,
+  loading: false,
   error: null,
   success: false,
   message: "",
   likesCount: 0,
-  // New state for milestones and payments
-  milestone: {
-    isLoading: false,
+  searchParams: {},
+  // Separate states for different operations
+  projectState: {
+    loading: false,
     error: null,
     success: false,
     message: "",
   },
-  payment: {
-    isLoading: false,
+  paymentState: {
+    loading: false,
+    error: null,
+    success: false,
+    message: "",
+  },
+  milestoneState: {
+    loading: false,
+    error: null,
+    success: false,
+    message: "",
+  },
+  fileState: {
+    loading: false,
     error: null,
     success: false,
     message: "",
   },
 };
 
-// Create slice
-const projectSlice = createSlice({
+// Projects slice
+const projectsSlice = createSlice({
   name: "projects",
   initialState,
   reducers: {
-    resetProjectState: (state) => {
-      state.isLoading = false;
-      state.success = false;
+    // Clear all errors
+    clearErrors: (state) => {
       state.error = null;
+      state.projectState.error = null;
+      state.paymentState.error = null;
+      state.milestoneState.error = null;
+      state.fileState.error = null;
+    },
+
+    // Legacy clear error (for backward compatibility)
+    clearError: (state) => {
+      state.error = null;
+    },
+
+    clearSuccess: (state) => {
+      state.success = false;
       state.message = "";
     },
+
     clearCurrentProject: (state) => {
       state.currentProject = null;
     },
-    setFilteredProjects: (state, action) => {
-      state.searchResults = action.payload;
+
+    clearSearchResults: (state) => {
+      state.searchResults = [];
+      state.searchParams = {};
     },
-    clearErrors: (state) => {
-      state.error = null;
-      state.milestone.error = null;
-      state.payment.error = null;
+
+    clearClientProjects: (state) => {
+      state.clientProjects = [];
     },
-    resetMilestoneState: (state) => {
-      state.milestone = {
-        isLoading: false,
+
+    // Reset specific states
+    resetProjectState: (state) => {
+      state.projectState = {
+        loading: false,
         error: null,
         success: false,
         message: "",
       };
     },
+
     resetPaymentState: (state) => {
-      state.payment = {
-        isLoading: false,
+      state.paymentState = {
+        loading: false,
         error: null,
         success: false,
         message: "",
       };
+    },
+
+    resetMilestoneState: (state) => {
+      state.milestoneState = {
+        loading: false,
+        error: null,
+        success: false,
+        message: "",
+      };
+    },
+
+    resetFileState: (state) => {
+      state.fileState = {
+        loading: false,
+        error: null,
+        success: false,
+        message: "",
+      };
+    },
+    clearServiceCategories: (state) => {
+      state.serviceCategories = [];
+      state.selectedCategorySubcategories = [];
+    },
+
+    clearServiceSubcategories: (state) => {
+      state.serviceSubcategories = [];
+      state.selectedCategorySubcategories = [];
     },
   },
   extraReducers: (builder) => {
     builder
       // Fetch all projects
       .addCase(fetchAllProjects.pending, (state) => {
-        state.isLoading = true;
+        state.loading = true;
         state.error = null;
+        state.projectState.loading = true;
+        state.projectState.error = null;
       })
       .addCase(fetchAllProjects.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.loading = false;
         state.projects = action.payload.projects;
-        state.success = true;
+        state.projectState.loading = false;
+        state.projectState.success = true;
       })
       .addCase(fetchAllProjects.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload || { message: "Failed to fetch projects" };
+        state.loading = false;
+        state.error = action.payload?.message || "Failed to fetch projects";
+        state.projectState.loading = false;
+        state.projectState.error =
+          action.payload?.message || "Failed to fetch projects";
       })
 
       // Fetch project by ID
       .addCase(fetchProjectById.pending, (state) => {
-        state.isLoading = true;
+        state.loading = true;
         state.error = null;
+        state.projectState.loading = true;
+        state.projectState.error = null;
       })
       .addCase(fetchProjectById.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.loading = false;
         state.currentProject = action.payload.project;
-        state.success = true;
+        state.projectState.loading = false;
+        state.projectState.success = true;
       })
       .addCase(fetchProjectById.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload || { message: "Failed to fetch project" };
-      })
-
-      // Create project
-      .addCase(createProject.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-        state.success = false;
-      })
-      .addCase(createProject.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.projects.push(action.payload);
-        state.success = true;
-        state.message = "Project created successfully!";
-      })
-      .addCase(createProject.rejected, (state, action) => {
-        state.isLoading = false;
-        state.success = false;
-        state.error = action.payload || { message: "Failed to create project" };
-      })
-
-      // Update project
-      .addCase(updateProject.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-        state.success = false;
-      })
-      .addCase(updateProject.fulfilled, (state, action) => {
-        state.isLoading = false;
-        const index = state.projects.findIndex(
-          (project) => project._id === action.payload._id
-        );
-        if (index !== -1) {
-          state.projects[index] = action.payload;
-        }
-        state.currentProject = action.payload;
-        state.success = true;
-        state.message = "Project updated successfully!";
-      })
-      .addCase(updateProject.rejected, (state, action) => {
-        state.isLoading = false;
-        state.success = false;
-        state.error = action.payload || { message: "Failed to update project" };
-      })
-
-      // Delete project
-      .addCase(deleteProject.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(deleteProject.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.projects = state.projects.filter(
-          (project) => project._id !== action.payload
-        );
-        state.success = true;
-        state.message = "Project deleted successfully!";
-      })
-      .addCase(deleteProject.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload || { message: "Failed to delete project" };
-      })
-
-      // Search projects
-      .addCase(searchProjects.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(searchProjects.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.searchResults = action.payload.projects;
-        state.success = true;
-      })
-      .addCase(searchProjects.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload || {
-          message: "Failed to search projects",
-        };
-      })
-
-      // Like project
-      .addCase(likeProject.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(likeProject.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.likesCount = action.payload.likesCount;
-        state.message = action.payload.message;
-        state.success = true;
-      })
-      .addCase(likeProject.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload || { message: "Failed to like project" };
-      })
-
-      // Get project likes count
-      .addCase(getProjectLikesCount.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(getProjectLikesCount.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.likesCount = action.payload.likesCount;
-        state.success = true;
-      })
-      .addCase(getProjectLikesCount.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload || {
-          message: "Failed to get project likes count",
-        };
+        state.loading = false;
+        state.error = action.payload?.message || "Failed to fetch project";
+        state.projectState.loading = false;
+        state.projectState.error =
+          action.payload?.message || "Failed to fetch project";
       })
 
       // Fetch projects by client
       .addCase(fetchProjectsByClient.pending, (state) => {
-        state.isLoading = true;
+        state.loading = true;
         state.error = null;
+        state.projectState.loading = true;
+        state.projectState.error = null;
       })
       .addCase(fetchProjectsByClient.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.projects = action.payload.projects;
-        state.success = true;
+        state.loading = false;
+        state.clientProjects = action.payload.projects;
+        state.projectState.loading = false;
+        state.projectState.success = true;
       })
       .addCase(fetchProjectsByClient.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error = action.payload || {
-          message: "Failed to fetch client projects",
-        };
+        state.loading = false;
+        state.error =
+          action.payload?.message || "Failed to fetch client projects";
+        state.projectState.loading = false;
+        state.projectState.error =
+          action.payload?.message || "Failed to fetch client projects";
       })
 
-      // Add milestone
-      .addCase(addMilestone.pending, (state) => {
-        state.milestone.isLoading = true;
-        state.milestone.error = null;
-        state.milestone.success = false;
+      // Create project
+      .addCase(createProject.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.projectState.loading = true;
+        state.projectState.error = null;
       })
-      .addCase(addMilestone.fulfilled, (state, action) => {
-        state.milestone.isLoading = false;
-        state.milestone.success = true;
-        state.milestone.message = "Milestone added successfully!";
+      .addCase(createProject.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = true;
+        state.message = action.payload.message;
+        state.projects.unshift(action.payload.project);
+        state.projectState.loading = false;
+        state.projectState.success = true;
+        state.projectState.message = action.payload.message;
+      })
+      .addCase(createProject.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Failed to create project";
+        state.projectState.loading = false;
+        state.projectState.error =
+          action.payload?.message || "Failed to create project";
+      })
 
-        // Update the current project if loaded
-        if (
-          state.currentProject &&
-          state.currentProject._id === action.payload.projectId
-        ) {
-          if (!state.currentProject.milestones) {
-            state.currentProject.milestones = [];
-          }
-          state.currentProject.milestones.push(action.payload.milestone);
+      // Update project
+      .addCase(updateProject.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.projectState.loading = true;
+        state.projectState.error = null;
+      })
+      .addCase(updateProject.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = true;
+        state.message = action.payload.message;
 
-          // Update progress percentage if returned
-          if (action.payload.progressPercentage !== undefined) {
-            state.currentProject.progressPercentage =
-              action.payload.progressPercentage;
-          }
+        // Update in projects array
+        const index = state.projects.findIndex(
+          (p) => p._id === action.payload.project._id
+        );
+        if (index !== -1) {
+          state.projects[index] = action.payload.project;
         }
-      })
-      .addCase(addMilestone.rejected, (state, action) => {
-        state.milestone.isLoading = false;
-        state.milestone.success = false;
-        state.milestone.error = action.payload || {
-          message: "Failed to add milestone",
-        };
-      })
 
-      // Update milestone
-      .addCase(updateMilestone.pending, (state) => {
-        state.milestone.isLoading = true;
-        state.milestone.error = null;
-        state.milestone.success = false;
-      })
-      .addCase(updateMilestone.fulfilled, (state, action) => {
-        state.milestone.isLoading = false;
-        state.milestone.success = true;
-        state.milestone.message = "Milestone updated successfully!";
-
-        // Update the current project if loaded
+        // Update current project if it's the same
         if (
           state.currentProject &&
           state.currentProject._id === action.payload.project._id
         ) {
-          state.currentProject.milestones = action.payload.project.milestones;
-          state.currentProject.progressPercentage =
-            action.payload.project.progressPercentage;
+          state.currentProject = action.payload.project;
+        }
+
+        state.projectState.loading = false;
+        state.projectState.success = true;
+        state.projectState.message = action.payload.message;
+      })
+      .addCase(updateProject.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Failed to update project";
+        state.projectState.loading = false;
+        state.projectState.error =
+          action.payload?.message || "Failed to update project";
+      })
+
+      // Delete project
+      .addCase(deleteProject.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.projectState.loading = true;
+        state.projectState.error = null;
+      })
+      .addCase(deleteProject.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = true;
+        state.message = action.payload.message;
+        state.projects = state.projects.filter(
+          (p) => p._id !== action.payload.projectId
+        );
+
+        // Clear current project if it was deleted
+        if (
+          state.currentProject &&
+          state.currentProject._id === action.payload.projectId
+        ) {
+          state.currentProject = null;
+        }
+
+        state.projectState.loading = false;
+        state.projectState.success = true;
+        state.projectState.message = action.payload.message;
+      })
+      .addCase(deleteProject.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Failed to delete project";
+        state.projectState.loading = false;
+        state.projectState.error =
+          action.payload?.message || "Failed to delete project";
+      })
+
+      // Search projects
+      .addCase(searchProjects.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(searchProjects.fulfilled, (state, action) => {
+        state.loading = false;
+        state.searchResults = action.payload.projects;
+        state.searchParams = action.payload.searchParams || {};
+      })
+      .addCase(searchProjects.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Failed to search projects";
+      })
+
+      // Like project
+      .addCase(likeProject.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(likeProject.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = true;
+        state.message = action.payload.message;
+
+        // Update likes in current project
+        if (
+          state.currentProject &&
+          state.currentProject._id === action.payload.projectId
+        ) {
+          state.currentProject.likes = action.payload.likes || [];
+          state.currentProject.likesCount = action.payload.likesCount || 0;
+        }
+
+        // Update likes in projects array
+        const projectIndex = state.projects.findIndex(
+          (p) => p._id === action.payload.projectId
+        );
+        if (projectIndex !== -1) {
+          state.projects[projectIndex].likes = action.payload.likes || [];
+          state.projects[projectIndex].likesCount =
+            action.payload.likesCount || 0;
         }
       })
-      .addCase(updateMilestone.rejected, (state, action) => {
-        state.milestone.isLoading = false;
-        state.milestone.success = false;
-        state.milestone.error = action.payload || {
-          message: "Failed to update milestone",
-        };
+      .addCase(likeProject.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Failed to like project";
       })
 
-      // Delete milestone
-      .addCase(deleteMilestone.pending, (state) => {
-        state.milestone.isLoading = true;
-        state.milestone.error = null;
-        state.milestone.success = false;
+      // Get project likes count
+      .addCase(getProjectLikesCount.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
-      .addCase(deleteMilestone.fulfilled, (state, action) => {
-        state.milestone.isLoading = false;
-        state.milestone.success = true;
-        state.milestone.message = "Milestone deleted successfully!";
+      .addCase(getProjectLikesCount.fulfilled, (state, action) => {
+        state.loading = false;
+        state.likesCount = action.payload.likesCount || 0;
+      })
+      .addCase(getProjectLikesCount.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Failed to get likes count";
+      })
 
-        // Update the current project if loaded
+      // Add project file
+      .addCase(addProjectFile.pending, (state) => {
+        state.fileState.loading = true;
+        state.fileState.error = null;
+      })
+      .addCase(addProjectFile.fulfilled, (state, action) => {
+        state.success = true;
+        state.message = action.payload.message;
+        state.fileState.loading = false;
+        state.fileState.success = true;
+        state.fileState.message = action.payload.message;
+
+        // Update current project files
+        if (
+          state.currentProject &&
+          state.currentProject._id === action.payload.projectId
+        ) {
+          state.currentProject.projectFiles =
+            state.currentProject.projectFiles || [];
+          state.currentProject.projectFiles.push(action.payload.file);
+        }
+      })
+      .addCase(addProjectFile.rejected, (state, action) => {
+        state.error = action.payload?.message || "Failed to add project file";
+        state.fileState.loading = false;
+        state.fileState.error =
+          action.payload?.message || "Failed to add project file";
+      })
+
+      // Update project file
+      .addCase(updateProjectFile.pending, (state) => {
+        state.fileState.loading = true;
+        state.fileState.error = null;
+      })
+      .addCase(updateProjectFile.fulfilled, (state, action) => {
+        state.success = true;
+        state.message = action.payload.message;
+        state.fileState.loading = false;
+        state.fileState.success = true;
+        state.fileState.message = action.payload.message;
+
+        // Update file in current project
+        if (state.currentProject && state.currentProject.projectFiles) {
+          const fileIndex = state.currentProject.projectFiles.findIndex(
+            (file) => file._id === action.payload.file._id
+          );
+          if (fileIndex !== -1) {
+            state.currentProject.projectFiles[fileIndex] = action.payload.file;
+          }
+        }
+      })
+      .addCase(updateProjectFile.rejected, (state, action) => {
+        state.error =
+          action.payload?.message || "Failed to update project file";
+        state.fileState.loading = false;
+        state.fileState.error =
+          action.payload?.message || "Failed to update project file";
+      })
+
+      // Delete project file
+      .addCase(deleteProjectFile.pending, (state) => {
+        state.fileState.loading = true;
+        state.fileState.error = null;
+      })
+      .addCase(deleteProjectFile.fulfilled, (state, action) => {
+        state.success = true;
+        state.message = action.payload.message;
+        state.fileState.loading = false;
+        state.fileState.success = true;
+        state.fileState.message = action.payload.message;
+
+        // Remove file from current project
+        if (state.currentProject && state.currentProject.projectFiles) {
+          state.currentProject.projectFiles =
+            state.currentProject.projectFiles.filter(
+              (file) => file._id !== action.payload.fileId
+            );
+        }
+      })
+      .addCase(deleteProjectFile.rejected, (state, action) => {
+        state.error =
+          action.payload?.message || "Failed to delete project file";
+        state.fileState.loading = false;
+        state.fileState.error =
+          action.payload?.message || "Failed to delete project file";
+      })
+
+      // Add milestone
+      .addCase(addMilestone.pending, (state) => {
+        state.milestoneState.loading = true;
+        state.milestoneState.error = null;
+      })
+      .addCase(addMilestone.fulfilled, (state, action) => {
+        state.success = true;
+        state.message = action.payload.message;
+        state.milestoneState.loading = false;
+        state.milestoneState.success = true;
+        state.milestoneState.message = action.payload.message;
+
+        // Update current project milestones
         if (
           state.currentProject &&
           state.currentProject._id === action.payload.projectId
         ) {
           state.currentProject.milestones =
-            state.currentProject.milestones.filter(
-              (milestone) => milestone._id !== action.payload.milestoneId
-            );
+            state.currentProject.milestones || [];
+          state.currentProject.milestones.push(action.payload.milestone);
+        }
+      })
+      .addCase(addMilestone.rejected, (state, action) => {
+        state.error = action.payload?.message || "Failed to add milestone";
+        state.milestoneState.loading = false;
+        state.milestoneState.error =
+          action.payload?.message || "Failed to add milestone";
+      })
 
-          // Update progress if returned
-          if (action.payload.progressPercentage !== undefined) {
-            state.currentProject.progressPercentage =
-              action.payload.progressPercentage;
+      // Update milestone
+      .addCase(updateMilestone.pending, (state) => {
+        state.milestoneState.loading = true;
+        state.milestoneState.error = null;
+      })
+      .addCase(updateMilestone.fulfilled, (state, action) => {
+        state.success = true;
+        state.message = action.payload.message;
+        state.milestoneState.loading = false;
+        state.milestoneState.success = true;
+        state.milestoneState.message = action.payload.message;
+
+        // Update milestone in current project
+        if (state.currentProject && state.currentProject.milestones) {
+          const milestoneIndex = state.currentProject.milestones.findIndex(
+            (milestone) => milestone._id === action.payload.milestone._id
+          );
+          if (milestoneIndex !== -1) {
+            state.currentProject.milestones[milestoneIndex] =
+              action.payload.milestone;
           }
         }
       })
+      .addCase(updateMilestone.rejected, (state, action) => {
+        state.error = action.payload?.message || "Failed to update milestone";
+        state.milestoneState.loading = false;
+        state.milestoneState.error =
+          action.payload?.message || "Failed to update milestone";
+      })
+
+      // Delete milestone
+      .addCase(deleteMilestone.pending, (state) => {
+        state.milestoneState.loading = true;
+        state.milestoneState.error = null;
+      })
+      .addCase(deleteMilestone.fulfilled, (state, action) => {
+        state.success = true;
+        state.message = action.payload.message;
+        state.milestoneState.loading = false;
+        state.milestoneState.success = true;
+        state.milestoneState.message = action.payload.message;
+
+        // Remove milestone from current project
+        if (state.currentProject && state.currentProject.milestones) {
+          state.currentProject.milestones =
+            state.currentProject.milestones.filter(
+              (milestone) => milestone._id !== action.payload.milestoneId
+            );
+        }
+      })
       .addCase(deleteMilestone.rejected, (state, action) => {
-        state.milestone.isLoading = false;
-        state.milestone.success = false;
-        state.milestone.error = action.payload || {
-          message: "Failed to delete milestone",
-        };
+        state.error = action.payload?.message || "Failed to delete milestone";
+        state.milestoneState.loading = false;
+        state.milestoneState.error =
+          action.payload?.message || "Failed to delete milestone";
       })
 
       // Update project progress
       .addCase(updateProjectProgress.pending, (state) => {
-        state.isLoading = true;
+        state.loading = true;
         state.error = null;
-        state.success = false;
+        state.projectState.loading = true;
+        state.projectState.error = null;
       })
       .addCase(updateProjectProgress.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.loading = false;
         state.success = true;
-        state.message = "Project progress updated successfully!";
+        state.message = action.payload.message;
+        state.projectState.loading = false;
+        state.projectState.success = true;
+        state.projectState.message = action.payload.message;
 
-        // Update the current project if loaded
+        // Update progress in current project
         if (
           state.currentProject &&
-          state.currentProject._id === action.payload.projectId
+          state.currentProject._id === action.payload.project._id
         ) {
           state.currentProject.progressPercentage =
-            action.payload.progressPercentage;
+            action.payload.project.progressPercentage;
+          state.currentProject.status = action.payload.project.status;
         }
 
-        // Update in the projects list
-        const index = state.projects.findIndex(
-          (project) => project._id === action.payload.projectId
+        // Update progress in projects array
+        const projectIndex = state.projects.findIndex(
+          (p) => p._id === action.payload.project._id
         );
-        if (index !== -1) {
-          state.projects[index].progressPercentage =
-            action.payload.progressPercentage;
+        if (projectIndex !== -1) {
+          state.projects[projectIndex].progressPercentage =
+            action.payload.project.progressPercentage;
+          state.projects[projectIndex].status = action.payload.project.status;
         }
       })
       .addCase(updateProjectProgress.rejected, (state, action) => {
-        state.isLoading = false;
-        state.success = false;
-        state.error = action.payload || {
-          message: "Failed to update project progress",
-        };
+        state.loading = false;
+        state.error =
+          action.payload?.message || "Failed to update project progress";
+        state.projectState.loading = false;
+        state.projectState.error =
+          action.payload?.message || "Failed to update project progress";
       })
 
       // Add payment
       .addCase(addPayment.pending, (state) => {
-        state.payment.isLoading = true;
-        state.payment.error = null;
-        state.payment.success = false;
+        state.paymentState.loading = true;
+        state.paymentState.error = null;
       })
       .addCase(addPayment.fulfilled, (state, action) => {
-        state.payment.isLoading = false;
-        state.payment.success = true;
-        state.payment.message = "Payment added successfully!";
+        state.success = true;
+        state.message = action.payload.message;
+        state.paymentState.loading = false;
+        state.paymentState.success = true;
+        state.paymentState.message = action.payload.message;
 
-        // Update the current project if loaded
+        // Update current project payments
         if (
           state.currentProject &&
           state.currentProject._id === action.payload.projectId
         ) {
-          if (!state.currentProject.paymentHistory) {
-            state.currentProject.paymentHistory = [];
-          }
+          state.currentProject.paymentHistory =
+            state.currentProject.paymentHistory || [];
           state.currentProject.paymentHistory.push(action.payload.payment);
           state.currentProject.paymentStatus = action.payload.paymentStatus;
+          state.currentProject.totalPaid = action.payload.totalPaid;
+          state.currentProject.remainingBalance =
+            action.payload.remainingBalance;
         }
       })
       .addCase(addPayment.rejected, (state, action) => {
-        state.payment.isLoading = false;
-        state.payment.success = false;
-        state.payment.error = action.payload || {
-          message: "Failed to add payment",
-        };
+        state.error = action.payload?.message || "Failed to add payment";
+        state.paymentState.loading = false;
+        state.paymentState.error =
+          action.payload?.message || "Failed to add payment";
       })
 
       // Update payment status
       .addCase(updatePaymentStatus.pending, (state) => {
-        state.payment.isLoading = true;
-        state.payment.error = null;
-        state.payment.success = false;
+        state.paymentState.loading = true;
+        state.paymentState.error = null;
       })
       .addCase(updatePaymentStatus.fulfilled, (state, action) => {
-        state.payment.isLoading = false;
-        state.payment.success = true;
-        state.payment.message = "Payment status updated successfully!";
+        state.success = true;
+        state.message = action.payload.message;
+        state.paymentState.loading = false;
+        state.paymentState.success = true;
+        state.paymentState.message = action.payload.message;
 
-        // Update the current project if loaded
+        // Update payment status in current project
         if (
           state.currentProject &&
-          state.currentProject._id === action.payload.projectId
+          state.currentProject._id === action.payload.project._id
         ) {
-          state.currentProject.paymentStatus = action.payload.paymentStatus;
+          state.currentProject.paymentStatus =
+            action.payload.project.paymentStatus;
         }
 
-        // Update in the projects list
-        const index = state.projects.findIndex(
-          (project) => project._id === action.payload.projectId
+        // Update payment status in projects array
+        const projectIndex = state.projects.findIndex(
+          (p) => p._id === action.payload.project._id
         );
-        if (index !== -1) {
-          state.projects[index].paymentStatus = action.payload.paymentStatus;
+        if (projectIndex !== -1) {
+          state.projects[projectIndex].paymentStatus =
+            action.payload.project.paymentStatus;
         }
       })
       .addCase(updatePaymentStatus.rejected, (state, action) => {
-        state.payment.isLoading = false;
-        state.payment.success = false;
-        state.payment.error = action.payload || {
-          message: "Failed to update payment status",
-        };
+        state.error =
+          action.payload?.message || "Failed to update payment status";
+        state.paymentState.loading = false;
+        state.paymentState.error =
+          action.payload?.message || "Failed to update payment status";
       })
 
       // Delete payment
       .addCase(deletePayment.pending, (state) => {
-        state.payment.isLoading = true;
-        state.payment.error = null;
-        state.payment.success = false;
+        state.paymentState.loading = true;
+        state.paymentState.error = null;
       })
       .addCase(deletePayment.fulfilled, (state, action) => {
-        state.payment.isLoading = false;
-        state.payment.success = true;
-        state.payment.message = "Payment deleted successfully!";
+        state.success = true;
+        state.message = action.payload.message;
+        state.paymentState.loading = false;
+        state.paymentState.success = true;
+        state.paymentState.message = action.payload.message;
 
-        // Update the current project if loaded
+        // Update current project payments
         if (
           state.currentProject &&
           state.currentProject._id === action.payload.projectId
@@ -721,25 +1145,75 @@ const projectSlice = createSlice({
               (payment) => payment._id !== action.payload.paymentId
             );
           state.currentProject.paymentStatus = action.payload.paymentStatus;
+          state.currentProject.totalPaid = action.payload.totalPaid;
+          state.currentProject.remainingBalance =
+            action.payload.remainingBalance;
         }
       })
+
+      // Fetch service categories
+      .addCase(fetchServiceCategories.pending, (state) => {
+        state.categoriesLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchServiceCategories.fulfilled, (state, action) => {
+        state.categoriesLoading = false;
+        state.serviceCategories = action.payload;
+      })
+      .addCase(fetchServiceCategories.rejected, (state, action) => {
+        state.categoriesLoading = false;
+        state.error = action.payload;
+      })
+
+      // Fetch service subcategories by category
+      .addCase(fetchServiceSubcategories.pending, (state) => {
+        state.subcategoriesLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchServiceSubcategories.fulfilled, (state, action) => {
+        state.subcategoriesLoading = false;
+        state.selectedCategorySubcategories = action.payload;
+      })
+      .addCase(fetchServiceSubcategories.rejected, (state, action) => {
+        state.subcategoriesLoading = false;
+        state.error = action.payload;
+      })
+
+      // Fetch all service subcategories
+      .addCase(fetchAllServiceSubcategories.pending, (state) => {
+        state.subcategoriesLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllServiceSubcategories.fulfilled, (state, action) => {
+        state.subcategoriesLoading = false;
+        state.serviceSubcategories = action.payload;
+      })
+      .addCase(fetchAllServiceSubcategories.rejected, (state, action) => {
+        state.subcategoriesLoading = false;
+        state.error = action.payload;
+      })
       .addCase(deletePayment.rejected, (state, action) => {
-        state.payment.isLoading = false;
-        state.payment.success = false;
-        state.payment.error = action.payload || {
-          message: "Failed to delete payment",
-        };
+        state.error = action.payload?.message || "Failed to delete payment";
+        state.paymentState.loading = false;
+        state.paymentState.error =
+          action.payload?.message || "Failed to delete payment";
       });
   },
 });
 
-// Export actions and reducer
 export const {
-  resetProjectState,
-  clearCurrentProject,
-  setFilteredProjects,
   clearErrors,
-  resetMilestoneState,
+  clearError,
+  clearSuccess,
+  clearCurrentProject,
+  clearSearchResults,
+  clearClientProjects,
+  resetProjectState,
   resetPaymentState,
-} = projectSlice.actions;
-export default projectSlice.reducer;
+  resetMilestoneState,
+  clearServiceCategories,
+  clearServiceSubcategories,
+  resetFileState,
+} = projectsSlice.actions;
+
+export default projectsSlice.reducer;

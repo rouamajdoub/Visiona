@@ -1,6 +1,8 @@
 const mongoose = require("mongoose");
 const Project = require("../models/Project");
 const ArchitectClient = require("../models/Arch_Clients");
+const ServiceCategory = require("../models/ServiceCategory");
+const ServiceSubcategory = require("../models/ServiceSubcategory");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -8,31 +10,65 @@ const fs = require("fs");
 // Setup Multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = "./uploads/projects";
+    let uploadDir = "./uploads/projects";
+
+    // Create different folders based on file field
+    if (file.fieldname === "projectFiles") {
+      uploadDir = "./uploads/projects/documents";
+    } else {
+      uploadDir = "./uploads/projects/images";
+    }
+
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    cb(null, `project-${Date.now()}${path.extname(file.originalname)}`);
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`
+    );
   },
 });
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit for documents
   fileFilter: (req, file, cb) => {
-    const filetypes = /jpeg|jpg|png|gif/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
+    if (file.fieldname === "projectFiles") {
+      // Allow various document types for project files
+      const allowedTypes = /pdf|doc|docx|dwg|dxf|txt|xlsx|xls|ppt|pptx|zip|rar/;
+      const extname = allowedTypes.test(
+        path.extname(file.originalname).toLowerCase()
+      );
+      const mimetype =
+        /application\/pdf|application\/msword|application\/vnd\.openxmlformats|text\/plain|application\/vnd\.ms-excel|application\/vnd\.ms-powerpoint|application\/zip|application\/x-rar-compressed/.test(
+          file.mimetype
+        );
 
-    if (mimetype && extname) {
-      return cb(null, true);
+      if (mimetype && extname) {
+        return cb(null, true);
+      }
+      cb(
+        new Error(
+          "Only document files (PDF, DOC, DOCX, DWG, DXF, TXT, XLS, XLSX, PPT, PPTX, ZIP, RAR) are allowed for project files!"
+        )
+      );
+    } else {
+      // For images (coverImage, beforePhotos, afterPhotos)
+      const filetypes = /jpeg|jpg|png|gif/;
+      const mimetype = filetypes.test(file.mimetype);
+      const extname = filetypes.test(
+        path.extname(file.originalname).toLowerCase()
+      );
+
+      if (mimetype && extname) {
+        return cb(null, true);
+      }
+      cb(new Error("Only image files are allowed for photos!"));
     }
-    cb(new Error("Only image files are allowed!"));
   },
 });
 
@@ -41,6 +77,7 @@ const uploadFields = upload.fields([
   { name: "coverImage", maxCount: 1 },
   { name: "beforePhotos", maxCount: 10 },
   { name: "afterPhotos", maxCount: 10 },
+  { name: "projectFiles", maxCount: 20 }, // NEW: Allow up to 20 project files
 ]);
 
 // Create a new project
@@ -61,6 +98,7 @@ exports.createProject = async (req, res) => {
         shortDescription,
         description,
         category,
+        subcategory,
         budget,
         startDate,
         endDate,
@@ -85,28 +123,75 @@ exports.createProject = async (req, res) => {
         });
       }
 
+      // Validate category and subcategory
+      if (!category) {
+        return res.status(400).json({
+          success: false,
+          message: "Service category is required.",
+        });
+      }
+
+      // Check if the category exists
+      const categoryExists = await ServiceCategory.findById(category);
+      if (!categoryExists) {
+        return res.status(400).json({
+          success: false,
+          message: `Service category with ID ${category} does not exist.`,
+        });
+      }
+
+      // Check subcategory if provided
+      if (subcategory) {
+        const subcategoryExists = await ServiceSubcategory.findOne({
+          _id: subcategory,
+          category: category,
+        });
+
+        if (!subcategoryExists) {
+          return res.status(400).json({
+            success: false,
+            message: `Service subcategory with ID ${subcategory} does not exist or does not belong to the specified category.`,
+          });
+        }
+      }
+
       // Process uploaded files
       let coverImagePath = null;
       const beforePhotosArray = [];
       const afterPhotosArray = [];
+      const projectFilesArray = [];
 
       if (req.files) {
         // Handle cover image
         if (req.files.coverImage && req.files.coverImage[0]) {
-          coverImagePath = `/uploads/projects/${req.files.coverImage[0].filename}`;
+          coverImagePath = `/uploads/projects/images/${req.files.coverImage[0].filename}`;
         }
 
         // Handle before photos
         if (req.files.beforePhotos) {
           req.files.beforePhotos.forEach((file) => {
-            beforePhotosArray.push(`/uploads/projects/${file.filename}`);
+            beforePhotosArray.push(`/uploads/projects/images/${file.filename}`);
           });
         }
 
         // Handle after photos
         if (req.files.afterPhotos) {
           req.files.afterPhotos.forEach((file) => {
-            afterPhotosArray.push(`/uploads/projects/${file.filename}`);
+            afterPhotosArray.push(`/uploads/projects/images/${file.filename}`);
+          });
+        }
+
+        // NEW: Handle project files
+        if (req.files.projectFiles) {
+          req.files.projectFiles.forEach((file) => {
+            projectFilesArray.push({
+              filename: file.filename,
+              originalName: file.originalname,
+              filePath: `/uploads/projects/documents/${file.filename}`,
+              fileType: getFileType(file.originalname),
+              fileSize: file.size,
+              description: "", // Can be added later via update
+            });
           });
         }
       }
@@ -131,10 +216,14 @@ exports.createProject = async (req, res) => {
         if (!fs.existsSync(defaultImagePath)) {
           // Create a simple default image file (this is a placeholder solution)
           // In a real application, you'd want to have an actual default image file
-          fs.copyFileSync(
-            path.join(__dirname, "../assets/default-project-cover.jpg"),
-            defaultImagePath
-          );
+          try {
+            fs.copyFileSync(
+              path.join(__dirname, "../assets/default-project-cover.jpg"),
+              defaultImagePath
+            );
+          } catch (copyError) {
+            console.log("Default image not found, using placeholder path");
+          }
         }
       }
 
@@ -145,12 +234,14 @@ exports.createProject = async (req, res) => {
         shortDescription,
         description,
         category,
+        subcategory: subcategory || undefined,
         budget: budget ? parseFloat(budget) : undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
         coverImage: coverImagePath,
         beforePhotos: beforePhotosArray,
         afterPhotos: afterPhotosArray,
+        projectFiles: projectFilesArray, // NEW: Add project files
         tags: tags ? JSON.parse(tags) : [],
         isPublic: isPublic === "true",
         showroomStatus: showroomStatus || "normal",
@@ -178,7 +269,29 @@ exports.createProject = async (req, res) => {
   }
 };
 
-// The rest of your controller methods remain the same
+// Helper function to determine file type based on extension
+function getFileType(filename) {
+  const ext = path.extname(filename).toLowerCase();
+
+  switch (ext) {
+    case ".dwg":
+    case ".dxf":
+      return "plan";
+    case ".pdf":
+      return "document";
+    case ".doc":
+    case ".docx":
+      return "document";
+    case ".txt":
+      return "specification";
+    case ".zip":
+    case ".rar":
+      return "other";
+    default:
+      return "document";
+  }
+}
+
 exports.updateProject = async (req, res) => {
   try {
     // Handle the file uploads
@@ -209,20 +322,46 @@ exports.updateProject = async (req, res) => {
         }
       }
 
+      // Validate category and subcategory if being updated
+      if (updateData.category) {
+        const categoryExists = await ServiceCategory.findById(
+          updateData.category
+        );
+        if (!categoryExists) {
+          return res.status(400).json({
+            success: false,
+            message: `Service category with ID ${updateData.category} does not exist.`,
+          });
+        }
+
+        if (updateData.subcategory) {
+          const subcategoryExists = await ServiceSubcategory.findOne({
+            _id: updateData.subcategory,
+            category: updateData.category,
+          });
+
+          if (!subcategoryExists) {
+            return res.status(400).json({
+              success: false,
+              message: `Service subcategory with ID ${updateData.subcategory} does not exist or does not belong to the specified category.`,
+            });
+          }
+        }
+      }
+
       // Process uploaded files
       if (req.files) {
         // Handle cover image
         if (req.files.coverImage && req.files.coverImage[0]) {
-          updateData.coverImage = `/uploads/projects/${req.files.coverImage[0].filename}`;
+          updateData.coverImage = `/uploads/projects/images/${req.files.coverImage[0].filename}`;
         }
 
         // Handle before photos
         if (req.files.beforePhotos && req.files.beforePhotos.length > 0) {
           const beforePaths = req.files.beforePhotos.map(
-            (file) => `/uploads/projects/${file.filename}`
+            (file) => `/uploads/projects/images/${file.filename}`
           );
 
-          // If you want to append to existing photos, use this approach:
           const existingProject = await Project.findById(projectId);
           if (existingProject) {
             updateData.beforePhotos = [
@@ -237,10 +376,9 @@ exports.updateProject = async (req, res) => {
         // Handle after photos
         if (req.files.afterPhotos && req.files.afterPhotos.length > 0) {
           const afterPaths = req.files.afterPhotos.map(
-            (file) => `/uploads/projects/${file.filename}`
+            (file) => `/uploads/projects/images/${file.filename}`
           );
 
-          // If you want to append to existing photos, use this approach:
           const existingProject = await Project.findById(projectId);
           if (existingProject) {
             updateData.afterPhotos = [
@@ -249,6 +387,28 @@ exports.updateProject = async (req, res) => {
             ];
           } else {
             updateData.afterPhotos = afterPaths;
+          }
+        }
+
+        // NEW: Handle project files
+        if (req.files.projectFiles && req.files.projectFiles.length > 0) {
+          const newProjectFiles = req.files.projectFiles.map((file) => ({
+            filename: file.filename,
+            originalName: file.originalname,
+            filePath: `/uploads/projects/documents/${file.filename}`,
+            fileType: getFileType(file.originalname),
+            fileSize: file.size,
+            description: "",
+          }));
+
+          const existingProject = await Project.findById(projectId);
+          if (existingProject) {
+            updateData.projectFiles = [
+              ...existingProject.projectFiles,
+              ...newProjectFiles,
+            ];
+          } else {
+            updateData.projectFiles = newProjectFiles;
           }
         }
       }
@@ -272,7 +432,7 @@ exports.updateProject = async (req, res) => {
         { _id: projectId, architectId },
         updateData,
         { new: true }
-      );
+      ).populate("category subcategory");
 
       if (!project) {
         return res.status(404).json({
@@ -295,8 +455,183 @@ exports.updateProject = async (req, res) => {
     });
   }
 };
-
 // Delete a project
+// NEW: Add project file to existing project
+exports.addProjectFile = async (req, res) => {
+  try {
+    const upload = multer({
+      storage: storage,
+      limits: { fileSize: 50 * 1024 * 1024 },
+      fileFilter: (req, file, cb) => {
+        const allowedTypes =
+          /pdf|doc|docx|dwg|dxf|txt|xlsx|xls|ppt|pptx|zip|rar/;
+        const extname = allowedTypes.test(
+          path.extname(file.originalname).toLowerCase()
+        );
+        const mimetype =
+          /application\/pdf|application\/msword|application\/vnd\.openxmlformats|text\/plain|application\/vnd\.ms-excel|application\/vnd\.ms-powerpoint|application\/zip|application\/x-rar-compressed/.test(
+            file.mimetype
+          );
+
+        if (mimetype && extname) {
+          return cb(null, true);
+        }
+        cb(new Error("Only document files are allowed!"));
+      },
+    }).single("projectFile");
+
+    upload(req, res, async function (err) {
+      if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message,
+        });
+      }
+
+      const { projectId } = req.params;
+      const { fileType, description } = req.body;
+      const architectId = req.user._id;
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "No file uploaded.",
+        });
+      }
+
+      const newFile = {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        filePath: `/uploads/projects/documents/${req.file.filename}`,
+        fileType: fileType || getFileType(req.file.originalname),
+        fileSize: req.file.size,
+        description: description || "",
+      };
+
+      const project = await Project.findOneAndUpdate(
+        { _id: projectId, architectId },
+        { $push: { projectFiles: newFile } },
+        { new: true }
+      );
+
+      if (!project) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Project not found or you don't have permission to update it",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Project file added successfully",
+        file: newFile,
+        projectId: project._id,
+      });
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+// NEW: Delete project file
+exports.deleteProjectFile = async (req, res) => {
+  try {
+    const { projectId, fileId } = req.params;
+    const architectId = req.user._id;
+
+    const project = await Project.findOne({ _id: projectId, architectId });
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found or you don't have permission to update it",
+      });
+    }
+
+    // Find the file to delete
+    const fileToDelete = project.projectFiles.find(
+      (file) => file._id.toString() === fileId
+    );
+
+    if (!fileToDelete) {
+      return res.status(404).json({
+        success: false,
+        message: "File not found",
+      });
+    }
+
+    // Delete physical file
+    const filePath = path.join(__dirname, "..", fileToDelete.filePath);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    // Remove file from database
+    await Project.findOneAndUpdate(
+      { _id: projectId, architectId },
+      { $pull: { projectFiles: { _id: fileId } } }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Project file deleted successfully",
+      projectId: project._id,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+// NEW: Update project file description
+exports.updateProjectFile = async (req, res) => {
+  try {
+    const { projectId, fileId } = req.params;
+    const { description, fileType } = req.body;
+    const architectId = req.user._id;
+
+    const updateFields = {};
+    if (description !== undefined)
+      updateFields["projectFiles.$.description"] = description;
+    if (fileType) updateFields["projectFiles.$.fileType"] = fileType;
+
+    const project = await Project.findOneAndUpdate(
+      {
+        _id: projectId,
+        architectId,
+        "projectFiles._id": fileId,
+      },
+      { $set: updateFields },
+      { new: true }
+    );
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project or file not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Project file updated successfully",
+      projectId: project._id,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+// Delete a project (updated to handle new files)
 exports.deleteProject = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -344,6 +679,16 @@ exports.deleteProject = async (req, res) => {
       });
     }
 
+    // NEW: Delete project files
+    if (project.projectFiles && project.projectFiles.length > 0) {
+      project.projectFiles.forEach((file) => {
+        const filePath = path.join(__dirname, "..", file.filePath);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      });
+    }
+
     // Remove the project
     await Project.deleteOne({ _id: projectId });
 
@@ -364,7 +709,7 @@ exports.deleteProject = async (req, res) => {
   }
 };
 
-// Get single project details
+// Get single project details (updated to include category and subcategory info)
 exports.getProjectById = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -379,7 +724,9 @@ exports.getProjectById = async (req, res) => {
         model: "ArchitectClient",
         select: "name email phone address",
       })
-      .populate("architectId", "name email");
+      .populate("architectId", "name email")
+      .populate("category", "name description")
+      .populate("subcategory", "name description");
 
     if (!project) {
       return res.status(404).json({
@@ -400,7 +747,7 @@ exports.getProjectById = async (req, res) => {
   }
 };
 
-// Get all projects for the logged-in architect
+// Get all projects for the logged-in architect (updated to include category info)
 exports.getProjects = async (req, res) => {
   try {
     const architectId = req.user._id;
@@ -411,7 +758,9 @@ exports.getProjects = async (req, res) => {
         model: "ArchitectClient",
         select: "name email phone",
       })
-      .populate("architectId", "name email");
+      .populate("architectId", "name email")
+      .populate("category", "name description")
+      .populate("subcategory", "name description");
 
     res.json({
       success: true,

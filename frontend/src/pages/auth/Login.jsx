@@ -37,7 +37,7 @@ const Login = () => {
           break;
         case "client":
           // Redirect clients to need sheet
-          navigate("/Home");
+          navigate("/home");
           break;
         default:
           // Default fallback
