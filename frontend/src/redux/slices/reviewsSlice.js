@@ -156,10 +156,34 @@ export const createAppReview = createAsyncThunk(
   "reviews/createAppReview",
   async (reviewData, thunkAPI) => {
     try {
-      const response = await axios.post(`${API_URL}/app/reviews`, reviewData);
+      // Get the token from the auth state
+      const state = thunkAPI.getState();
+      const token = state.auth.token || localStorage.getItem("token");
+
+      if (!token) {
+        return thunkAPI.rejectWithValue("Authentication token not found");
+      }
+
+      // Configure headers with the token
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      };
+
+      const response = await axios.post(
+        `${API_URL}/app/reviews`,
+        reviewData,
+        config
+      );
       return response.data;
     } catch (error) {
-      const message = error.response?.data?.error || error.message;
+      const message =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to submit review";
       return thunkAPI.rejectWithValue(message);
     }
   }

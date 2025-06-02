@@ -285,9 +285,6 @@ const CategoryManagement = () => {
         alignItems="center"
         mb={2}
       >
-        <Typography variant="h4" fontWeight="bold">
-          Category Management
-        </Typography>
         <Button
           variant="contained"
           color="primary"

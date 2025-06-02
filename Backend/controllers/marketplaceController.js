@@ -361,7 +361,9 @@ exports.updateProduct = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-
+    console.log("Product seller:", product.seller.toString());
+    console.log("Current user ID:", req.user.id);
+    console.log("User role:", req.user.role);
     if (!product) {
       return res.status(404).json({
         success: false,

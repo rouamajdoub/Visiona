@@ -17,6 +17,8 @@ import statReducer from "./slices/statSlice";
 import architectApprovalReducer from "./slices/architectApprovalSlice";
 import reviewsReducer from "./slices/reviewsSlice";
 import tokenReducer from "./slices/tokenSlice";
+import findArchitectReducer from "./slices/findArchitectSlice";
+
 const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -36,6 +38,7 @@ const store = configureStore({
     architectApproval: architectApprovalReducer,
     reviews: reviewsReducer,
     token: tokenReducer,
+    findArchitect: findArchitectReducer,
   },
 });
 

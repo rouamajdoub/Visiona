@@ -358,9 +358,6 @@ const ServiceManagement = () => {
         alignItems="center"
         mb={2}
       >
-        <Typography variant="h4" fontWeight="bold">
-          Service Management
-        </Typography>
         <Box>
           {activeTab === 0 && (
             <Button

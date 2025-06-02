@@ -20,7 +20,6 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
-      // Make sure this matches the route in googleOAuthRoutes.js
       callbackURL: "http://localhost:5000/api/auth/google/callback",
       scope: ["profile", "email"],
     },

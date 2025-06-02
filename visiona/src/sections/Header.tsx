@@ -23,6 +23,17 @@ export const Header = () => {
     }
   };
 
+  // Navigation handlers for login and signup
+  const handleLoginClick = () => {
+    setMobileMenuOpen(false); // Close mobile menu if open
+    window.location.href = "http://localhost:3000/login";
+  };
+
+  const handleSignUpClick = () => {
+    setMobileMenuOpen(false); // Close mobile menu if open
+    window.location.href = "http://localhost:3000/signup";
+  };
+
   return (
     <header className="sticky top-0 backdrop-blur-sm z-20 bg-white/80">
       <div className="flex justify-center items-center py-3 bg-black text-white text-sm gap-3">
@@ -79,12 +90,20 @@ export const Header = () => {
               >
                 FAQ
               </button>
-              <button
-                onClick={() => scrollToSection("callToAction")}
-                className="bg-black text-white px-4 py-2 rounded-lg font-medium inline-flex items-center justify-center tracking-tight"
-              >
-                Start Now
-              </button>
+              <div className="flex gap-3 items-center">
+                <button
+                  onClick={handleLoginClick}
+                  className="hover:text-black cursor-pointer"
+                >
+                  Login
+                </button>
+                <button
+                  onClick={handleSignUpClick}
+                  className="bg-black text-white px-4 py-2 rounded-lg font-medium inline-flex items-center justify-center tracking-tight"
+                >
+                  Start Now
+                </button>
+              </div>
             </nav>
           </div>
 
@@ -122,12 +141,20 @@ export const Header = () => {
                 >
                   FAQ
                 </button>
-                <button
-                  onClick={() => scrollToSection("callToAction")}
-                  className="bg-black text-white px-4 py-2 rounded-lg font-medium tracking-tight"
-                >
-                  Start Now
-                </button>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={handleLoginClick}
+                    className="flex-1 border border-black text-black px-4 py-2 rounded-lg font-medium tracking-tight"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={handleSignUpClick}
+                    className="flex-1 bg-black text-white px-4 py-2 rounded-lg font-medium tracking-tight"
+                  >
+                    Start Now
+                  </button>
+                </div>
               </nav>
             </div>
           )}

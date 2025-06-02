@@ -1,553 +1,716 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 
-// API base URL - adjust according to your setup
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+const API_URL = "http://localhost:5000/api/profile";
+const getToken = () => localStorage.getItem("token");
 
-// Helper function to get auth headers
-const getAuthHeaders = (getState) => {
-  const token = getState().auth?.token;
+// Helper function for authenticated requests
+const configureHeaders = () => {
   return {
     headers: {
-      Authorization: token ? `Bearer ${token}` : "",
-      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+      // Let browser set Content-Type for FormData
     },
   };
 };
 
-// Helper function for FormData requests
-const getAuthHeadersForFormData = (getState) => {
-  const token = getState().auth?.token;
-  return {
-    headers: {
-      Authorization: token ? `Bearer ${token}` : "",
-      // Don't set Content-Type for FormData, let browser set it
-    },
-  };
-};
+// Enhanced validation for location data with better error handling
+const validateLocationData = (locationData) => {
+  if (!locationData) return locationData;
 
-// ======================= PUBLIC ACTIONS (For Clients) =======================
+  const cleanLocation = { ...locationData };
 
-// Get all architects with filtering
-export const fetchArchitects = createAsyncThunk(
-  "architect/fetchArchitects",
-  async (filters = {}, { rejectWithValue }) => {
-    try {
-      const queryParams = new URLSearchParams();
-
-      // Add all filter parameters
-      Object.keys(filters).forEach((key) => {
-        if (
-          filters[key] !== undefined &&
-          filters[key] !== null &&
-          filters[key] !== ""
-        ) {
-          if (Array.isArray(filters[key])) {
-            filters[key].forEach((value) => queryParams.append(key, value));
-          } else {
-            queryParams.append(key, filters[key]);
-          }
-        }
-      });
-
-      const response = await fetch(`${API_BASE_URL}/architects?${queryParams}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Erreur lors de la récupération des architectes"
+  // Handle coordinates validation with improved error messages
+  if (cleanLocation.coordinates) {
+    // If coordinates is a string, try to parse it
+    if (typeof cleanLocation.coordinates === "string") {
+      try {
+        cleanLocation.coordinates = JSON.parse(cleanLocation.coordinates);
+      } catch (e) {
+        console.warn(
+          "Failed to parse coordinates string:",
+          cleanLocation.coordinates
         );
+        delete cleanLocation.coordinates;
+        return cleanLocation;
       }
+    }
 
-      return data;
-    } catch (error) {
-      return rejectWithValue(error.message);
+    // Validate coordinates array with more specific checks
+    if (Array.isArray(cleanLocation.coordinates)) {
+      const [lng, lat] = cleanLocation.coordinates;
+      if (
+        cleanLocation.coordinates.length !== 2 ||
+        typeof lng !== "number" ||
+        typeof lat !== "number" ||
+        isNaN(lng) ||
+        isNaN(lat) ||
+        lng < -180 ||
+        lng > 180 ||
+        lat < -90 ||
+        lat > 90
+      ) {
+        console.warn(
+          "Invalid coordinates format or values:",
+          cleanLocation.coordinates
+        );
+        delete cleanLocation.coordinates;
+      }
+    } else {
+      // If coordinates exist but are not an array, remove them
+      delete cleanLocation.coordinates;
     }
   }
-);
 
-// Get public architect profile by ID
+  return cleanLocation;
+};
+
+// Enhanced data preparation with better validation
+const prepareProfileData = (profileData) => {
+  const preparedData = { ...profileData };
+
+  // Handle location data specifically
+  if (preparedData.location) {
+    preparedData.location = validateLocationData(preparedData.location);
+  }
+
+  // Handle array fields that might be strings with better error handling
+  const arrayFields = [
+    "specializations",
+    "certifications",
+    "projectTypes",
+    "services",
+  ];
+  arrayFields.forEach((field) => {
+    if (preparedData[field]) {
+      if (typeof preparedData[field] === "string") {
+        try {
+          const parsed = JSON.parse(preparedData[field]);
+          preparedData[field] = Array.isArray(parsed) ? parsed : [parsed];
+        } catch (e) {
+          console.warn(`Failed to parse ${field}:`, preparedData[field]);
+          // Keep as array if it's already an array, otherwise make it an empty array
+          preparedData[field] = Array.isArray(preparedData[field])
+            ? preparedData[field]
+            : [];
+        }
+      } else if (!Array.isArray(preparedData[field])) {
+        // Ensure it's an array
+        preparedData[field] = [preparedData[field]];
+      }
+    }
+  });
+
+  // Handle nested object fields with validation
+  const nestedFields = [
+    "education",
+    "socialMedia",
+    "softwareProficiency",
+    "languages",
+    "companyHistory",
+  ];
+  nestedFields.forEach((field) => {
+    if (preparedData[field] && typeof preparedData[field] === "string") {
+      try {
+        preparedData[field] = JSON.parse(preparedData[field]);
+      } catch (e) {
+        console.warn(`Failed to parse ${field}:`, preparedData[field]);
+        // Set to appropriate default
+        if (field === "education" || field === "socialMedia") {
+          preparedData[field] = {};
+        } else {
+          preparedData[field] = [];
+        }
+      }
+    }
+  });
+
+  // Ensure required nested objects have default structure
+  if (!preparedData.education || typeof preparedData.education !== "object") {
+    preparedData.education = {
+      degree: "",
+      institution: "",
+      graduationYear: "",
+    };
+  }
+
+  if (
+    !preparedData.socialMedia ||
+    typeof preparedData.socialMedia !== "object"
+  ) {
+    preparedData.socialMedia = {
+      linkedin: "",
+      instagram: "",
+      facebook: "",
+      twitter: "",
+    };
+  }
+
+  if (!preparedData.location || typeof preparedData.location !== "object") {
+    preparedData.location = { country: "", region: "", city: "" };
+  }
+
+  return preparedData;
+};
+
+// Fetch architect profile
 export const fetchArchitectProfile = createAsyncThunk(
-  "architect/fetchArchitectProfile",
-  async (architectId, { rejectWithValue }) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/architects/${architectId}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Erreur lors de la récupération du profil"
-        );
-      }
-
-      return data.data;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-// ======================= ARCHITECT ACTIONS (For Architects) =======================
-
-// Get architect's own profile
-export const fetchMyProfile = createAsyncThunk(
-  "architect/fetchMyProfile",
-  async (_, { getState, rejectWithValue }) => {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/architects/profile/me`,
-        getAuthHeaders(getState)
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Erreur lors de la récupération du profil"
-        );
-      }
-
-      return data.data;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-// Update architect profile
-export const updateMyProfile = createAsyncThunk(
-  "architect/updateMyProfile",
-  async (profileData, { getState, rejectWithValue }) => {
-    try {
-      const formData = new FormData();
-
-      // Handle regular fields - parse JSON strings for arrays/objects
-      Object.keys(profileData).forEach((key) => {
-        if (
-          key !== "files" &&
-          profileData[key] !== undefined &&
-          profileData[key] !== null
-        ) {
-          if (
-            typeof profileData[key] === "object" &&
-            !Array.isArray(profileData[key])
-          ) {
-            formData.append(key, JSON.stringify(profileData[key]));
-          } else if (Array.isArray(profileData[key])) {
-            formData.append(key, JSON.stringify(profileData[key]));
-          } else {
-            formData.append(key, profileData[key]);
-          }
-        }
-      });
-
-      // Handle file uploads
-      if (profileData.files) {
-        Object.keys(profileData.files).forEach((fieldName) => {
-          const files = profileData.files[fieldName];
-          if (Array.isArray(files)) {
-            files.forEach((file) => {
-              formData.append(fieldName, file);
-            });
-          } else if (files) {
-            formData.append(fieldName, files);
-          }
-        });
-      }
-
-      const response = await fetch(
-        `${API_BASE_URL}/architects/profile/update`,
-        {
-          method: "PUT",
-          ...getAuthHeadersForFormData(getState),
-          body: formData,
-        }
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Erreur lors de la mise à jour du profil"
-        );
-      }
-
-      return data.data;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-// Remove portfolio image
-export const removePortfolioImage = createAsyncThunk(
-  "architect/removePortfolioImage",
-  async (imageIndex, { getState, rejectWithValue }) => {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/architects/profile/portfolio/${imageIndex}`,
-        {
-          method: "DELETE",
-          ...getAuthHeaders(getState),
-        }
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Erreur lors de la suppression de l'image"
-        );
-      }
-
-      return { imageIndex: parseInt(imageIndex), portfolio: data.data };
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-// Remove certification file
-export const removeCertification = createAsyncThunk(
-  "architect/removeCertification",
-  async (certIndex, { getState, rejectWithValue }) => {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/architects/profile/certification/${certIndex}`,
-        {
-          method: "DELETE",
-          ...getAuthHeaders(getState),
-        }
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Erreur lors de la suppression de la certification"
-        );
-      }
-
-      return { certIndex: parseInt(certIndex), certifications: data.data };
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-// ======================= OPTIONS ACTIONS =======================
-
-// Get service categories and subcategories
-export const fetchServiceOptions = createAsyncThunk(
-  "architect/fetchServiceOptions",
+  "architect/fetchProfile",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/architects/options/services`
-      );
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Erreur lors de la récupération des options de service"
-        );
-      }
-
-      return data.data;
+      const response = await axios.get(`${API_URL}/me`, configureHeaders());
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Failed to fetch profile";
+      return rejectWithValue({
+        error: errorMessage,
+        status: error.response?.status,
+        details: error.response?.data,
+      });
     }
   }
 );
 
-// Get global options (certifications and software)
-export const fetchGlobalOptions = createAsyncThunk(
-  "architect/fetchGlobalOptions",
-  async (type = null, { rejectWithValue }) => {
+// Enhanced update profile with better error handling and validation
+export const updateArchitectProfile = createAsyncThunk(
+  "architect/updateProfile",
+  async (profileData, { rejectWithValue }) => {
     try {
-      const url = type
-        ? `${API_BASE_URL}/architects/options/global?type=${type}`
-        : `${API_BASE_URL}/architects/options/global`;
+      let preparedData;
 
-      const response = await fetch(url);
-      const data = await response.json();
+      // Check if it's FormData (for file uploads)
+      if (profileData instanceof FormData) {
+        // For FormData, validate location data if present
+        const locationData = profileData.get("location");
+        if (locationData && locationData !== "undefined") {
+          try {
+            const parsedLocation = JSON.parse(locationData);
+            const validatedLocation = validateLocationData(parsedLocation);
+            profileData.set("location", JSON.stringify(validatedLocation));
+          } catch (e) {
+            console.warn("Failed to parse location from FormData:", e);
+            profileData.delete("location");
+          }
+        }
 
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Erreur lors de la récupération des options globales"
-        );
+        // Validate other FormData fields
+        const fieldsToValidate = ["education", "socialMedia"];
+        fieldsToValidate.forEach((field) => {
+          const fieldData = profileData.get(field);
+          if (fieldData && fieldData !== "undefined") {
+            try {
+              JSON.parse(fieldData); // Just validate it's valid JSON
+            } catch (e) {
+              console.warn(`Invalid JSON for ${field}, removing:`, fieldData);
+              profileData.delete(field);
+            }
+          }
+        });
+
+        preparedData = profileData;
+      } else {
+        // For regular JSON data
+        preparedData = prepareProfileData(profileData);
       }
 
-      return data.data;
+      const response = await axios.put(
+        `${API_URL}/me`,
+        preparedData,
+        configureHeaders()
+      );
+
+      return response.data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      console.error("Update profile error:", error);
+
+      // Enhanced error handling with more specific messages
+      let errorMessage = "Failed to update profile";
+      let errorDetails = null;
+
+      if (error.response?.data) {
+        const {
+          error: serverError,
+          message,
+          details,
+          errors,
+        } = error.response.data;
+
+        // Handle validation errors from express-validator or mongoose
+        if (errors && Array.isArray(errors)) {
+          errorMessage = errors.map((err) => err.message || err.msg).join(", ");
+          errorDetails = errors;
+        }
+        // Handle MongoDB validation errors
+        else if (error.response.data.name === "ValidationError") {
+          const validationErrors = Object.values(
+            error.response.data.errors || {}
+          );
+          errorMessage = validationErrors.map((err) => err.message).join(", ");
+          errorDetails = validationErrors;
+        }
+        // Handle geo keys error specifically
+        else if (message && message.includes("Can't extract geo keys")) {
+          errorMessage =
+            "Invalid location coordinates. Please check your location data and try again.";
+        }
+        // Handle cast errors
+        else if (message && message.includes("Cast to embedded failed")) {
+          errorMessage =
+            "Invalid data format. Please check your input fields and try again.";
+        }
+        // Handle file upload errors
+        else if (message && message.includes("File too large")) {
+          errorMessage =
+            "One or more files are too large. Please choose smaller files.";
+        } else if (message && message.includes("Invalid file type")) {
+          errorMessage = "Invalid file type. Please upload only image files.";
+        }
+        // Handle authentication errors
+        else if (error.response.status === 401) {
+          errorMessage = "Authentication failed. Please log in again.";
+        } else if (error.response.status === 403) {
+          errorMessage = "You don't have permission to perform this action.";
+        }
+        // Handle server errors
+        else if (error.response.status >= 500) {
+          errorMessage = "Server error occurred. Please try again later.";
+        }
+        // Use server provided messages
+        else if (details && Array.isArray(details)) {
+          errorMessage = details.join(", ");
+          errorDetails = details;
+        } else if (serverError) {
+          errorMessage = serverError;
+        } else if (message) {
+          errorMessage = message;
+        }
+      }
+      // Handle network errors
+      else if (error.code === "NETWORK_ERROR" || !error.response) {
+        errorMessage =
+          "Network error. Please check your connection and try again.";
+      }
+
+      return rejectWithValue({
+        error: errorMessage,
+        details: errorDetails,
+        status: error.response?.status,
+        originalError: error.response?.data,
+      });
     }
   }
 );
 
-// ======================= SLICE DEFINITION =======================
+// Enhanced delete portfolio item with better error handling
+export const deletePortfolioItem = createAsyncThunk(
+  "architect/deletePortfolioItem",
+  async (itemIndex, { rejectWithValue }) => {
+    try {
+      const response = await axios.delete(
+        `${API_URL}/me/portfolio/${itemIndex}`,
+        configureHeaders()
+      );
+      return { ...response.data, deletedIndex: itemIndex };
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Failed to delete portfolio item";
+      return rejectWithValue({
+        error: errorMessage,
+        status: error.response?.status,
+        itemIndex,
+      });
+    }
+  }
+);
 
-const initialState = {
-  // For clients browsing architects
-  architects: [],
-  selectedArchitect: null,
-  pagination: {
-    current: 1,
-    pages: 1,
-    total: 0,
-    limit: 12,
-  },
-  filters: {
-    page: 1,
-    limit: 12,
-    location: "",
-    specialization: [],
-    specialty: "",
-    minBudget: "",
-    maxBudget: "",
-    rating: "",
-    experienceYears: "",
-    certification: "",
-    services: [],
-    sortBy: "createdAt",
-    sortOrder: "desc",
-    search: "",
-  },
+// Fetch architect stats
+export const fetchArchitectStats = createAsyncThunk(
+  "architect/fetchStats",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(
+        `${API_URL}/me/stats`,
+        configureHeaders()
+      );
+      return response.data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Failed to load stats";
+      return rejectWithValue({
+        error: errorMessage,
+        status: error.response?.status,
+      });
+    }
+  }
+);
 
-  // For architect's own profile
-  myProfile: null,
-  profileUpdateStatus: "idle", // idle, pending, succeeded, failed
+// Delete architect account
+export const deleteArchitectAccount = createAsyncThunk(
+  "architect/deleteAccount",
+  async (_, { rejectWithValue }) => {
+    try {
+      await axios.delete(`${API_URL}/me`, configureHeaders());
+      return { success: true };
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Failed to delete account";
+      return rejectWithValue({
+        error: errorMessage,
+        status: error.response?.status,
+      });
+    }
+  }
+);
 
-  // Options and metadata
-  serviceOptions: {
-    categories: [],
-    subcategories: [],
-  },
-  globalOptions: {
-    certifications: [],
-    software: [],
-  },
+// Update location specifically (useful for map interactions)
+export const updateArchitectLocation = createAsyncThunk(
+  "architect/updateLocation",
+  async (locationData, { rejectWithValue }) => {
+    try {
+      const validatedLocation = validateLocationData(locationData);
+      const response = await axios.put(
+        `${API_URL}/me`,
+        { location: validatedLocation },
+        configureHeaders()
+      );
+      return response.data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Failed to update location";
+      return rejectWithValue({
+        error: errorMessage,
+        status: error.response?.status,
+        originalLocation: locationData,
+      });
+    }
+  }
+);
 
-  // Loading states
-  loading: {
-    architects: false,
-    selectedArchitect: false,
-    myProfile: false,
-    serviceOptions: false,
-    globalOptions: false,
-    removingImage: false,
-    removingCert: false,
-  },
-
-  // Error states
-  errors: {
-    architects: null,
-    selectedArchitect: null,
-    myProfile: null,
-    profileUpdate: null,
-    serviceOptions: null,
-    globalOptions: null,
-    removeImage: null,
-    removeCert: null,
-  },
-};
+// New: Bulk update specific profile sections
+export const updateProfileSection = createAsyncThunk(
+  "architect/updateSection",
+  async ({ section, data }, { rejectWithValue }) => {
+    try {
+      const response = await axios.patch(
+        `${API_URL}/me/${section}`,
+        data,
+        configureHeaders()
+      );
+      return { section, data: response.data };
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        `Failed to update ${section}`;
+      return rejectWithValue({
+        error: errorMessage,
+        section,
+        status: error.response?.status,
+      });
+    }
+  }
+);
 
 const architectSlice = createSlice({
   name: "architect",
-  initialState,
+  initialState: {
+    profile: null,
+    stats: null,
+    loading: false,
+    updateLoading: false,
+    error: null,
+    updateError: null,
+    updateSuccess: false,
+    locationUpdateLoading: false,
+    sectionUpdateLoading: false,
+    lastUpdated: null,
+    // Add flags for different operations
+    deletePortfolioLoading: false,
+    deleteAccountLoading: false,
+  },
   reducers: {
-    // Filter management
-    setFilters: (state, action) => {
-      state.filters = { ...state.filters, ...action.payload };
-    },
-    resetFilters: (state) => {
-      state.filters = initialState.filters;
-    },
-    setCurrentPage: (state, action) => {
-      state.filters.page = action.payload;
-    },
-
-    // Clear selected architect
-    clearSelectedArchitect: (state) => {
-      state.selectedArchitect = null;
-      state.errors.selectedArchitect = null;
+    resetArchitectState: (state) => {
+      state.profile = null;
+      state.stats = null;
+      state.loading = false;
+      state.error = null;
+      state.updateError = null;
+      state.updateSuccess = false;
+      state.lastUpdated = null;
     },
 
-    // Clear errors
-    clearErrors: (state, action) => {
-      if (action.payload) {
-        state.errors[action.payload] = null;
-      } else {
-        Object.keys(state.errors).forEach((key) => {
-          state.errors[key] = null;
-        });
+    clearUpdateStatus: (state) => {
+      state.updateLoading = false;
+      state.updateError = null;
+      state.updateSuccess = false;
+      state.locationUpdateLoading = false;
+      state.sectionUpdateLoading = false;
+    },
+
+    // Enhanced local profile update with validation
+    updateProfileLocally: (state, action) => {
+      if (state.profile) {
+        const updatedData = prepareProfileData(action.payload);
+        state.profile = { ...state.profile, ...updatedData };
+        state.lastUpdated = new Date().toISOString();
       }
     },
 
-    // Reset profile update status
-    resetProfileUpdateStatus: (state) => {
-      state.profileUpdateStatus = "idle";
-      state.errors.profileUpdate = null;
+    // Clear specific errors
+    clearUpdateError: (state) => {
+      state.updateError = null;
+    },
+
+    clearError: (state) => {
+      state.error = null;
+    },
+
+    // Set update success manually (useful for UI feedback)
+    setUpdateSuccess: (state, action) => {
+      state.updateSuccess = action.payload;
+    },
+
+    // Update specific profile fields locally
+    updateProfileField: (state, action) => {
+      const { field, value } = action.payload;
+      if (state.profile) {
+        // Handle nested field updates (e.g., "location.city")
+        if (field.includes(".")) {
+          const [parent, child] = field.split(".");
+          if (!state.profile[parent]) {
+            state.profile[parent] = {};
+          }
+          state.profile[parent][child] = value;
+        } else {
+          state.profile[field] = value;
+        }
+        state.lastUpdated = new Date().toISOString();
+      }
     },
   },
-  extraReducers: (builder) => {
-    // ======================= FETCH ARCHITECTS =======================
-    builder
-      .addCase(fetchArchitects.pending, (state) => {
-        state.loading.architects = true;
-        state.errors.architects = null;
-      })
-      .addCase(fetchArchitects.fulfilled, (state, action) => {
-        state.loading.architects = false;
-        state.architects = action.payload.data;
-        state.pagination = action.payload.pagination;
-      })
-      .addCase(fetchArchitects.rejected, (state, action) => {
-        state.loading.architects = false;
-        state.errors.architects = action.payload;
-      })
 
-      // ======================= FETCH ARCHITECT PROFILE =======================
+  extraReducers: (builder) => {
+    builder
+      // Fetch profile cases
       .addCase(fetchArchitectProfile.pending, (state) => {
-        state.loading.selectedArchitect = true;
-        state.errors.selectedArchitect = null;
+        state.loading = true;
+        state.error = null;
       })
       .addCase(fetchArchitectProfile.fulfilled, (state, action) => {
-        state.loading.selectedArchitect = false;
-        state.selectedArchitect = action.payload;
+        state.loading = false;
+        state.profile = action.payload;
+        state.error = null;
+        state.lastUpdated = new Date().toISOString();
       })
       .addCase(fetchArchitectProfile.rejected, (state, action) => {
-        state.loading.selectedArchitect = false;
-        state.errors.selectedArchitect = action.payload;
+        state.loading = false;
+        state.error = action.payload;
+        state.profile = null;
       })
 
-      // ======================= FETCH MY PROFILE =======================
-      .addCase(fetchMyProfile.pending, (state) => {
-        state.loading.myProfile = true;
-        state.errors.myProfile = null;
+      // Update profile cases
+      .addCase(updateArchitectProfile.pending, (state) => {
+        state.updateLoading = true;
+        state.updateError = null;
+        state.updateSuccess = false;
       })
-      .addCase(fetchMyProfile.fulfilled, (state, action) => {
-        state.loading.myProfile = false;
-        state.myProfile = action.payload;
+      .addCase(updateArchitectProfile.fulfilled, (state, action) => {
+        state.updateLoading = false;
+        state.profile = action.payload;
+        state.updateSuccess = true;
+        state.updateError = null;
+        state.lastUpdated = new Date().toISOString();
       })
-      .addCase(fetchMyProfile.rejected, (state, action) => {
-        state.loading.myProfile = false;
-        state.errors.myProfile = action.payload;
-      })
-
-      // ======================= UPDATE MY PROFILE =======================
-      .addCase(updateMyProfile.pending, (state) => {
-        state.profileUpdateStatus = "pending";
-        state.errors.profileUpdate = null;
-      })
-      .addCase(updateMyProfile.fulfilled, (state, action) => {
-        state.profileUpdateStatus = "succeeded";
-        state.myProfile = action.payload;
-      })
-      .addCase(updateMyProfile.rejected, (state, action) => {
-        state.profileUpdateStatus = "failed";
-        state.errors.profileUpdate = action.payload;
+      .addCase(updateArchitectProfile.rejected, (state, action) => {
+        state.updateLoading = false;
+        state.updateError = action.payload;
+        state.updateSuccess = false;
       })
 
-      // ======================= REMOVE PORTFOLIO IMAGE =======================
-      .addCase(removePortfolioImage.pending, (state) => {
-        state.loading.removingImage = true;
-        state.errors.removeImage = null;
+      // Update location cases
+      .addCase(updateArchitectLocation.pending, (state) => {
+        state.locationUpdateLoading = true;
+        state.updateError = null;
       })
-      .addCase(removePortfolioImage.fulfilled, (state, action) => {
-        state.loading.removingImage = false;
-        if (state.myProfile) {
-          state.myProfile.portfolio = action.payload.portfolio;
+      .addCase(updateArchitectLocation.fulfilled, (state, action) => {
+        state.locationUpdateLoading = false;
+        state.profile = action.payload;
+        state.updateError = null;
+        state.lastUpdated = new Date().toISOString();
+      })
+      .addCase(updateArchitectLocation.rejected, (state, action) => {
+        state.locationUpdateLoading = false;
+        state.updateError = action.payload;
+      })
+
+      // Update profile section cases
+      .addCase(updateProfileSection.pending, (state) => {
+        state.sectionUpdateLoading = true;
+        state.updateError = null;
+      })
+      .addCase(updateProfileSection.fulfilled, (state, action) => {
+        state.sectionUpdateLoading = false;
+        if (state.profile) {
+          state.profile = { ...state.profile, ...action.payload.data };
+        }
+        state.lastUpdated = new Date().toISOString();
+      })
+      .addCase(updateProfileSection.rejected, (state, action) => {
+        state.sectionUpdateLoading = false;
+        state.updateError = action.payload;
+      })
+
+      // Delete portfolio item cases
+      .addCase(deletePortfolioItem.pending, (state) => {
+        state.deletePortfolioLoading = true;
+        state.updateError = null;
+      })
+      .addCase(deletePortfolioItem.fulfilled, (state, action) => {
+        state.deletePortfolioLoading = false;
+        if (state.profile && action.payload.portfolio) {
+          state.profile.portfolio = action.payload.portfolio;
+          state.lastUpdated = new Date().toISOString();
         }
       })
-      .addCase(removePortfolioImage.rejected, (state, action) => {
-        state.loading.removingImage = false;
-        state.errors.removeImage = action.payload;
+      .addCase(deletePortfolioItem.rejected, (state, action) => {
+        state.deletePortfolioLoading = false;
+        state.updateError = action.payload;
       })
 
-      // ======================= REMOVE CERTIFICATION =======================
-      .addCase(removeCertification.pending, (state) => {
-        state.loading.removingCert = true;
-        state.errors.removeCert = null;
+      // Fetch stats cases
+      .addCase(fetchArchitectStats.pending, (state) => {
+        state.loading = true;
       })
-      .addCase(removeCertification.fulfilled, (state, action) => {
-        state.loading.removingCert = false;
-        if (state.myProfile) {
-          state.myProfile.certifications = action.payload.certifications;
-        }
+      .addCase(fetchArchitectStats.fulfilled, (state, action) => {
+        state.loading = false;
+        state.stats = action.payload;
       })
-      .addCase(removeCertification.rejected, (state, action) => {
-        state.loading.removingCert = false;
-        state.errors.removeCert = action.payload;
+      .addCase(fetchArchitectStats.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
 
-      // ======================= FETCH SERVICE OPTIONS =======================
-      .addCase(fetchServiceOptions.pending, (state) => {
-        state.loading.serviceOptions = true;
-        state.errors.serviceOptions = null;
+      // Delete account cases
+      .addCase(deleteArchitectAccount.pending, (state) => {
+        state.deleteAccountLoading = true;
+        state.updateError = null;
       })
-      .addCase(fetchServiceOptions.fulfilled, (state, action) => {
-        state.loading.serviceOptions = false;
-        state.serviceOptions = action.payload;
+      .addCase(deleteArchitectAccount.fulfilled, (state) => {
+        state.deleteAccountLoading = false;
+        state.profile = null;
+        state.stats = null;
+        state.updateSuccess = true;
       })
-      .addCase(fetchServiceOptions.rejected, (state, action) => {
-        state.loading.serviceOptions = false;
-        state.errors.serviceOptions = action.payload;
-      })
-
-      // ======================= FETCH GLOBAL OPTIONS =======================
-      .addCase(fetchGlobalOptions.pending, (state) => {
-        state.loading.globalOptions = true;
-        state.errors.globalOptions = null;
-      })
-      .addCase(fetchGlobalOptions.fulfilled, (state, action) => {
-        state.loading.globalOptions = false;
-        state.globalOptions = action.payload;
-      })
-      .addCase(fetchGlobalOptions.rejected, (state, action) => {
-        state.loading.globalOptions = false;
-        state.errors.globalOptions = action.payload;
+      .addCase(deleteArchitectAccount.rejected, (state, action) => {
+        state.deleteAccountLoading = false;
+        state.updateError = action.payload;
       });
   },
 });
 
-// Export actions
 export const {
-  setFilters,
-  resetFilters,
-  setCurrentPage,
-  clearSelectedArchitect,
-  clearErrors,
-  resetProfileUpdateStatus,
+  resetArchitectState,
+  clearUpdateStatus,
+  updateProfileLocally,
+  clearUpdateError,
+  clearError,
+  setUpdateSuccess,
+  updateProfileField,
 } = architectSlice.actions;
 
-// Export selectors
-export const selectArchitects = (state) => state.architect.architects;
-export const selectSelectedArchitect = (state) =>
-  state.architect.selectedArchitect;
-export const selectMyProfile = (state) => state.architect.myProfile;
-export const selectPagination = (state) => state.architect.pagination;
-export const selectFilters = (state) => state.architect.filters;
-export const selectServiceOptions = (state) => state.architect.serviceOptions;
-export const selectGlobalOptions = (state) => state.architect.globalOptions;
-export const selectLoading = (state) => state.architect.loading;
-export const selectErrors = (state) => state.architect.errors;
-export const selectProfileUpdateStatus = (state) =>
-  state.architect.profileUpdateStatus;
-
-// Complex selectors
-export const selectFilteredSubcategories = (selectedCategoryId) => (state) => {
-  if (!selectedCategoryId) return [];
-  return state.architect.serviceOptions.subcategories.filter(
-    (sub) => sub.parentCategory._id === selectedCategoryId
-  );
-};
-
-export const selectIsLoading = (state) => {
-  const loading = state.architect.loading;
-  return Object.values(loading).some((isLoading) => isLoading);
-};
-
-export const selectHasErrors = (state) => {
-  const errors = state.architect.errors;
-  return Object.values(errors).some((error) => error !== null);
-};
-
-// Export reducer
 export default architectSlice.reducer;
+
+// Enhanced selectors for easier state access
+export const selectArchitectProfile = (state) => state.architect.profile;
+export const selectArchitectStats = (state) => state.architect.stats;
+export const selectArchitectLoading = (state) => state.architect.loading;
+export const selectArchitectUpdateLoading = (state) =>
+  state.architect.updateLoading;
+export const selectArchitectError = (state) => state.architect.error;
+export const selectArchitectUpdateError = (state) =>
+  state.architect.updateError;
+export const selectArchitectUpdateSuccess = (state) =>
+  state.architect.updateSuccess;
+export const selectArchitectLocationUpdateLoading = (state) =>
+  state.architect.locationUpdateLoading;
+export const selectArchitectLastUpdated = (state) =>
+  state.architect.lastUpdated;
+
+// New selectors for enhanced functionality
+export const selectArchitectSectionUpdateLoading = (state) =>
+  state.architect.sectionUpdateLoading;
+export const selectArchitectDeletePortfolioLoading = (state) =>
+  state.architect.deletePortfolioLoading;
+export const selectArchitectDeleteAccountLoading = (state) =>
+  state.architect.deleteAccountLoading;
+
+// Computed selectors
+export const selectIsArchitectDataStale = (state) => {
+  const lastUpdated = state.architect.lastUpdated;
+  if (!lastUpdated) return false;
+
+  const now = new Date();
+  const updated = new Date(lastUpdated);
+  const diffInMinutes = (now - updated) / (1000 * 60);
+
+  return diffInMinutes > 30; // Consider data stale after 30 minutes
+};
+
+export const selectArchitectProfileCompleteness = (state) => {
+  const profile = state.architect.profile;
+  if (!profile) return 0;
+
+  const requiredFields = [
+    "prenom",
+    "nomDeFamille",
+    "email",
+    "bio",
+    "experienceYears",
+    "specialty",
+    "location.city",
+    "location.country",
+  ];
+
+  const optionalFields = [
+    "phoneNumber",
+    "companyName",
+    "website",
+    "profilePicture",
+    "education.degree",
+    "socialMedia.linkedin",
+  ];
+
+  let completed = 0;
+  let total = requiredFields.length + optionalFields.length;
+
+  requiredFields.forEach((field) => {
+    if (field.includes(".")) {
+      const [parent, child] = field.split(".");
+      if (profile[parent] && profile[parent][child]) completed++;
+    } else if (profile[field]) {
+      completed++;
+    }
+  });
+
+  optionalFields.forEach((field) => {
+    if (field.includes(".")) {
+      const [parent, child] = field.split(".");
+      if (profile[parent] && profile[parent][child]) completed++;
+    } else if (profile[field]) {
+      completed++;
+    }
+  });
+
+  return Math.round((completed / total) * 100);
+};

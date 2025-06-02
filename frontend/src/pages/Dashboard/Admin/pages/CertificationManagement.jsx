@@ -164,9 +164,6 @@ const CertificationManagement = () => {
         alignItems="center"
         mb={3}
       >
-        <Typography variant="h5" fontWeight="bold">
-          Certification Management
-        </Typography>
         <Button
           variant="contained"
           color="primary"

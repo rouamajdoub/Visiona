@@ -141,10 +141,6 @@ const ArchitectRequests = () => {
 
   return (
     <Box m="20px">
-      <Typography variant="h4" mb={2}>
-        Architect Signup Requests
-      </Typography>
-
       {loading ? (
         <Typography>Loading...</Typography>
       ) : error ? (

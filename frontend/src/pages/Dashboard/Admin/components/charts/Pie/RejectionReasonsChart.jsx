@@ -41,6 +41,7 @@ const RejectionReasonsChart = ({ rejectionReasons, loading, error }) => {
         justifyContent="center"
         alignItems="center"
         height="250px"
+        sx={{ backgroundColor: "transparent" }}
       >
         <CircularProgress />
       </Box>
@@ -54,6 +55,7 @@ const RejectionReasonsChart = ({ rejectionReasons, loading, error }) => {
         justifyContent="center"
         alignItems="center"
         height="250px"
+        sx={{ backgroundColor: "transparent" }}
       >
         <Typography color="error">
           Error loading rejection data:{" "}
@@ -64,16 +66,16 @@ const RejectionReasonsChart = ({ rejectionReasons, loading, error }) => {
   }
 
   return (
-    <Card elevation={3}>
-      <CardContent>
+    <Card elevation={3} sx={{ backgroundColor: "transparent" }}>
+      <CardContent sx={{ backgroundColor: "transparent" }}>
         <Typography variant="h6" gutterBottom>
           Top Rejection Reasons
         </Typography>
 
         {rejectionData.length > 0 ? (
-          <Box height={300}>
+          <Box height={300} sx={{ backgroundColor: "transparent" }}>
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart style={{ backgroundColor: "transparent" }}>
                 <Pie
                   data={rejectionData}
                   cx="50%"
@@ -95,6 +97,10 @@ const RejectionReasonsChart = ({ rejectionReasons, loading, error }) => {
                 </Pie>
                 <Tooltip
                   formatter={(value) => [`${value} rejections`, "Count"]}
+                  contentStyle={{
+                    backgroundColor: "rgba(255, 255, 255, 0.9)",
+                    border: "1px solid #ccc",
+                  }}
                 />
                 <Legend />
               </PieChart>
@@ -106,6 +112,7 @@ const RejectionReasonsChart = ({ rejectionReasons, loading, error }) => {
             justifyContent="center"
             alignItems="center"
             height="250px"
+            sx={{ backgroundColor: "transparent" }}
           >
             <Typography variant="body2" color="textSecondary">
               No rejection data available

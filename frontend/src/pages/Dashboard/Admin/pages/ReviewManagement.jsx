@@ -365,10 +365,6 @@ const ReviewManagement = () => {
 
   return (
     <Box m="20px">
-      <Typography variant="h4" mb={3}>
-        Review Management
-      </Typography>
-
       {/* Filter controls */}
       <Box
         mb={4}
@@ -378,7 +374,7 @@ const ReviewManagement = () => {
           flexWrap: "wrap",
         }}
       >
-        <FormControl sx={{ minWidth: 200 }}>
+        <FormControl sx={{ minWidth: 200, color: "black" }}>
           <InputLabel>Review Type</InputLabel>
           <Select
             value={reviewType}

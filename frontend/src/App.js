@@ -8,7 +8,6 @@ import ProtectedRoute from "./components/ProtectedRoute.js";
 // Public Pages
 import Login from "./pages/auth/Login.jsx";
 import Signup from "./pages/auth/Signup.jsx";
-import RegisterForm from "./pages/auth/RegisterForm.jsx";
 import OAuthSuccess from "./pages/auth/AuthSuccess.jsx";
 import About from "./pages/About/HeroSlider.jsx";
 import InteriorDesignTrends from "./pages/landing/trending/Trending.jsx";
@@ -27,7 +26,10 @@ import Clients from "./pages/client_page/page/Home.jsx";
 import NeedSheetForm from "./pages/client_page/Global/NeedSheetForm/NeedSheetForm.jsx";
 import ClientPortal from "./pages/client_page/Global/account/ClientPortal.jsx";
 import MatchSteps from "./pages/client_page/components/ai_matching/MatchSteps.jsx";
-import ArchitectProfileDisplay from "./pages/client_page/Global/Architect-list/ArchitectProfileDisplay.jsx";
+import ArchitectMatches from "./pages/client_page/Global/NeedSheetForm/ArchitectMatches.jsx";
+
+// Architect Container with Context
+import ArchitectContainer from "./pages/client_page/Global/Architect-list/ArchitectContainer.js";
 
 // Marketplace
 import { MarketplaceProvider } from "./pages/Market/MarketplaceContext/MarketplaceContext.jsx";
@@ -47,11 +49,11 @@ function App() {
         {/* Public Routes - No authentication required */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/register" element={<RegisterForm />} />
         <Route path="/oauth-success" element={<OAuthSuccess />} />
         <Route path="/about" element={<About />} />
         <Route path="/policy" element={<Policy />} />
         <Route path="/trending" element={<InteriorDesignTrends />} />
+        <Route path="/matches/:needsheetId" element={<ArchitectMatches />} />
 
         {/* Status Pages */}
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
@@ -121,11 +123,13 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Updated Architect List Route - Now uses ArchitectContainer */}
         <Route
           path="/architects"
           element={
             <ProtectedRoute roles={["client"]}>
-              <ArchitectProfileDisplay />
+              <ArchitectContainer />
             </ProtectedRoute>
           }
         />
@@ -185,7 +189,7 @@ function App() {
         />
 
         {/* Default Route - Public */}
-        <Route path="*" element={<Clients />} />
+        <Route path="*" element={<Login />} />
       </Routes>
     </AuthProvider>
   );

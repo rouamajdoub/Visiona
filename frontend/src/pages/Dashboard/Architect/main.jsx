@@ -3,7 +3,7 @@ import "./Style.css";
 import Sidebar from "./content/Sidebar/Sidebar";
 import MainDash from "./content/MainDash/MainDash";
 import RightSide from "./content/RightSide/RightSide";
-import ArchitectProfile from "./pages/Profile/ArchitectProfile";
+import Profile from "./pages/Profile/Profile";
 import Calendar from "./pages/Calendar/Calendar";
 import Project from "./pages/Project/Project";
 import Market from "./pages/Market/Market";
@@ -25,7 +25,7 @@ const Main = () => {
           </div>
         );
       case "profile":
-        return <ArchitectProfile />;
+        return <Profile />;
       case "calendar":
         return <Calendar />;
       case "projects":

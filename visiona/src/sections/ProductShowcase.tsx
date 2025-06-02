@@ -24,11 +24,12 @@ export const ProductShowcase = () => {
             <div className="tag">Boost your productivity</div>
           </div>
           <h2 className="section-title mt-5">
-            A more effective way to track progress
+            Design Your Vision. Connect with Experts.{" "}
           </h2>
           <p className="section-description mt-5">
-            Effortlessly turn your ideas into a fully functional, responsive,
-            SaaS website in just minutes with this template.
+            Whether you're seeking the perfect interior designer or showcasing
+            your architectural talent, our platform brings your creative goals
+            to life.
           </p>
         </div>
         <div className="relative">

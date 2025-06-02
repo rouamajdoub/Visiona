@@ -299,12 +299,6 @@ const AbtService = () => {
             ))}
           </div>
         </div>
-
-        <div className="see-more-container">
-          <a href="/services" className="see-more-button">
-            See All Services <ArrowRight size={16} />
-          </a>
-        </div>
       </div>
     </section>
   );

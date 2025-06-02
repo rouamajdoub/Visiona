@@ -1,11 +1,51 @@
-import React, { useState } from "react";
-import { Star, Send } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Star, Send, LogIn } from "lucide-react";
+import {
+  createAppReview,
+  resetReviewState,
+  selectReviewsLoading,
+  selectReviewsError,
+  selectReviewsSuccess,
+  selectReviewsMessage,
+} from "../../../../redux/slices/reviewsSlice"; // Adjust the import path according to your file structure
+import { useAuth } from "../../../../hooks/useAuth"; // Adjust the import path according to your file structure
 
 const ClientReview = () => {
+  const dispatch = useDispatch();
+  const { user, isAuthenticated, isLoading: authLoading, isClient } = useAuth();
+
+  // Redux state
+  const isLoading = useSelector(selectReviewsLoading);
+  const error = useSelector(selectReviewsError);
+  const success = useSelector(selectReviewsSuccess);
+  const message = useSelector(selectReviewsMessage);
+
+  // Local state
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Reset state when component mounts
+  useEffect(() => {
+    dispatch(resetReviewState());
+  }, [dispatch]);
+
+  // Handle successful submission
+  useEffect(() => {
+    if (success && !isLoading) {
+      setIsSubmitted(true);
+
+      // Reset form after showing success message
+      setTimeout(() => {
+        setRating(0);
+        setComment("");
+        setIsSubmitted(false);
+        dispatch(resetReviewState());
+      }, 3000);
+    }
+  }, [success, isLoading, dispatch]);
 
   const handleRatingClick = (selectedRating) => {
     setRating(selectedRating);
@@ -25,14 +65,24 @@ const ClientReview = () => {
 
   const handleSubmit = (e) => {
     if (e) e.preventDefault();
-    console.log("Submitted review:", { rating, comment });
-    setIsSubmitted(true);
 
-    setTimeout(() => {
-      setRating(0);
-      setComment("");
-      setIsSubmitted(false);
-    }, 3000);
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      // Handle unauthenticated user - you might want to redirect to login
+      console.log("User must be authenticated to submit a review");
+      return;
+    }
+
+    // Prepare review data
+    const reviewData = {
+      rating,
+      comment: comment.trim(),
+      // Add any other fields your API expects like userId if needed
+      // userId: user?.id, // if your API requires explicit user ID
+    };
+
+    // Dispatch the createAppReview action
+    dispatch(createAppReview(reviewData));
   };
 
   return (
@@ -96,6 +146,79 @@ const ClientReview = () => {
           overflow: hidden;
           position: relative;
           z-index: 10;
+        }
+
+        .login-prompt {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 64px;
+          text-align: center;
+        }
+
+        .login-icon {
+          width: 80px;
+          height: 80px;
+          background: linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 24px;
+        }
+
+        .login-icon svg {
+          width: 40px;
+          height: 40px;
+          color: white;
+        }
+
+        .login-title {
+          font-size: 24px;
+          font-weight: bold;
+          background: linear-gradient(to right, #3b82f6, #4f46e5);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          margin: 0 0 16px 0;
+        }
+
+        .login-text {
+          color: #4b5563;
+          font-size: 18px;
+          margin-bottom: 24px;
+        }
+
+        .login-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 12px 32px;
+          background: linear-gradient(to right, #3b82f6, #4f46e5);
+          color: white;
+          font-size: 16px;
+          font-weight: 600;
+          border: none;
+          border-radius: 9999px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-decoration: none;
+        }
+
+        .login-button:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .error-message {
+          background-color: #fee2e2;
+          border: 1px solid #fecaca;
+          color: #dc2626;
+          padding: 12px 16px;
+          border-radius: 8px;
+          margin-bottom: 16px;
+          text-align: center;
         }
 
         .success-message {
@@ -201,6 +324,11 @@ const ClientReview = () => {
           transform: scale(1.1);
         }
 
+        .star-button:disabled {
+          cursor: not-allowed;
+          opacity: 0.6;
+        }
+
         .star-icon {
           width: 38px;
           height: 38px;
@@ -255,6 +383,12 @@ const ClientReview = () => {
           box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
         }
 
+        .comment-textarea:disabled {
+          background-color: #f9fafb;
+          cursor: not-allowed;
+          opacity: 0.6;
+        }
+
         .comment-textarea::placeholder {
           color: #9ca3af;
         }
@@ -279,6 +413,7 @@ const ClientReview = () => {
           border-radius: 9999px;
           cursor: pointer;
           transition: all 0.3s ease;
+          min-width: 160px;
         }
 
         .submit-button:hover:not(:disabled) {
@@ -289,6 +424,26 @@ const ClientReview = () => {
         .submit-button:disabled {
           background: #d1d5db;
           cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+
+        .submit-button.loading {
+          background: linear-gradient(to right, #6b7280, #9ca3af);
+        }
+
+        .loading-spinner {
+          width: 18px;
+          height: 18px;
+          border: 2px solid transparent;
+          border-top: 2px solid currentColor;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
 
         .learn-more-container {
@@ -342,7 +497,28 @@ const ClientReview = () => {
         <div className="decorative-element-right"></div>
 
         <div className="review-container">
-          {isSubmitted ? (
+          {/* Show loading state while checking authentication */}
+          {authLoading ? (
+            <div className="success-message">
+              <div className="loading-spinner"></div>
+              <p>Loading...</p>
+            </div>
+          ) : !isAuthenticated ? (
+            /* Show login prompt for unauthenticated users */
+            <div className="login-prompt">
+              <div className="login-icon">
+                <LogIn />
+              </div>
+              <h3 className="login-title">Authentication Required</h3>
+              <p className="login-text">
+                Please log in to share your experience with Visiona.
+              </p>
+              <a href="/login" className="login-button">
+                Log In
+                <LogIn size={18} />
+              </a>
+            </div>
+          ) : isSubmitted ? (
             <div className="success-message">
               <div className="success-icon">
                 <svg
@@ -361,7 +537,7 @@ const ClientReview = () => {
               </div>
               <h3 className="success-title">Thank You!</h3>
               <p className="success-text">
-                Your feedback has been submitted successfully.
+                {message || "Your feedback has been submitted successfully."}
               </p>
             </div>
           ) : (
@@ -369,10 +545,14 @@ const ClientReview = () => {
               <div className="review-header">
                 <h2 className="review-title">Join the Visiona Community</h2>
                 <p className="review-subtitle">
+                  {user?.name ? `Hi ${user.name}! ` : ""}
                   With Visiona, managing projects, clients, and designs has
                   never been easier. Share your experience with us.
                 </p>
               </div>
+
+              {/* Error Message */}
+              {error && <div className="error-message">{error}</div>}
 
               <div className="review-form">
                 <div className="rating-container">
@@ -388,6 +568,7 @@ const ClientReview = () => {
                         onClick={() => handleRatingClick(star)}
                         onMouseEnter={() => handleRatingHover(star)}
                         onMouseLeave={handleRatingLeave}
+                        disabled={isLoading}
                         aria-label={`Rate ${star} star${star !== 1 ? "s" : ""}`}
                       >
                         <Star
@@ -426,37 +607,29 @@ const ClientReview = () => {
                     placeholder="Tell us about your experience with Visiona..."
                     value={comment}
                     onChange={handleCommentChange}
+                    disabled={isLoading}
                   ></textarea>
                 </div>
 
                 <div className="submit-container">
                   <button
                     onClick={handleSubmit}
-                    disabled={rating === 0}
-                    className="submit-button"
+                    disabled={rating === 0 || isLoading || !isAuthenticated}
+                    className={`submit-button ${isLoading ? "loading" : ""}`}
                   >
-                    Submit Review
-                    <Send size={18} />
+                    {isLoading ? (
+                      <>
+                        <div className="loading-spinner"></div>
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        Submit Review
+                        <Send size={18} />
+                      </>
+                    )}
                   </button>
                 </div>
-              </div>
-
-              <div className="learn-more-container">
-                <a href="#" className="learn-more-link">
-                  Learn more
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="learn-more-icon"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </a>
               </div>
             </div>
           )}

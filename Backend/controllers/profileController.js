@@ -1,624 +1,339 @@
 const Architect = require("../models/Architect");
-const ServiceCategory = require("../models/ServiceCategory");
-const ServiceSubcategory = require("../models/ServiceSubcategory");
-const GlobalOption = require("../models/GlobalOption");
-const fs = require("fs");
+const multer = require("multer");
+const { v4: uuidv4 } = require("uuid");
 const path = require("path");
-
-// Helper function to get subscription limits
-const getSubscriptionLimits = (subscriptionType) => {
-  const limits = {
-    none: {
-      profileImageUpdates: 0,
-      portfolioImages: 0,
-      servicesCount: 0,
-      canUpdateBio: false,
-      canUpdateSocialMedia: false,
-      canUpdateWebsite: false,
-      canAddCertifications: false,
-    },
-    Free: {
-      profileImageUpdates: 1,
-      portfolioImages: 3,
-      servicesCount: 2,
-      canUpdateBio: true,
-      canUpdateSocialMedia: false,
-      canUpdateWebsite: false,
-      canAddCertifications: false,
-    },
-    premium: {
-      profileImageUpdates: 5,
-      portfolioImages: 15,
-      servicesCount: 8,
-      canUpdateBio: true,
-      canUpdateSocialMedia: true,
-      canUpdateWebsite: true,
-      canAddCertifications: true,
-      maxCertifications: 5,
-    },
-    vip: {
-      profileImageUpdates: -1, // unlimited
-      portfolioImages: -1, // unlimited
-      servicesCount: -1, // unlimited
-      canUpdateBio: true,
-      canUpdateSocialMedia: true,
-      canUpdateWebsite: true,
-      canAddCertifications: true,
-      maxCertifications: -1, // unlimited
-    },
-  };
-
-  return limits[subscriptionType] || limits.none;
-};
-
-// Helper function to delete old files
-const deleteOldFile = (filePath) => {
-  if (filePath && fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
+const fs = require("fs");
+// Ensure upload directories exist
+const createDirectoryIfNotExists = (dirPath) => {
+  const fullPath = path.join(__dirname, "..", dirPath);
+  if (!fs.existsSync(fullPath)) {
+    fs.mkdirSync(fullPath, { recursive: true });
+    console.log(`Created directory: ${fullPath}`);
   }
 };
 
-// Get architect profile (for the architect themselves)
+// Create necessary directories
+createDirectoryIfNotExists("uploads");
+createDirectoryIfNotExists("uploads/profiles");
+createDirectoryIfNotExists("uploads/portfolio");
+createDirectoryIfNotExists("uploads/documents");
+
+// Configure storage for profile images and portfolio
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    let uploadPath = path.join(__dirname, "..", "uploads/");
+
+    if (
+      file.fieldname === "profilePicture" ||
+      file.fieldname === "companyLogo"
+    ) {
+      uploadPath = path.join(uploadPath, "profiles/");
+    } else if (file.fieldname === "portfolio") {
+      uploadPath = path.join(uploadPath, "portfolio/");
+    } else if (file.fieldname === "documents") {
+      uploadPath = path.join(uploadPath, "documents/");
+    }
+
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    const uniqueFilename = `${uuidv4()}${path.extname(file.originalname)}`;
+    cb(null, uniqueFilename);
+  },
+});
+
+// Filter for allowed file types
+const fileFilter = (req, file, cb) => {
+  // Check file types based on fieldname
+  if (
+    file.fieldname === "profilePicture" ||
+    file.fieldname === "companyLogo" ||
+    file.fieldname === "portfolio"
+  ) {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed!"), false);
+    }
+  } else if (file.fieldname === "documents") {
+    if (
+      file.mimetype === "application/pdf" ||
+      file.mimetype.startsWith("image/")
+    ) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error("Only PDF and image files are allowed for documents!"),
+        false
+      );
+    }
+  } else {
+    cb(null, true);
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+});
+
+// Middleware to handle file uploads
+exports.uploadFiles = upload.fields([
+  { name: "profilePicture", maxCount: 1 },
+  { name: "companyLogo", maxCount: 1 },
+  { name: "portfolio", maxCount: 10 },
+  { name: "documents", maxCount: 5 },
+]);
+
+// Get the authenticated architect's profile
 exports.getMyProfile = async (req, res) => {
   try {
-    const architect = await Architect.findById(req.user._id)
-      .populate("services.category", "name description")
-      .populate("services.subcategories", "name description")
-      .populate("subscription");
+    const architect = await Architect.findById(req.user.id)
+      .populate("subscription")
+      .select("-__v -authMethod -customerId -priceId");
 
-    if (!architect) {
-      return res.status(404).json({
-        success: false,
-        error: "Profil d'architecte non trouvé",
-      });
-    }
+    if (!architect)
+      return res.status(404).json({ error: "Architect not found" });
 
-    res.status(200).json({
-      success: true,
-      data: architect,
-    });
+    res.json(architect);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Erreur lors de la récupération du profil",
-      details: error.message,
-    });
+    console.error("Profile fetch error:", error);
+    res.status(500).json({ error: "Failed to fetch profile" });
   }
 };
 
-// Update architect profile
-exports.updateProfile = async (req, res) => {
+// Update the authenticated architect's profile
+// Update the authenticated architect's profile
+exports.updateMyProfile = async (req, res) => {
   try {
-    const architect = await Architect.findById(req.user._id);
-
-    if (!architect) {
-      return res.status(404).json({
-        success: false,
-        error: "Profil d'architecte non trouvé",
-      });
-    }
-
-    // Check if architect is approved
-    if (architect.status !== "approved") {
-      return res.status(403).json({
-        success: false,
-        error: "Votre compte doit être approuvé pour modifier le profil",
-      });
-    }
-
-    const limits = getSubscriptionLimits(architect.subscriptionType);
     const updateData = { ...req.body };
 
-    // Handle file uploads
-    if (req.files) {
-      // Profile picture update
-      if (req.files.profilePicture && req.files.profilePicture[0]) {
-        if (limits.profileImageUpdates === 0) {
-          return res.status(403).json({
-            success: false,
-            error:
-              "Votre abonnement ne permet pas de changer la photo de profil",
-          });
-        }
+    // Parse JSON strings for nested objects
+    const fieldsToParse = [
+      "education",
+      "location",
+      "socialMedia",
+      "softwareProficiency",
+      "languages",
+      "companyHistory",
+    ];
 
-        // Delete old profile picture
-        if (architect.profilePicture) {
-          deleteOldFile(architect.profilePicture);
+    fieldsToParse.forEach((field) => {
+      if (updateData[field] && typeof updateData[field] === "string") {
+        try {
+          updateData[field] = JSON.parse(updateData[field]);
+        } catch (err) {
+          console.warn(`Failed to parse ${field}:`, err);
         }
-
-        updateData.profilePicture = req.files.profilePicture[0].path;
       }
+    });
 
-      // Company logo update
-      if (req.files.companyLogo && req.files.companyLogo[0]) {
-        if (limits.profileImageUpdates === 0) {
-          return res.status(403).json({
-            success: false,
-            error:
-              "Votre abonnement ne permet pas de changer le logo de l'entreprise",
-          });
-        }
-
-        // Delete old company logo
-        if (architect.companyLogo) {
-          deleteOldFile(architect.companyLogo);
-        }
-
-        updateData.companyLogo = req.files.companyLogo[0].path;
-      }
-
-      // Portfolio images update
-      if (req.files.portfolio && req.files.portfolio.length > 0) {
-        const currentPortfolioCount = architect.portfolio
-          ? architect.portfolio.length
-          : 0;
-        const newImagesCount = req.files.portfolio.length;
-        const totalImages = currentPortfolioCount + newImagesCount;
-
-        if (
-          limits.portfolioImages !== -1 &&
-          totalImages > limits.portfolioImages
-        ) {
-          return res.status(403).json({
-            success: false,
-            error: `Votre abonnement limite le portfolio à ${limits.portfolioImages} images`,
-          });
-        }
-
-        const newPortfolioImages = req.files.portfolio.map((file) => file.path);
-        updateData.portfolio = [
-          ...(architect.portfolio || []),
-          ...newPortfolioImages,
-        ];
-      }
-
-      // Certifications update
-      if (req.files.certifications && req.files.certifications.length > 0) {
-        if (!limits.canAddCertifications) {
-          return res.status(403).json({
-            success: false,
-            error:
-              "Votre abonnement ne permet pas d'ajouter des certifications",
-          });
-        }
-
-        const currentCertCount = architect.certifications
-          ? architect.certifications.length
-          : 0;
-        const newCertCount = req.files.certifications.length;
-        const totalCerts = currentCertCount + newCertCount;
-
-        if (
-          limits.maxCertifications !== -1 &&
-          totalCerts > limits.maxCertifications
-        ) {
-          return res.status(403).json({
-            success: false,
-            error: `Votre abonnement limite les certifications à ${limits.maxCertifications}`,
-          });
-        }
-
-        const newCertifications = req.files.certifications.map(
-          (file) => file.path
-        );
-        updateData.certifications = [
-          ...(architect.certifications || []),
-          ...newCertifications,
-        ];
-      }
-    }
-
-    // Check subscription limits for various fields
-    if (updateData.bio && !limits.canUpdateBio) {
-      return res.status(403).json({
-        success: false,
-        error: "Votre abonnement ne permet pas de modifier la biographie",
-      });
-    }
-
-    if (updateData.website && !limits.canUpdateWebsite) {
-      return res.status(403).json({
-        success: false,
-        error: "Votre abonnement ne permet pas d'ajouter un site web",
-      });
-    }
-
-    if (updateData.socialMedia && !limits.canUpdateSocialMedia) {
-      return res.status(403).json({
-        success: false,
-        error: "Votre abonnement ne permet pas d'ajouter les réseaux sociaux",
-      });
-    }
-
-    // Handle services update
-    if (updateData.services && Array.isArray(updateData.services)) {
-      if (
-        limits.servicesCount !== -1 &&
-        updateData.services.length > limits.servicesCount
-      ) {
-        return res.status(403).json({
-          success: false,
-          error: `Votre abonnement limite les services à ${limits.servicesCount}`,
-        });
-      }
-
-      // Validate service categories and subcategories exist
-      for (const service of updateData.services) {
-        const category = await ServiceCategory.findById(service.category);
-        if (!category) {
-          return res.status(400).json({
-            success: false,
-            error: "Catégorie de service invalide",
-          });
-        }
-
-        if (service.subcategories && service.subcategories.length > 0) {
-          for (const subId of service.subcategories) {
-            const subcategory = await ServiceSubcategory.findById(subId);
-            if (
-              !subcategory ||
-              subcategory.parentCategory.toString() !== service.category
-            ) {
-              return res.status(400).json({
-                success: false,
-                error: "Sous-catégorie de service invalide",
-              });
-            }
+    // SPECIAL HANDLING FOR LOCATION FIELD
+    if (updateData.location) {
+      // If location.coordinates is malformed, handle it properly
+      if (updateData.location.coordinates) {
+        // If coordinates is a string representation of an object, try to parse it
+        if (typeof updateData.location.coordinates === "string") {
+          try {
+            updateData.location.coordinates = JSON.parse(
+              updateData.location.coordinates
+            );
+          } catch (err) {
+            console.warn("Failed to parse coordinates:", err);
+            // Remove malformed coordinates to prevent geo key extraction error
+            delete updateData.location.coordinates;
           }
         }
-      }
-    }
 
-    // Handle software proficiency update (validate against GlobalOptions)
-    if (
-      updateData.softwareProficiency &&
-      Array.isArray(updateData.softwareProficiency)
-    ) {
-      const softwareOptions = await GlobalOption.find({ type: "software" });
-      const validSoftwareNames = softwareOptions.map((opt) => opt.name);
-
-      for (const software of updateData.softwareProficiency) {
-        if (!validSoftwareNames.includes(software.name)) {
-          return res.status(400).json({
-            success: false,
-            error: `Logiciel non reconnu: ${software.name}`,
-          });
+        // Validate coordinates array
+        if (Array.isArray(updateData.location.coordinates)) {
+          const coords = updateData.location.coordinates;
+          // Ensure coordinates are numbers and in valid range
+          if (
+            coords.length === 2 &&
+            typeof coords[0] === "number" &&
+            typeof coords[1] === "number" &&
+            coords[0] >= -180 &&
+            coords[0] <= 180 && // longitude
+            coords[1] >= -90 &&
+            coords[1] <= 90
+          ) {
+            // latitude
+            // Coordinates are valid
+          } else {
+            console.warn("Invalid coordinates:", coords);
+            delete updateData.location.coordinates;
+          }
+        } else if (updateData.location.coordinates !== undefined) {
+          // If coordinates exist but are not an array, remove them
+          delete updateData.location.coordinates;
         }
       }
     }
 
-    // Remove fields that shouldn't be updated directly
-    delete updateData.status;
-    delete updateData.isVerified;
-    delete updateData.subscriptionType;
-    delete updateData.hasAccess;
-    delete updateData.customerId;
-    delete updateData.rating;
-    delete updateData.reviews;
-    delete updateData.clients;
-    delete updateData.clientsCount;
+    // Handle uploaded files
+    if (req.files) {
+      // Process profile picture
+      if (req.files.profilePicture) {
+        updateData.profilePicture = `/uploads/profiles/${req.files.profilePicture[0].filename}`;
+        console.log("Profile picture path:", updateData.profilePicture);
+      }
 
-    // Update the architect profile
+      // Process company logo
+      if (req.files.companyLogo) {
+        updateData.companyLogo = `/uploads/profiles/${req.files.companyLogo[0].filename}`;
+        console.log("Company logo path:", updateData.companyLogo);
+      }
+
+      // Process portfolio images
+      if (req.files.portfolio) {
+        const portfolioUrls = req.files.portfolio.map(
+          (file) => `/uploads/portfolio/${file.filename}`
+        );
+        console.log("Portfolio URLs:", portfolioUrls);
+
+        const architect = await Architect.findById(req.user.id);
+        if (updateData.updatePortfolio === "add" && architect?.portfolio) {
+          updateData.portfolio = [...architect.portfolio, ...portfolioUrls];
+        } else {
+          updateData.portfolio = portfolioUrls;
+        }
+      }
+
+      // Process documents
+      if (req.files.documents) {
+        const documentUrls = req.files.documents.map(
+          (file) => `/uploads/documents/${file.filename}`
+        );
+        console.log("Document URLs:", documentUrls);
+
+        const architect = await Architect.findById(req.user.id);
+        if (updateData.updateDocuments === "add" && architect?.documents) {
+          updateData.documents = [...architect.documents, ...documentUrls];
+        } else {
+          updateData.documents = documentUrls;
+        }
+      }
+
+      // Remove the update flags
+      delete updateData.updatePortfolio;
+      delete updateData.updateDocuments;
+    }
+
     const updatedArchitect = await Architect.findByIdAndUpdate(
-      req.user._id,
+      req.user.id,
       updateData,
       { new: true, runValidators: true }
-    )
-      .populate("services.category", "name description")
-      .populate("services.subcategories", "name description");
+    ).lean();
 
-    res.status(200).json({
-      success: true,
-      message: "Profil mis à jour avec succès",
-      data: updatedArchitect,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Erreur lors de la mise à jour du profil",
-      details: error.message,
-    });
-  }
-};
-
-// Get public architect profile (for clients)
-exports.getArchitectProfile = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const architect = await Architect.findById(id)
-      .select(
-        "-patenteFile -cinFile -patenteNumber -documents -authTokens -password"
-      )
-      .populate("services.category", "name description")
-      .populate("services.subcategories", "name description")
-      .populate("reviews.client", "prenom nomDeFamille profilePicture");
-
-    if (!architect) {
-      return res.status(404).json({
-        success: false,
-        error: "Architecte non trouvé",
-      });
+    if (!updatedArchitect) {
+      return res.status(404).json({ error: "Architect not found" });
     }
 
-    if (architect.status !== "approved" || !architect.isActive) {
-      return res.status(404).json({
-        success: false,
-        error: "Architecte non disponible",
-      });
+    // Convert ObjectId to string for nested populated fields
+    if (updatedArchitect.subscription) {
+      updatedArchitect.subscription = updatedArchitect.subscription.toString();
     }
 
-    // Increment profile views
-    architect.profileViews += 1;
-    architect.profileViewsTimestamps.push(new Date());
-    await architect.save();
-
-    res.status(200).json({
-      success: true,
-      data: architect,
-    });
+    res.json(updatedArchitect);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Erreur lors de la récupération du profil",
-      details: error.message,
-    });
-  }
-};
+    console.error("Profile update error:", error.message, error.stack);
 
-// Get all architects with filtering
-exports.getAllArchitects = async (req, res) => {
-  try {
-    const {
-      page = 1,
-      limit = 12,
-      location,
-      specialization,
-      specialty,
-      minBudget,
-      maxBudget,
-      rating,
-      experienceYears,
-      certification,
-      services,
-      sortBy = "createdAt",
-      sortOrder = "desc",
-      search,
-    } = req.query;
-
-    // Build filter object
-    const filter = {
-      status: "approved",
-      isActive: true,
+    const statusCode = error.name === "ValidationError" ? 400 : 500;
+    const response = {
+      error: error.message.replace(/ValidationError: /, ""),
+      ...(error.errors && {
+        details: Object.values(error.errors).map((err) => err.message),
+      }),
     };
 
-    if (location) {
-      filter.$or = [
-        { "education.institution": { $regex: location, $options: "i" } },
-        { companyName: { $regex: location, $options: "i" } },
-      ];
-    }
-
-    if (specialization) {
-      filter.specialization = {
-        $in: Array.isArray(specialization) ? specialization : [specialization],
-      };
-    }
-
-    if (specialty) {
-      filter.specialty = { $regex: specialty, $options: "i" };
-    }
-
-    if (certification) {
-      filter.certification = { $regex: certification, $options: "i" };
-    }
-
-    if (experienceYears) {
-      filter.experienceYears = { $gte: parseInt(experienceYears) };
-    }
-
-    if (rating) {
-      filter["rating.average"] = { $gte: parseFloat(rating) };
-    }
-
-    if (services) {
-      const serviceIds = Array.isArray(services) ? services : [services];
-      filter["services.category"] = { $in: serviceIds };
-    }
-
-    // Handle budget filtering (assuming it's related to service price ranges)
-    if (minBudget || maxBudget) {
-      const budgetFilter = {};
-      if (minBudget) budgetFilter.$gte = parseInt(minBudget);
-      if (maxBudget) budgetFilter.$lte = parseInt(maxBudget);
-      filter["services.priceRange.min"] = budgetFilter;
-    }
-
-    // Handle search
-    if (search) {
-      filter.$or = [
-        { companyName: { $regex: search, $options: "i" } },
-        { bio: { $regex: search, $options: "i" } },
-        { specialty: { $regex: search, $options: "i" } },
-        { specialization: { $in: [new RegExp(search, "i")] } },
-      ];
-    }
-
-    // Build sort object
-    const sort = {};
-    sort[sortBy] = sortOrder === "desc" ? -1 : 1;
-
-    // Execute query with pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    const architects = await Architect.find(filter)
-      .select(
-        "-patenteFile -cinFile -patenteNumber -documents -authTokens -password"
-      )
-      .populate("services.category", "name description")
-      .populate("services.subcategories", "name description")
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit));
-
-    // Get total count for pagination
-    const total = await Architect.countDocuments(filter);
-
-    res.status(200).json({
-      success: true,
-      data: architects,
-      pagination: {
-        current: parseInt(page),
-        pages: Math.ceil(total / parseInt(limit)),
-        total,
-        limit: parseInt(limit),
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Erreur lors de la récupération des architectes",
-      details: error.message,
-    });
+    res.status(statusCode).json(response);
   }
 };
 
-// Get service categories and subcategories
-exports.getServiceOptions = async (req, res) => {
+// Delete portfolio items
+exports.deletePortfolioItem = async (req, res) => {
   try {
-    const categories = await ServiceCategory.find().sort({ name: 1 });
-    const subcategories = await ServiceSubcategory.find()
-      .populate("parentCategory", "name")
-      .sort({ name: 1 });
+    const { itemIndex } = req.params;
 
-    res.status(200).json({
-      success: true,
-      data: {
-        categories,
-        subcategories,
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Erreur lors de la récupération des options de service",
-      details: error.message,
-    });
-  }
-};
-
-// Get global options (certifications and software)
-exports.getGlobalOptions = async (req, res) => {
-  try {
-    const { type } = req.query;
-
-    const filter = {};
-    if (type && ["certification", "software"].includes(type)) {
-      filter.type = type;
-    }
-
-    const options = await GlobalOption.find(filter).sort({ type: 1, name: 1 });
-
-    const groupedOptions = {
-      certifications: options.filter((opt) => opt.type === "certification"),
-      software: options.filter((opt) => opt.type === "software"),
-    };
-
-    res.status(200).json({
-      success: true,
-      data: type ? options : groupedOptions,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Erreur lors de la récupération des options globales",
-      details: error.message,
-    });
-  }
-};
-
-// Remove portfolio image
-exports.removePortfolioImage = async (req, res) => {
-  try {
-    const { imageIndex } = req.params;
-    const architect = await Architect.findById(req.user._id);
-
+    const architect = await Architect.findById(req.user.id);
     if (!architect) {
-      return res.status(404).json({
-        success: false,
-        error: "Profil d'architecte non trouvé",
-      });
+      return res.status(404).json({ error: "Architect not found" });
     }
 
-    const index = parseInt(imageIndex);
-    if (index < 0 || index >= architect.portfolio.length) {
-      return res.status(400).json({
-        success: false,
-        error: "Index d'image invalide",
-      });
+    if (!architect.portfolio || itemIndex >= architect.portfolio.length) {
+      return res.status(400).json({ error: "Portfolio item not found" });
     }
 
-    // Delete the file
-    const imagePath = architect.portfolio[index];
-    deleteOldFile(imagePath);
-
-    // Remove from array
-    architect.portfolio.splice(index, 1);
+    // Remove the portfolio item
+    architect.portfolio.splice(itemIndex, 1);
     await architect.save();
 
-    res.status(200).json({
-      success: true,
-      message: "Image supprimée avec succès",
-      data: architect.portfolio,
+    res.json({
+      message: "Portfolio item deleted successfully",
+      portfolio: architect.portfolio,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Erreur lors de la suppression de l'image",
-      details: error.message,
-    });
+    console.error("Delete portfolio item error:", error);
+    res.status(500).json({ error: "Failed to delete portfolio item" });
   }
 };
 
-// Remove certification file
-exports.removeCertification = async (req, res) => {
+// Delete the authenticated architect's profile
+exports.deleteMyProfile = async (req, res) => {
   try {
-    const { certIndex } = req.params;
-    const architect = await Architect.findById(req.user._id);
+    const deletedArchitect = await Architect.findByIdAndDelete(req.user.id);
+    if (!deletedArchitect)
+      return res.status(404).json({ error: "Architect not found" });
 
-    if (!architect) {
-      return res.status(404).json({
-        success: false,
-        error: "Profil d'architecte non trouvé",
-      });
-    }
+    res.json({ message: "Account deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete account" });
+  }
+};
 
-    const index = parseInt(certIndex);
-    if (index < 0 || index >= architect.certifications.length) {
-      return res.status(400).json({
-        success: false,
-        error: "Index de certification invalide",
-      });
-    }
+// Get architect stats (profile views, ratings, review count)
+exports.getMyStats = async (req, res) => {
+  try {
+    const architect = await Architect.findById(req.user.id);
+    if (!architect)
+      return res.status(404).json({ error: "Architect not found" });
 
-    // Delete the file
-    const certPath = architect.certifications[index];
-    deleteOldFile(certPath);
-
-    // Remove from array
-    architect.certifications.splice(index, 1);
-    await architect.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Certification supprimée avec succès",
-      data: architect.certifications,
+    res.json({
+      profileViews: architect.profileViews || 0,
+      totalReviews: architect.reviews?.length || 0,
+      averageRating: architect.rating?.average || 0,
+      projects: architect.stats?.projects || 0,
+      earnings: architect.stats?.earnings || 0,
+      views: architect.stats?.views || 0,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: "Erreur lors de la suppression de la certification",
-      details: error.message,
-    });
+    res.status(500).json({ error: "Failed to fetch stats" });
+  }
+};
+
+// Change payment status (for subscription)
+exports.updatePaymentStatus = async (req, res) => {
+  try {
+    const { paymentStatus } = req.body;
+    if (!["pending", "completed"].includes(paymentStatus)) {
+      return res.status(400).json({ error: "Invalid payment status" });
+    }
+
+    const architect = await Architect.findById(req.user.id);
+    if (!architect)
+      return res.status(404).json({ error: "Architect not found" });
+
+    if (!architect.subscription) {
+      return res.status(400).json({ error: "No active subscription found" });
+    }
+
+    architect.paymentStatus = paymentStatus;
+    await architect.save();
+
+    res.json({ message: "Payment status updated", architect });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update payment status" });
   }
 };

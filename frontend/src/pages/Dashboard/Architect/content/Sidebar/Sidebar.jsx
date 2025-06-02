@@ -14,9 +14,7 @@ import {
   faCalendar,
   faProjectDiagram,
   faStore,
-  faFileInvoice,
   faFileInvoiceDollar,
-  faBell,
 } from "@fortawesome/free-solid-svg-icons";
 
 const menuItems = [
@@ -25,12 +23,9 @@ const menuItems = [
   { title: "Calendar", icon: faCalendar, view: "calendar" },
   { title: "Projects", icon: faProjectDiagram, view: "projects" },
   { title: "Tasks", icon: faProjectDiagram, view: "kanban" },
-
   { title: "Profile", icon: faUser, view: "profile" },
   { title: "Quotes", icon: faFileInvoiceDollar, view: "quote" },
-  { title: "Invoices", icon: faFileInvoice, view: "invoices" },
   { title: "Market", icon: faStore, view: "market" },
-  { title: "Matching requests", icon: faBell, view: "match" },
 ];
 
 const Sidebar = ({ expanded, setExpanded, selectedItem, setSelectedItem }) => {

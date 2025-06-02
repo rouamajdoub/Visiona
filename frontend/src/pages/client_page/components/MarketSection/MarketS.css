@@ -21,32 +21,40 @@
   justify-content: space-between;
   position: relative;
   z-index: 2;
+  gap: 40px;
 }
 
 /* Text Content */
 .market-section-text {
   flex: 0 0 45%;
-  padding-right: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Vertical centering */
+  align-items: flex-start;
+  gap: 1.5rem; /* Consistent spacing between elements */
 }
 
 .market-section-title {
-  font-size: 3.5rem;
-  font-weight: 700;
-  margin-bottom: 1.5rem;
-  line-height: 1.2;
-  color: #1a1a1a;
+  font-size: clamp(2.5rem, 4vw, 3.5rem); /* Responsive font size */
+  margin-bottom: 0;
+  line-height: 1.1;
+  max-width: 100%;
 }
 
 .market-section-subtitle {
-  font-size: 1.25rem;
-  line-height: 1.6;
-  margin-bottom: 2.5rem;
+  font-size: clamp(1rem, 1.25vw, 1.25rem); /* Fluid typography */
+  margin-bottom: 0;
+  max-width: 85%;
   color: #555;
   max-width: 90%;
 }
 
 /* CTA Button */
 .market-cta-btn {
+  margin-top: 1rem;
+  position: relative;
+  overflow: hidden;
+  width: fit-content;
   background: linear-gradient(90deg, #4f46e5, #818cf8);
   color: white;
   border: none;

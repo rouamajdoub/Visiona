@@ -47,7 +47,78 @@ export const fetchAllReviews = createAsyncThunk(
   "admin/fetchAllReviews",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${BASE_URL}/reviews`);
+      const response = await axios.get(`${BASE_URL}/reviews/admin/all-reviews`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+export const fetchProjectReviews = createAsyncThunk(
+  "admin/fetchProjectReviews",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(
+        `${BASE_URL}/reviews/admin/project-reviews`
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+export const fetchProductReviews = createAsyncThunk(
+  "admin/fetchProductReviews",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(
+        `${BASE_URL}/reviews/admin/product-reviews`
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+export const fetchAppReviews = createAsyncThunk(
+  "admin/fetchAppReviews",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${BASE_URL}/reviews/admin/app-reviews`);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+export const fetchSuspiciousReviews = createAsyncThunk(
+  "admin/fetchSuspiciousReviews",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(
+        `${BASE_URL}/reviews/reviews/suspicious`
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+export const updateReviewStatus = createAsyncThunk(
+  "admin/updateReviewStatus",
+  async ({ id, status }, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await axios.patch(
+        `${BASE_URL}/reviews/reviews/${id}/status`,
+        { status }
+      );
+      // Refresh the reviews after status update
+      dispatch(fetchAllReviews());
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -59,9 +130,21 @@ export const deleteReview = createAsyncThunk(
   "admin/deleteReview",
   async ({ id }, { rejectWithValue, dispatch }) => {
     try {
-      await axios.delete(`${BASE_URL}/reviews/${id}`);
+      await axios.delete(`${BASE_URL}/reviews/reviews/${id}`);
       dispatch(fetchAllReviews());
       return id;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
+export const fetchReviewById = createAsyncThunk(
+  "admin/fetchReviewById",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await axios.get(`${BASE_URL}/reviews/reviews/${id}`);
+      return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
     }
@@ -177,6 +260,9 @@ const adminSlice = createSlice({
     reviews: {
       productReviews: [],
       projectReviews: [],
+      appReviews: [],
+      suspiciousReviews: [],
+      selectedReview: null,
     },
     architects: [],
     architectStats: {
@@ -190,7 +276,14 @@ const adminSlice = createSlice({
     loading: false,
     error: null,
   },
-  reducers: {},
+  reducers: {
+    clearSelectedReview: (state) => {
+      state.reviews.selectedReview = null;
+    },
+    clearError: (state) => {
+      state.error = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
       // Subscriptions
@@ -218,7 +311,7 @@ const adminSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      // Reviews
+      // All Reviews
       .addCase(fetchAllReviews.pending, (state) => {
         state.loading = true;
       })
@@ -226,24 +319,122 @@ const adminSlice = createSlice({
         state.loading = false;
         state.reviews.productReviews = action.payload.productReviews || [];
         state.reviews.projectReviews = action.payload.projectReviews || [];
+        state.reviews.appReviews = action.payload.appReviews || [];
       })
       .addCase(fetchAllReviews.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
+      // Project Reviews
+      .addCase(fetchProjectReviews.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchProjectReviews.fulfilled, (state, action) => {
+        state.loading = false;
+        state.reviews.projectReviews = action.payload;
+      })
+      .addCase(fetchProjectReviews.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Product Reviews
+      .addCase(fetchProductReviews.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchProductReviews.fulfilled, (state, action) => {
+        state.loading = false;
+        state.reviews.productReviews = action.payload;
+      })
+      .addCase(fetchProductReviews.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // App Reviews
+      .addCase(fetchAppReviews.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchAppReviews.fulfilled, (state, action) => {
+        state.loading = false;
+        state.reviews.appReviews = action.payload;
+      })
+      .addCase(fetchAppReviews.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Suspicious Reviews
+      .addCase(fetchSuspiciousReviews.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchSuspiciousReviews.fulfilled, (state, action) => {
+        state.loading = false;
+        state.reviews.suspiciousReviews = action.payload;
+      })
+      .addCase(fetchSuspiciousReviews.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Update Review Status
+      .addCase(updateReviewStatus.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(updateReviewStatus.fulfilled, (state, action) => {
+        state.loading = false;
+        // Update the review in all relevant arrays
+        const updatedReview = action.payload;
+        state.reviews.productReviews = state.reviews.productReviews.map(
+          (review) =>
+            review._id === updatedReview._id ? updatedReview : review
+        );
+        state.reviews.projectReviews = state.reviews.projectReviews.map(
+          (review) =>
+            review._id === updatedReview._id ? updatedReview : review
+        );
+        state.reviews.appReviews = state.reviews.appReviews.map((review) =>
+          review._id === updatedReview._id ? updatedReview : review
+        );
+        state.reviews.suspiciousReviews = state.reviews.suspiciousReviews.map(
+          (review) =>
+            review._id === updatedReview._id ? updatedReview : review
+        );
+      })
+      .addCase(updateReviewStatus.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Delete Review
       .addCase(deleteReview.pending, (state) => {
         state.loading = true;
       })
       .addCase(deleteReview.fulfilled, (state, action) => {
         state.loading = false;
+        const deletedId = action.payload;
         state.reviews.productReviews = state.reviews.productReviews.filter(
-          (review) => review._id !== action.payload
+          (review) => review._id !== deletedId
         );
         state.reviews.projectReviews = state.reviews.projectReviews.filter(
-          (review) => review._id !== action.payload
+          (review) => review._id !== deletedId
         );
+        state.reviews.appReviews = state.reviews.appReviews.filter(
+          (review) => review._id !== deletedId
+        );
+        state.reviews.suspiciousReviews =
+          state.reviews.suspiciousReviews.filter(
+            (review) => review._id !== deletedId
+          );
       })
       .addCase(deleteReview.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Fetch Review by ID
+      .addCase(fetchReviewById.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchReviewById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.reviews.selectedReview = action.payload;
+      })
+      .addCase(fetchReviewById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
@@ -336,4 +527,5 @@ const adminSlice = createSlice({
   },
 });
 
+export const { clearSelectedReview, clearError } = adminSlice.actions;
 export default adminSlice.reducer;

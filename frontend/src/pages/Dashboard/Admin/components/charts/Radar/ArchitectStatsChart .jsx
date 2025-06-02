@@ -1,13 +1,6 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Grid,
-  CircularProgress,
-} from "@mui/material";
+import { Box, Typography, Grid, CircularProgress } from "@mui/material";
 import { fetchArchitectStats } from "../../../../../../redux/slices/adminSlice";
 import {
   Radar,
@@ -19,7 +12,6 @@ import {
   Legend,
   Tooltip,
 } from "recharts";
-import RejectionReasonsChart from "../Pie/RejectionReasonsChart";
 
 const ArchitectStatsChart = () => {
   const dispatch = useDispatch();
@@ -63,6 +55,7 @@ const ArchitectStatsChart = () => {
         justifyContent="center"
         alignItems="center"
         height="300px"
+        sx={{ backgroundColor: "transparent" }}
       >
         <CircularProgress />
       </Box>
@@ -76,6 +69,7 @@ const ArchitectStatsChart = () => {
         justifyContent="center"
         alignItems="center"
         height="300px"
+        sx={{ backgroundColor: "transparent" }}
       >
         <Typography color="error">
           Error loading architect statistics:{" "}
@@ -86,67 +80,63 @@ const ArchitectStatsChart = () => {
   }
 
   return (
-    <Grid container spacing={3}>
-      {/* Main Stats Card */}
-      <Grid item xs={12}>
-        <Card elevation={3}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Architect Registration Statistics
+    <Box sx={{ backgroundColor: "transparent" }}>
+      <Typography variant="h6" gutterBottom sx={{ color: "black", mb: 2 }}>
+        Architect Registration Statistics
+      </Typography>
+
+      <Grid container spacing={2}>
+        {/* Stats Summary */}
+        <Grid item xs={12} md={4}>
+          <Box sx={{ mb: 2 }}>
+            <Typography
+              variant="body1"
+              sx={{ fontWeight: "bold", color: "black" }}
+            >
+              Total Architects: {architectStats?.total || 0}
             </Typography>
+            <Typography sx={{ color: "black" }}>
+              Pending: {architectStats?.pending || 0}
+            </Typography>
+            <Typography sx={{ color: "black" }}>
+              Approved: {architectStats?.approved || 0}
+            </Typography>
+            <Typography sx={{ color: "black" }}>
+              Rejected: {architectStats?.rejected || 0}
+            </Typography>
+          </Box>
+        </Grid>
 
-            <Grid container spacing={3}>
-              {/* Stats Summary */}
-              <Grid item xs={12} md={4}>
-                <Box sx={{ mb: 2 }}>
-                  <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                    Total Architects: {architectStats?.total || 0}
-                  </Typography>
-                  <Typography>
-                    Pending: {architectStats?.pending || 0}
-                  </Typography>
-                  <Typography>
-                    Approved: {architectStats?.approved || 0}
-                  </Typography>
-                  <Typography>
-                    Rejected: {architectStats?.rejected || 0}
-                  </Typography>
-                </Box>
-              </Grid>
-
-              {/* Radar Chart */}
-              <Grid item xs={12} md={8}>
-                <ResponsiveContainer width="100%" height={350}>
-                  <RadarChart outerRadius={150} data={radarData}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="subject" />
-                    <PolarRadiusAxis />
-                    <Radar
-                      name="Architect Status"
-                      dataKey="A"
-                      stroke="#4caf50"
-                      fill="#4caf50"
-                      fillOpacity={0.6}
-                    />
-                    <Tooltip />
-                    <Legend />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
+        {/* Radar Chart */}
+        <Grid item xs={12} md={8}>
+          <ResponsiveContainer width="100%" height={300}>
+            <RadarChart
+              outerRadius={120}
+              data={radarData}
+              style={{ backgroundColor: "transparent" }}
+            >
+              <PolarGrid />
+              <PolarAngleAxis dataKey="subject" />
+              <PolarRadiusAxis />
+              <Radar
+                name="Architect Status"
+                dataKey="A"
+                stroke="#4caf50"
+                fill="#4caf50"
+                fillOpacity={0.6}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                  border: "1px solid #ccc",
+                }}
+              />
+              <Legend />
+            </RadarChart>
+          </ResponsiveContainer>
+        </Grid>
       </Grid>
-
-      {/* Rejection Reasons Pie Chart in a separate card */}
-      <Grid item xs={12} md={6}>
-        <RejectionReasonsChart
-          rejectionReasons={architectStats?.rejectionReasons || []}
-          loading={loading}
-          error={error}
-        />
-      </Grid>
-    </Grid>
+    </Box>
   );
 };
 

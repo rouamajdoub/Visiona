@@ -141,9 +141,10 @@ const Signup = () => {
     if (authStatus === "succeeded") {
       if (userType === "architect") {
         setIsSubmitted(true);
-        // Skip to confirmation step
-        setStep(userType === "architect" ? 8 : 4);
+        // Go to confirmation step for architects
+        setStep(8);
       } else {
+        // For clients, redirect after delay
         const timer = setTimeout(() => {
           navigate("/login");
         }, 3000);
@@ -151,7 +152,6 @@ const Signup = () => {
       }
     }
   }, [authStatus, navigate, userType]);
-
   useEffect(() => {
     return () => {
       dispatch(resetStatus());
@@ -245,11 +245,6 @@ const Signup = () => {
   const handlePatenteFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setPatenteFile(e.target.files[0]);
-    }
-  };
-  const handleProfilePictureChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setProfilePicture(e.target.files[0]);
     }
   };
 
@@ -692,31 +687,34 @@ const Signup = () => {
 
               {/* New CIN Image Upload */}
               <div className="form-group file-upload">
-                <label>
-                  <FaIdCard className="input-icon" /> CIN Image
-                </label>
-                <div className="file-input-container">
-                  <label className="file-input-label">
+                <div className="form-group">
+                  <label>
+                    <FaIdCard className="input-icon" /> CIN Image
+                  </label>
+                  <div className="file-upload-container">
                     <input
                       type="file"
+                      id="cinFile"
                       onChange={handleCinFileChange}
                       accept="image/*"
-                      name="cinFile" // This should match the field name expected by backend
-                      className="file-input"
+                      className="file-input-hidden"
                     />
-                    <span className="file-input-button">
-                      <FaUpload /> {cinFile ? cinFile.name : "Upload CIN Image"}
-                    </span>
-                  </label>
-                  {cinFile && (
-                    <button
-                      type="button"
-                      className="file-remove-btn"
-                      onClick={() => setCinFile(null)}
-                    >
-                      <FaTimes />
-                    </button>
-                  )}
+                    <label htmlFor="cinFile" className="file-upload-label">
+                      <FaUpload className="upload-icon" />
+                      <span className="upload-text">
+                        {cinFile ? cinFile.name : "Choose CIN Image"}
+                      </span>
+                    </label>
+                    {cinFile && (
+                      <button
+                        type="button"
+                        className="file-remove-button"
+                        onClick={() => setCinFile(null)}
+                      >
+                        <FaTimes />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -740,32 +738,34 @@ const Signup = () => {
 
               {/* New Patente PDF Upload */}
               <div className="form-group file-upload">
-                <label>
-                  <FaFileAlt className="input-icon" /> Patente Document (PDF)
-                </label>
-                <div className="file-input-container">
-                  <label className="file-input-label">
+                <div className="form-group">
+                  <label>
+                    <FaFileAlt className="input-icon" /> Patente Document (PDF)
+                  </label>
+                  <div className="file-upload-container">
                     <input
                       type="file"
+                      id="patenteFile"
                       onChange={handlePatenteFileChange}
                       accept=".pdf"
-                      name="patentFile" // This should match the field name expected by backend
-                      className="file-input"
+                      className="file-input-hidden"
                     />
-                    <span className="file-input-button">
-                      <FaUpload />{" "}
-                      {patenteFile ? patenteFile.name : "Upload Patente PDF"}
-                    </span>
-                  </label>
-                  {patenteFile && (
-                    <button
-                      type="button"
-                      className="file-remove-btn"
-                      onClick={() => setPatenteFile(null)}
-                    >
-                      <FaTimes />
-                    </button>
-                  )}
+                    <label htmlFor="patenteFile" className="file-upload-label">
+                      <FaUpload className="upload-icon" />
+                      <span className="upload-text">
+                        {patenteFile ? patenteFile.name : "Choose Patente PDF"}
+                      </span>
+                    </label>
+                    {patenteFile && (
+                      <button
+                        type="button"
+                        className="file-remove-button"
+                        onClick={() => setPatenteFile(null)}
+                      >
+                        <FaTimes />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -816,12 +816,28 @@ const Signup = () => {
                     required: "Years of experience is required",
                     min: {
                       value: 0,
-                      message: "Experience years must be a positive number",
+                      message: "Experience years cannot be negative",
+                    },
+                    max: {
+                      value: 50,
+                      message: "Please enter a reasonable number of years",
+                    },
+                    validate: (value) => {
+                      if (!/^\d+$/.test(value)) {
+                        return "Please enter numbers only";
+                      }
+                      return true;
                     },
                   })}
                   defaultValue={formData.experienceYears || ""}
                   placeholder="Years of Experience"
                   type="number"
+                  min="0"
+                  max="50"
+                  onInput={(e) => {
+                    // Remove any non-numeric characters
+                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                  }}
                 />
                 {errors.experienceYears && (
                   <p className="error-message">
@@ -966,7 +982,7 @@ const Signup = () => {
               {educationFields.map((field, index) => (
                 <div key={index} className="education-field-group">
                   <div className="education-field-header">
-                    <h3>Education #{index + 1}</h3>
+                    <h3>Education -{index + 1}</h3>
                     {educationFields.length > 1 && (
                       <button
                         type="button"
@@ -1016,12 +1032,23 @@ const Signup = () => {
                       <input
                         value={field.graduationYear}
                         onChange={(e) => {
-                          const values = [...educationFields];
-                          values[index].graduationYear = e.target.value;
-                          setEducationFields(values);
+                          const value = e.target.value;
+                          // Only allow numbers and reasonable year range
+                          if (
+                            value === "" ||
+                            (/^\d+$/.test(value) &&
+                              parseInt(value) >= 1950 &&
+                              parseInt(value) <= new Date().getFullYear() + 10)
+                          ) {
+                            const values = [...educationFields];
+                            values[index].graduationYear = value;
+                            setEducationFields(values);
+                          }
                         }}
                         placeholder="Graduation Year"
                         type="number"
+                        min="1950"
+                        max={new Date().getFullYear() + 10}
                       />
                     </div>
                   </div>

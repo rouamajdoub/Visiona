@@ -99,7 +99,7 @@ exports.createNeedSheet = async (req, res) => {
       res.status(201).json({
         success: true,
         data: needSheet,
-        matches: matchingResponse.data.data,
+        matches: matchingResponse.data.data.matches || [],
         message: "Need sheet created successfully with architect matches",
       });
     } catch (matchError) {

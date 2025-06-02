@@ -33,17 +33,6 @@
   }
 }
 
-.clt_header_cta {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.clt_header_icon {
-  height: 14px;
-  width: 14px;
-}
-
 .clt_header_main {
   padding: 20px 0;
 }
@@ -81,31 +70,53 @@
   .clt_nav_desktop {
     display: flex;
     align-items: center;
-    gap: 24px;
-    color: #666;
+    gap: 16px;
   }
 
-  .clt_nav_desktop button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 15px;
-    transition: color 0.2s ease;
-  }
-
-  .clt_nav_desktop button:hover {
-    color: #000;
+  .clt_menu_button {
+    display: none;
   }
 }
 
-.clt_btn_primary {
-  background-color: black;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 500;
+.clt_logout_btn {
+  background: none;
   border: none;
   cursor: pointer;
+  font-size: 15px;
+  color: #666;
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.clt_logout_btn:hover {
+  color: #000;
+}
+
+.clt_logout_icon {
+  font-size: 14px;
+}
+
+.clt_btn_visiona {
+  background-color: transparent;
+  color: black;
+  padding: 8px 16px;
+  border: 2px solid black;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clt_btn_visiona:hover {
+  background-color: black;
+  color: white;
+}
+
+.clt_btn_visiona a {
+  text-decoration: none;
+  color: inherit;
 }
 
 .clt_nav_mobile {
@@ -120,12 +131,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  color: #666;
 }
 
 .clt_nav_mobile_inner button {
-  background: none;
-  border: none;
   text-align: left;
   font-size: 16px;
   cursor: pointer;
@@ -135,4 +143,15 @@
 
 .clt_nav_mobile_inner button:hover {
   color: black;
+}
+
+.clt_nav_mobile_inner .clt_logout_btn {
+  background: none;
+  border: none;
+  color: #666;
+}
+
+.clt_nav_mobile_inner .clt_btn_visiona {
+  border-bottom: none;
+  margin-top: 8px;
 }

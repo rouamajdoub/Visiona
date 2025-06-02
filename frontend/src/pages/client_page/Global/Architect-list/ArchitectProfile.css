@@ -1,0 +1,671 @@
+/* Architect Profile Component Styles */
+
+.arch-profile-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header */
+.arch-profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e0e6ed;
+}
+
+.arch-profile-back-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.arch-profile-back-btn:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+}
+
+.arch-profile-favorite-btn {
+  background: #e9ecef;
+  color: #495057;
+  border: 2px solid #dee2e6;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.arch-profile-favorite-btn:hover {
+  background: #f8f9fa;
+  transform: translateY(-2px);
+}
+
+.arch-profile-favorite-active {
+  background: #e74c3c !important;
+  color: white !important;
+  border-color: #e74c3c !important;
+}
+
+.arch-profile-favorite-active:hover {
+  background: #c0392b !important;
+  border-color: #c0392b !important;
+}
+
+/* Loading States */
+.arch-profile-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px;
+  color: #6c757d;
+}
+
+.arch-profile-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid #e9ecef;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: arch-profile-spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes arch-profile-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error States */
+.arch-profile-error,
+.arch-profile-not-found {
+  text-align: center;
+  padding: 60px 20px;
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.arch-profile-error-text,
+.arch-profile-not-found-text {
+  color: #721c24;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+}
+
+/* Main Profile Section */
+.arch-profile-main {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.arch-profile-info {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 40px;
+  background: white;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.arch-profile-image-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.arch-profile-image {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #e9ecef;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.arch-profile-status {
+  margin-top: 15px;
+}
+
+.arch-profile-status-badge {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.arch-profile-online {
+  background: #d4edda;
+  color: #155724;
+}
+
+.arch-profile-offline {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.arch-profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.arch-profile-name {
+  color: #2c3e50;
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.arch-profile-specialization {
+  color: #3498db;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Rating */
+.arch-profile-rating {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.arch-profile-rating-stars {
+  display: flex;
+  gap: 2px;
+}
+
+.arch-profile-star {
+  font-size: 1.5rem;
+}
+
+.arch-profile-star-filled {
+  color: #f39c12;
+}
+
+.arch-profile-star-empty {
+  color: #ddd;
+}
+
+.arch-profile-rating-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.arch-profile-rating-score {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.arch-profile-rating-count {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+/* Basic Info */
+.arch-profile-basic-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.arch-profile-info-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.arch-profile-info-label {
+  font-weight: 600;
+  color: #495057;
+  min-width: 120px;
+}
+
+.arch-profile-info-value {
+  color: #2c3e50;
+}
+
+/* Contact Information */
+.arch-profile-contact {
+  background: #f8f9fa;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.arch-profile-contact-title {
+  color: #2c3e50;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0 0 20px 0;
+}
+
+.arch-profile-contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.arch-profile-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.arch-profile-contact-label {
+  font-weight: 600;
+  color: #495057;
+  min-width: 80px;
+}
+
+.arch-profile-contact-link {
+  color: #3498db;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.arch-profile-contact-link:hover {
+  color: #2980b9;
+  text-decoration: underline;
+}
+
+/* Section Titles */
+.arch-profile-section-title {
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 20px 0;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #3498db;
+}
+
+/* About Section */
+.arch-profile-about {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.arch-profile-about-text {
+  color: #495057;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Services Section */
+.arch-profile-services {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.arch-profile-services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.arch-profile-service-item {
+  background: linear-gradient(135deg, #e8f4fd, #d4edda);
+  color: #2c3e50;
+  padding: 15px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid #b8daff;
+  transition: transform 0.3s ease;
+}
+
+.arch-profile-service-item:hover {
+  transform: translateY(-2px);
+}
+
+/* Languages Section */
+.arch-profile-languages {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.arch-profile-languages-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.arch-profile-language-item {
+  background: #3498db;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* Portfolio Section */
+.arch-profile-portfolio {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.arch-profile-portfolio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.arch-profile-portfolio-item {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.arch-profile-portfolio-item:hover {
+  transform: translateY(-5px);
+}
+
+.arch-profile-portfolio-img {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+}
+
+.arch-profile-portfolio-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  color: white;
+  padding: 30px 20px 20px;
+}
+
+.arch-profile-portfolio-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+}
+
+.arch-profile-portfolio-description {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Reviews Section */
+.arch-profile-reviews {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.arch-profile-reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.arch-profile-review-item {
+  background: #f8f9fa;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.arch-profile-review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.arch-profile-review-author {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.arch-profile-review-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.arch-profile-review-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.arch-profile-review-name {
+  color: #2c3e50;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.arch-profile-review-rating {
+  display: flex;
+  gap: 2px;
+}
+
+.arch-profile-review-star {
+  font-size: 1rem;
+}
+
+.arch-profile-review-date {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.arch-profile-review-text {
+  color: #495057;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Map Section */
+.arch-profile-map-container {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+.arch-profile-map-title {
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 20px 0;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #3498db;
+}
+
+.arch-profile-map {
+  height: 400px;
+  border-radius: 12px;
+  border: 2px solid #e9ecef;
+  margin-bottom: 20px;
+}
+
+.arch-profile-map-placeholder {
+  height: 400px;
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.arch-profile-map-placeholder-text {
+  color: #6c757d;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.arch-profile-location-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.arch-profile-location-address,
+.arch-profile-location-city {
+  color: #495057;
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* Custom Map Marker */
+.arch-profile-map-marker {
+  width: 40px;
+  height: 40px;
+  background: #3498db;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.arch-profile-marker-icon {
+  transform: rotate(45deg);
+  font-size: 1.2rem;
+}
+
+.arch-profile-custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Map Popup */
+.arch-profile-map-popup h4 {
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+}
+
+.arch-profile-map-popup p {
+  color: #495057;
+  margin: 4px 0;
+  font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .arch-profile-container {
+    padding: 15px;
+  }
+
+  .arch-profile-header {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .arch-profile-info {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    text-align: center;
+  }
+
+  .arch-profile-image {
+    width: 150px;
+    height: 150px;
+  }
+
+  .arch-profile-name {
+    font-size: 2rem;
+  }
+
+  .arch-profile-services-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .arch-profile-portfolio-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .arch-profile-review-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .arch-profile-map {
+    height: 300px;
+  }
+
+  .arch-profile-map-placeholder {
+    height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .arch-profile-info {
+    padding: 25px;
+  }
+
+  .arch-profile-about,
+  .arch-profile-services,
+  .arch-profile-languages,
+  .arch-profile-portfolio,
+  .arch-profile-reviews,
+  .arch-profile-map-container {
+    padding: 20px;
+  }
+
+  .arch-profile-name {
+    font-size: 1.8rem;
+  }
+
+  .arch-profile-specialization {
+    font-size: 1.1rem;
+  }
+}

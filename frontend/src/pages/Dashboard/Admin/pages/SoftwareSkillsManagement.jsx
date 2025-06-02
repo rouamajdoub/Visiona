@@ -172,9 +172,6 @@ const SoftwareSkillsManagement = () => {
         alignItems="center"
         mb={3}
       >
-        <Typography variant="h5" fontWeight="bold">
-          Software Skills Management
-        </Typography>
         <Button
           variant="contained"
           color="primary"

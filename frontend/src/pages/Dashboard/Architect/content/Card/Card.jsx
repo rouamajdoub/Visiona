@@ -14,35 +14,32 @@ const Card = ({
   series,
   isExpanded,
   onCardClick,
-  timeFrame = "Monthly", // Add timeFrame prop with default value
 }) => {
   return (
     <AnimatePresence>
       {isExpanded ? (
         <ExpandedCard
-          key={`expanded-${title}`}
+          key={`expanded-${title}`} // Unique key for expanded card
           title={title}
           color={color}
           series={series}
           onClose={onCardClick}
-          timeFrame={timeFrame}
         />
       ) : (
         <CompactCard
-          key={`compact-${title}`}
+          key={`compact-${title}`} // Unique key for compact card
           title={title}
           color={color}
           barValue={barValue}
           value={value}
           onClick={onCardClick}
-          timeFrame={timeFrame}
         />
       )}
     </AnimatePresence>
   );
 };
 
-const CompactCard = ({ title, color, barValue, value, onClick, timeFrame }) => {
+const CompactCard = ({ title, color, barValue, value, onClick }) => {
   return (
     <motion.div
       className="CompactCard"
@@ -50,7 +47,7 @@ const CompactCard = ({ title, color, barValue, value, onClick, timeFrame }) => {
         background: color.backGround,
         boxShadow: color.boxShadow,
       }}
-      layoutId={`card-${title}`}
+      layoutId={`card-${title}`} // Unique layoutId for each card
       onClick={onClick}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -61,18 +58,14 @@ const CompactCard = ({ title, color, barValue, value, onClick, timeFrame }) => {
         <span>{title}</span>
       </div>
       <div className="detail">
-        <span>{value}</span>
-        <span>This month's {title.toLowerCase()}</span>
-        <span className="percentage-change">
-          {barValue > 0 ? "+" : ""}
-          {barValue}% vs last month
-        </span>
+        <span>${value}</span>
+        <span>Last 24 hours</span>
       </div>
     </motion.div>
   );
 };
 
-const ExpandedCard = ({ title, color, series, onClose, timeFrame }) => {
+const ExpandedCard = ({ title, color, series, onClose }) => {
   const data = {
     options: {
       chart: {
@@ -92,41 +85,11 @@ const ExpandedCard = ({ title, color, series, onClose, timeFrame }) => {
       },
       tooltip: {
         x: {
-          format: "MMM",
+          format: "dd/MM/yy HH:mm",
         },
-      },
-      grid: {
-        show: true,
-        borderColor: "rgba(255, 255, 255, 0.2)",
-        strokeDashArray: 0,
       },
       xaxis: {
-        categories: [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ],
-        labels: {
-          style: {
-            colors: "#fff",
-          },
-        },
-      },
-      yaxis: {
-        labels: {
-          style: {
-            colors: "#fff",
-          },
-        },
+        type: "datetime",
       },
     },
   };
@@ -138,7 +101,7 @@ const ExpandedCard = ({ title, color, series, onClose, timeFrame }) => {
         background: color.backGround,
         boxShadow: color.boxShadow,
       }}
-      layoutId={`card-${title}`}
+      layoutId={`card-${title}`} // Match the layoutId with CompactCard
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -150,9 +113,7 @@ const ExpandedCard = ({ title, color, series, onClose, timeFrame }) => {
       <div className="chartContainer">
         <Chart options={data.options} series={series} type="area" />
       </div>
-      <span>
-        {timeFrame} trends for {new Date().getFullYear()}
-      </span>
+      <span>Last 24 hours</span>
     </motion.div>
   );
 };

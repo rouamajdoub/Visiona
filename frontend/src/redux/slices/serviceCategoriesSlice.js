@@ -88,9 +88,19 @@ export const fetchSubcategories = createAsyncThunk(
       const url = categoryId
         ? `${SUBCATEGORIES_URL}?categoryId=${categoryId}`
         : SUBCATEGORIES_URL;
+
+      console.log("Fetching subcategories from:", url);
+
       const response = await axios.get(url);
+
+      console.log("Subcategories response:", response.data);
+
       return response.data;
     } catch (error) {
+      console.error("Error fetching subcategories:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+
       return rejectWithValue(
         error.response?.data || { message: error.message }
       );

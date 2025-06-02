@@ -36,6 +36,7 @@ const analysis = require("./routes/analysis");
 const globalOptionRoutes = require("./routes/GlobalOptionRoutes");
 const matchingRoutes = require("./routes/matchingRoutes");
 const locationRoutes = require("./routes/locationRoutes");
+const findarchitectRoutes = require("./routes/findarchitectRoutes");
 require("./config/passport");
 
 // Stripe
@@ -150,7 +151,7 @@ app.use(webhookRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/needsheets", needSheetRoutes);
 app.use("/api/matching", matchingRoutes);
-
+app.use("/api/architects-List", findarchitectRoutes);
 // Auth0 callback handling
 app.get("/", async (req, res) => {
   if (req.oidc.isAuthenticated()) {

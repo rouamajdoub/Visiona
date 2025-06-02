@@ -532,7 +532,7 @@ exports.getProfile = asyncHandler(async (req, res) => {
 // controllers/authController.js
 
 exports.loadMe = asyncHandler(async (req, res) => {
-  const user = req.user.toObject(); // req.user is already populated by `protect` middleware
+  const user = req.user.toObject(); 
 
   delete user.password;
   delete user.authTokens;

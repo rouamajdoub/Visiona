@@ -94,10 +94,10 @@ const NeedSheetForm = () => {
     if (success) {
       // Clear success state after navigation
       dispatch(clearSuccess());
-      // Navigate to success page or list of need sheets
-      navigate("/need-sheets");
+      // Navigate to the loading page instead of directly to matches
+      navigate(`/matching-loading/${needsheetState.currentNeedsheet?._id}`);
     }
-  }, [success, navigate, dispatch]);
+  }, [success, navigate, dispatch, needsheetState.currentNeedsheet]);
 
   // Clear errors when component unmounts
   useEffect(() => {
@@ -645,6 +645,13 @@ const NeedSheetForm = () => {
 
   // Step 5: Services - Updated to use fetched service categories
   const renderServicesStep = () => {
+    console.log("Rendering services step:", {
+      loading: serviceCategoriesStatus.loading,
+      error: serviceCategoriesStatus.error,
+      categoriesCount: categories.length,
+      subcategoriesCount: subcategories.length,
+    });
+
     if (serviceCategoriesStatus.loading) {
       return (
         <div className="form-step">
@@ -661,6 +668,16 @@ const NeedSheetForm = () => {
           <div className="error-message">
             Error loading services: {serviceCategoriesStatus.error}
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              dispatch(fetchCategories());
+              dispatch(fetchSubcategories());
+            }}
+            className="retry-button"
+          >
+            Retry Loading Services
+          </button>
         </div>
       );
     }
@@ -678,8 +695,21 @@ const NeedSheetForm = () => {
               category._id
             );
 
+            console.log(`Category ${category.name}:`, {
+              categoryId: category._id,
+              subcategoriesFound: categorySubcategories.length,
+              subcategories: categorySubcategories,
+            });
+
             if (categorySubcategories.length === 0) {
-              return null; // Don't render categories without subcategories
+              return (
+                <div className="service-category" key={category._id}>
+                  <h3>{category.name}</h3>
+                  <p className="no-subcategories">
+                    No subcategories available for this category.
+                  </p>
+                </div>
+              );
             }
 
             return (
@@ -722,6 +752,16 @@ const NeedSheetForm = () => {
         {categories.length === 0 && !serviceCategoriesStatus.loading && (
           <div className="no-services-message">
             No service categories available at the moment.
+            <button
+              type="button"
+              onClick={() => {
+                dispatch(fetchCategories());
+                dispatch(fetchSubcategories());
+              }}
+              className="retry-button"
+            >
+              Retry Loading Services
+            </button>
           </div>
         )}
       </div>

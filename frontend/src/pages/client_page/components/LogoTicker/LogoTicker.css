@@ -32,15 +32,17 @@
 
 .logo-ticker-animation {
   display: flex;
-  gap: 56px; /* equivalent to gap-14 in Tailwind */
-  padding-right: 56px; /* equivalent to pr-14 in Tailwind */
+  gap: clamp(20px, 5vw, 56px); /* Responsive gap */
+  padding-right: clamp(20px, 5vw, 56px); /* Responsive padding */
   flex: none;
   animation: ticker 20s linear infinite;
 }
-
 .logo-ticker-image {
   height: auto;
   width: auto;
+  max-width: 120px; /* Limit max size */
+  max-height: 40px; /* Limit height */
+  object-fit: contain; /* Maintain aspect ratio */
 }
 
 @keyframes ticker {
@@ -49,5 +51,16 @@
   }
   100% {
     transform: translateX(-50%);
+  }
+}
+@media (max-width: 767px) {
+  .logo-ticker-animation {
+    gap: 20px;
+    padding-right: 20px;
+  }
+
+  .logo-ticker-image {
+    max-width: 80px;
+    max-height: 30px;
   }
 }

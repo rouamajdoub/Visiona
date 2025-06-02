@@ -70,11 +70,20 @@ const UserManagement = () => {
   ];
 
   if (loading) return <p>Chargement en cours...</p>;
-  if (error) return <p>Erreur : {error}</p>;
+
+  // Fix: Handle error object properly
+  if (error) {
+    const errorMessage =
+      typeof error === "string"
+        ? error
+        : error.message || error.error || JSON.stringify(error);
+    return <p>Erreur : {errorMessage}</p>;
+  }
 
   // Map users to the format expected by DataGrid
   const rows = users.map((user) => ({
     id: user._id, // Assuming _id is the unique identifier
+    _id: user._id, // Keep _id for handleDelete
     pseudo: user.pseudo,
     email: user.email,
     role: user.role, // Adjust based on your user object structure

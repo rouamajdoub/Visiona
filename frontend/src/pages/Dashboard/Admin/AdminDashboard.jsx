@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress, Typography, Button } from "@mui/material";
+import { LogoutOutlined, HomeOutlined } from "@mui/icons-material";
 
 // Global components
 import Sidebar from "./components/Sidebar";
 
 // Charts
 import UserStatisticsChart from "./components/charts/Bar/UserStat";
-import ReviewManagementChart from "./components/charts/Bar/ReviewChart";
 import UserStatsChart from "./components/charts/line/UserStatsChart";
 import ArchitectStatsChart from "./components/charts/Radar/ArchitectStatsChart ";
+import RejectionReasonsChart from "./components/charts/Pie/RejectionReasonsChart";
+
 // Management pages
 import ReviewManagement from "./pages/ReviewManagement";
 import UserManagement from "./pages/UserManagement";
@@ -20,47 +22,96 @@ import ServiceManagement from "./pages/ServiceManagement";
 import CertificationManagement from "./pages/CertificationManagement";
 import SoftwareSkillsManagement from "./pages/SoftwareSkillsManagement";
 import CategoryManagement from "./pages/CategoryManagement";
+
 // CSS
 import "./css/style.css";
 
 // Redux actions
 import {
   fetchUsers,
-  fetchAllReviews,
   fetchSubscriptions,
   fetchUserStats,
   fetchArchitectRequests,
+  fetchArchitectStats,
 } from "../../../redux/slices/adminSlice";
+import { logoutUser } from "../../../redux/slices/authSlice";
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
-  const { users, reviews, userStats, loading, error } = useSelector(
+  const { users, userStats, architectStats, loading, error } = useSelector(
     (state) => state.admin
   );
+  const { user } = useSelector((state) => state.auth);
   const [currentView, setCurrentView] = useState("dashboard");
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // Track sidebar state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     dispatch(fetchUsers());
-    dispatch(fetchAllReviews());
     dispatch(fetchSubscriptions());
     dispatch(fetchUserStats());
     dispatch(fetchArchitectRequests());
+    dispatch(fetchArchitectStats());
   }, [dispatch]);
+
+  // Function to get page title based on current view
+  const getPageTitle = () => {
+    const titles = {
+      dashboard: "Dashboard",
+      reviews: "Review Management",
+      users: "User Management",
+      subscriptions: "Subscription Management",
+      "1sign-up-req": "Architect Requests",
+      services: "Service Management",
+      certifications: "Certification Management",
+      skills: "Software Skills Management",
+      "Market-CAT": "Category Management",
+      "sign-up-req": "Architect Approval",
+    };
+    return titles[currentView] || "Dashboard";
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    dispatch(logoutUser());
+  };
 
   const renderStatistics = () => (
     <div className="stats-container">
-      <div className="stat-card">
-        <UserStatisticsChart data={users} />
+      {/* Top Row - 3 equal cards */}
+      <div className="stats-top-row">
+        {/* User Statistics Chart Card */}
+        <div className="stat-card stat-card-small">
+          <div className="chart-container">
+            <UserStatisticsChart data={users} />
+          </div>
+        </div>
+
+        {/* Rejection Reasons Pie Chart Card */}
+        <div className="stat-card stat-card-small">
+          <div className="chart-container">
+            <RejectionReasonsChart
+              rejectionReasons={architectStats?.rejectionReasons}
+              loading={loading}
+              error={error}
+            />
+          </div>
+        </div>
+
+        {/* Architect Radar Chart Card */}
+        <div className="stat-card stat-card-small">
+          <div className="chart-container">
+            <ArchitectStatsChart data={userStats} />
+          </div>
+        </div>
       </div>
-      <div className="stat-card">
-        <ReviewManagementChart productReviews={reviews?.productReviews || []} />
-      </div>
-      <div className="stat-card">
-        <UserStatsChart data={userStats} />
-      </div>
-      <div className="stat-card">
-        <ArchitectStatsChart data={userStats} />
+
+      {/* Bottom Row - Full width card */}
+      <div className="stats-bottom-row">
+        <div className="stat-card stat-card-wide">
+          <div className="chart-container">
+            <UserStatsChart data={userStats} />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -70,14 +121,51 @@ const AdminDashboard = () => {
       <Sidebar
         setCurrentView={setCurrentView}
         setIsCollapsed={setIsSidebarCollapsed}
+        className="sidebar"
       />
-      <Box
+
+      {/* Admin Header */}
+      <div
+        className={`admin-header ${
+          isSidebarCollapsed ? "sidebar-collapsed" : ""
+        }`}
+      >
+        <div>
+          <h1>{getPageTitle()}</h1>
+          <div className="breadcrumb">
+            <HomeOutlined fontSize="small" />
+            <span>Home</span>
+            <span className="breadcrumb-separator">/</span>
+            <span>{getPageTitle()}</span>
+          </div>
+        </div>
+
+        <div className="header-right">
+          {user && (
+            <div className="user-info">
+              <div className="user-name">
+                {user.firstName} {user.lastName}
+              </div>
+              <div className="user-role">{user.role}</div>
+            </div>
+          )}
+
+          <Button
+            className="logout-btn"
+            onClick={handleLogout}
+            startIcon={<LogoutOutlined />}
+          >
+            Logout
+          </Button>
+        </div>
+      </div>
+
+      <div
         className={`dashboard-container ${
           isSidebarCollapsed ? "sidebar-collapsed" : ""
         }`}
       >
-        <Box>
-          <h1>Admin Dashboard</h1>
+        <div className="dashboard-content">
           {loading && <CircularProgress />}
           {error && (
             <Typography color="error">
@@ -94,8 +182,8 @@ const AdminDashboard = () => {
           {currentView === "skills" && <SoftwareSkillsManagement />}
           {currentView === "Market-CAT" && <CategoryManagement />}
           {currentView === "sign-up-req" && <ArchitectApprovalPage />}
-        </Box>
-      </Box>
+        </div>
+      </div>
     </Box>
   );
 };

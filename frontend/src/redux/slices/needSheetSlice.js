@@ -231,6 +231,7 @@ const initialState = {
   // Needsheet data
   needsheets: [],
   currentNeedsheet: null,
+  matchesByNeedsheet: {},
 
   // Matching data
   matches: {}, // Keyed by needsheetId
@@ -377,6 +378,10 @@ const needsheetSlice = createSlice({
         if (action.payload.matches) {
           state.matches[action.payload.data._id] = action.payload.matches;
           state.currentMatches = action.payload.matches;
+        }
+        if (action.payload.matches) {
+          state.matchesByNeedsheet[action.payload.data._id] =
+            action.payload.matches;
         }
       })
       .addCase(createNeedsheet.rejected, (state, action) => {
@@ -719,19 +724,77 @@ export const selectNeedsheetErrors = (state) => state.needsheet.error;
 export const selectNeedsheetSuccess = (state) => state.needsheet.success;
 export const selectNeedsheetUI = (state) => state.needsheet.ui;
 
-// Complex selectors
-export const selectMatchesForNeedsheet = (needsheetId) => (state) =>
-  state.needsheet.matches[needsheetId] || null;
+// Fixed selector - this one was causing issues
+export const selectMatchesForNeedsheet = (needsheetId) => (state) => {
+  console.log("Selector - selectMatchesForNeedsheet:", {
+    needsheetId,
+    allMatches: state.needsheet.matches,
+    specificMatches: state.needsheet.matches[needsheetId],
+    matchesByNeedsheet: state.needsheet.matchesByNeedsheet,
+    specificFromByNeedsheet: state.needsheet.matchesByNeedsheet?.[needsheetId],
+  });
 
+  // Try both storage locations
+  return (
+    state.needsheet.matches[needsheetId] ||
+    state.needsheet.matchesByNeedsheet?.[needsheetId] ||
+    null
+  );
+};
+
+// Alternative selector for the old naming (keep for backward compatibility)
+export const selectMatchesByNeedsheetId = (needsheetId) => (state) => {
+  const matchData =
+    state.needsheet.matches[needsheetId] ||
+    state.needsheet.matchesByNeedsheet?.[needsheetId];
+
+  console.log("Selector - selectMatchesByNeedsheetId:", {
+    needsheetId,
+    matchData,
+    extractedMatches: matchData?.matches,
+  });
+
+  // Return the matches array directly, not the wrapper object
+  return matchData?.matches || [];
+};
+// Complex selectors
 export const selectIsMatchingInProgress = (state) =>
   state.needsheet.ui.matchingInProgress ||
   state.needsheet.loading.match ||
-  state.needsheet.loading.refresh;
+  state.needsheet.loading.refresh ||
+  state.needsheet.loading.getMatches; // Added this missing loading state
 
 export const selectHasAnyError = (state) =>
   Object.values(state.needsheet.error).some((error) => error !== null);
 
 export const selectHasAnySuccess = (state) =>
   Object.values(state.needsheet.success).some((success) => success === true);
+
+// New helper selectors for better debugging
+export const selectMatchesDebugInfo = (needsheetId) => (state) => ({
+  needsheetId,
+  matches: state.needsheet.matches,
+  matchesByNeedsheet: state.needsheet.matchesByNeedsheet,
+  currentMatches: state.needsheet.currentMatches,
+  loading: state.needsheet.loading,
+  errors: state.needsheet.error,
+  specificMatch: state.needsheet.matches[needsheetId],
+  specificMatchByNeedsheet: state.needsheet.matchesByNeedsheet?.[needsheetId],
+});
+
+export const selectMatchingStatusForNeedsheet = (needsheetId) => (state) => {
+  const matchData =
+    state.needsheet.matches[needsheetId] ||
+    state.needsheet.matchesByNeedsheet?.[needsheetId];
+
+  return {
+    hasMatches: !!matchData,
+    matchCount: matchData?.matches?.length || 0,
+    isLoading:
+      state.needsheet.loading.getMatches || state.needsheet.loading.match,
+    error: state.needsheet.error.getMatches || state.needsheet.error.match,
+    lastUpdated: matchData?.timestamp || matchData?.createdAt,
+  };
+};
 
 export default needsheetSlice.reducer;

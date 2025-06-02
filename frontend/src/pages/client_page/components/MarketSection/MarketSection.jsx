@@ -87,8 +87,10 @@ const MarketSection = () => {
             className="market-section-subtitle"
             variants={titleVariants}
           >
-            Where design meets purpose. Crafted pieces from our architect
-            community.
+            Where visionary design meets purposeful living. Discover exclusive,
+            architect-crafted pieces that transform spaces into statements -
+            each item born from a collaboration between functional innovation
+            and aesthetic mastery.
           </motion.p>
 
           <motion.button

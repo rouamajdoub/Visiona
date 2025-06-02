@@ -160,18 +160,14 @@ const ArchitectApprovalPage = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" sx={{ fontWeight: "bold", mb: 3 }}>
-        Architect Approval Dashboard
-      </Typography>
-
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2, color: "black" }}>
           {typeof error === "string" ? error : "An error occurred"}
         </Alert>
       )}
 
       <Box sx={{ mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: "medium" }}>
+        <Typography variant="h6" sx={{ fontWeight: "medium", color: "black" }}>
           Pending Requests ({requests.length})
         </Typography>
       </Box>
