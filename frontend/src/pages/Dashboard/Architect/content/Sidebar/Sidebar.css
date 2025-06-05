@@ -6,15 +6,27 @@
   width: 250px;
   height: 100vh;
   padding-top: 2rem;
-  padding-bottom: 3rem; /* Add space at the bottom */
-
+  padding-bottom: 2rem;
   transition: width 0.3s ease-in-out;
-  overflow: hidden; /* Hide overflow for the entire sidebar */
+  overflow: hidden;
 }
 
-/* Collapsed Sidebar */
+/* Desktop Collapsed Sidebar */
 .sidebar.collapsed {
   width: 80px;
+}
+
+/* Desktop specific styles */
+@media screen and (min-width: 769px) {
+  .sidebar {
+    position: relative;
+    transform: none;
+  }
+
+  .sidebar.collapsed {
+    width: 80px;
+    transform: none;
+  }
 }
 
 /* Toggle Button */
@@ -27,6 +39,14 @@
   cursor: pointer;
   z-index: 20;
   transition: transform 0.3s ease;
+  background: var(--pink, #ff69b4);
+  color: white;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
 }
 
 /* Logo */
@@ -35,7 +55,7 @@
   justify-content: center;
   align-items: center;
   transition: all 0.3s ease-in-out;
-  margin-bottom: 1rem; /* Add some space below the logo */
+  margin-bottom: 1rem;
 }
 
 .logo img {
@@ -44,21 +64,20 @@
   transition: all 0.3s ease-in-out;
 }
 
-/* Ensure logo is still visible when sidebar is collapsed */
+/* Desktop collapsed logo */
 .sidebar.collapsed .logo img {
   width: 0;
 }
 
 /* Scrollable Menu Container */
 .menu-scrollable {
-  flex: 1; /* Take up remaining space */
-  overflow-y: auto; /* Enable vertical scrolling */
-  overflow-x: hidden; /* Hide horizontal scroll */
-  scrollbar-width: none; /* Hide scrollbar (Firefox) */
-  -ms-overflow-style: none; /* Hide scrollbar (IE and Edge) */
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-/* Hide Scrollbar (Chrome, Safari, Edge) */
 .menu-scrollable::-webkit-scrollbar {
   width: 0;
   display: none;
@@ -67,7 +86,6 @@
 /* Menu */
 .menu {
   margin-top: 2rem;
-
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -85,64 +103,222 @@
   cursor: pointer;
   font-size: 15px;
   position: relative;
+  color: var(--text-color, #ffffff);
 }
 
-/* Collapsed Sidebar Menu Items */
-.sidebar.collapsed .menuItem {
-  justify-content: center;
-  gap: 0;
-  padding: 0.8rem 0;
+.menuItem:hover {
+  background: var(--hover-bg, rgba(255, 255, 255, 0.1));
 }
 
-.sidebar.collapsed .menuItem span {
-  display: none;
+/* Desktop collapsed menu items */
+@media screen and (min-width: 769px) {
+  .sidebar.collapsed .menuItem {
+    justify-content: center;
+    gap: 0;
+    padding: 0.8rem 0;
+  }
+
+  .sidebar.collapsed .menuItem span {
+    display: none;
+  }
 }
 
 /* Active Menu Item */
 .menuItem.active {
-  background: var(--activeItem);
+  background: var(--activeItem, rgba(255, 105, 180, 0.2));
   position: relative;
 }
 
-/* Active Indicator (Fix for Collapsed Mode) */
 .menuItem.active::before {
   content: "";
   width: 5px;
   height: 100%;
-  background: var(--pink);
+  background: var(--pink, #ff69b4);
   position: absolute;
   left: 0;
+  border-radius: 0 5px 5px 0;
 }
 
-/* Responsive */
+/* Bottom Actions Container */
+.bottom-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 0 1rem;
+  margin-top: auto;
+  margin-bottom: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 1.5rem;
+}
+
+/* Desktop collapsed bottom actions */
+@media screen and (min-width: 769px) {
+  .sidebar.collapsed .bottom-actions {
+    padding: 1.5rem 0;
+    align-items: center;
+  }
+}
+
+/* Upgrade Button */
+.upgrade-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  background: linear-gradient(135deg, var(--pink, #ff69b4) 0%, #ff6b6b 100%);
+  color: white;
+  border: none;
+  border-radius: 0.7rem;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 300ms ease;
+  text-decoration: none;
+}
+
+.upgrade-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 105, 180, 0.4);
+}
+
+/* Desktop collapsed upgrade button */
+@media screen and (min-width: 769px) {
+  .sidebar.collapsed .upgrade-btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  .sidebar.collapsed .upgrade-btn span {
+    display: none;
+  }
+}
+
+/* Logout Button */
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  border-radius: 0.7rem;
+  transition: all 300ms ease;
+  cursor: pointer;
+  font-size: 15px;
+  background: transparent;
+  border: none;
+  color: #ff4757;
+  width: 100%;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 71, 87, 0.1);
+}
+
+/* Desktop collapsed logout button */
+@media screen and (min-width: 769px) {
+  .sidebar.collapsed .logout-btn {
+    justify-content: center;
+    gap: 0;
+    padding: 0.8rem 0;
+  }
+
+  .sidebar.collapsed .logout-btn span {
+    display: none;
+  }
+}
+
+/* Mobile Responsive Styles */
 @media screen and (max-width: 768px) {
   .sidebar {
-    width: 55%;
+    width: 280px;
     height: 100vh;
     position: fixed;
-    z-index: 10;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    transform: translateX(0);
+    transition: transform 0.3s ease-in-out;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
   }
 
-  .menuItem > span {
-    display: block;
+  /* Mobile collapsed state - hide sidebar completely */
+  .sidebar.collapsed {
+    transform: translateX(-100%);
+    width: 280px; /* Keep same width but move off-screen */
   }
 
+  /* Mobile toggle button positioning */
   .toggle-btn {
-    right: -35px;
-  }
-
-  .bars {
-    display: flex;
     position: fixed;
-    top: 2rem;
-    left: 60%;
-    background: #ffe0e0;
-    padding: 10px;
-    border-radius: 10px;
-    z-index: 9;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1001;
+    background: var(--pink, #ff69b4);
+    color: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
   }
 
-  .close {
-    left: -60%;
+  /* When sidebar is open, move toggle button to the right */
+  .sidebar:not(.collapsed) + * .toggle-btn,
+  .sidebar:not(.collapsed) .toggle-btn {
+    left: 240px;
+  }
+
+  /* Ensure all text is visible on mobile */
+  .sidebar .menuItem span,
+  .sidebar .upgrade-btn span,
+  .sidebar .logout-btn span {
+    display: block !important;
+  }
+
+  /* Mobile logo always visible */
+  .sidebar .logo img {
+    width: 90px !important;
+  }
+
+  /* Mobile bottom actions */
+  .sidebar .bottom-actions {
+    padding: 1.5rem 1rem;
+  }
+
+  .sidebar .upgrade-btn,
+  .sidebar .logout-btn {
+    justify-content: flex-start;
+    gap: 1rem;
+    width: 100%;
+    border-radius: 0.7rem;
+    padding: 0.8rem 1rem;
+    height: auto;
+  }
+
+  /* Mobile backdrop overlay */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .sidebar-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Mobile menu items */
+  .sidebar .menuItem {
+    justify-content: flex-start;
+    gap: 1rem;
+    padding: 0.8rem 1rem;
   }
 }

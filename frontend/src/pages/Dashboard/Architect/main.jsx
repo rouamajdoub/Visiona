@@ -12,6 +12,7 @@ import Quotes from "./pages/Quote/Quotes";
 import Matching from "./pages/Matching/Matching";
 import Clients from "./pages/Clients/ClientManagement";
 import KanbanBoard from "./pages/Project/kanban/KanbanBoard";
+
 const Main = () => {
   const [expanded, setExpanded] = useState(true);
   const [selectedItem, setSelectedItem] = useState("dashboard");
@@ -22,6 +23,10 @@ const Main = () => {
         return (
           <div className="main-dash-container">
             <MainDash />
+            {/* Add RightSide here for mobile/tablet responsiveness */}
+            <div className="mobile-right-side">
+              <RightSide />
+            </div>
           </div>
         );
       case "profile":
@@ -46,6 +51,9 @@ const Main = () => {
         return (
           <div className="main-dash-container">
             <MainDash />
+            <div className="mobile-right-side">
+              <RightSide />
+            </div>
           </div>
         );
     }
@@ -74,7 +82,7 @@ const Main = () => {
         />
         {renderMainContent()}
         {selectedItem === "dashboard" && (
-          <div className="right-side-container">
+          <div className="right-side-container desktop-only">
             <RightSide />
           </div>
         )}

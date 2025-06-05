@@ -1,12 +1,13 @@
-// Backend\Stripe\webhook\route.js - Updated version
+// webhook/route.js - Fixed version
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const express = require("express");
 const mongoose = require("mongoose");
 const router = express.Router();
 
-const Architect = mongoose.model("architect"); // Import architect model
-const Subscription = mongoose.model("Subscription"); // Import subscription model
+// Make sure to use consistent model names
+const User = mongoose.model("User"); // Changed from "architect" to match your controller
+const Subscription = mongoose.model("Subscription");
 
 router.post(
   "/webhook",
@@ -14,6 +15,7 @@ router.post(
   async (request, response) => {
     let event = request.body;
 
+    // Verify webhook signature
     if (endpointSecret) {
       const signature = request.headers["stripe-signature"];
       try {
@@ -24,36 +26,43 @@ router.post(
         );
       } catch (err) {
         console.log(`⚠️  Webhook signature verification failed.`, err.message);
-        return response.sendStatus(400);
+        return response.status(400).send(`Webhook Error: ${err.message}`);
       }
     }
 
-    // 🎯 Handle successful checkout session
-    // Update this part of your webhook handler
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
+    console.log(`🔔 Received event: ${event.type}`);
 
-      // Check if this is a subscription checkout
-      if (session.mode === "subscription") {
-        const architectId = session.client_reference_id;
-        const customerId = session.customer;
-        const subscriptionId = session.subscription; // Get the subscription ID
+    try {
+      // Handle successful checkout session
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object;
+        console.log("📝 Processing checkout session:", session.id);
 
-        try {
-          const architect = await Architect.findById(architectId);
+        // Check if this is a subscription checkout
+        if (session.mode === "subscription") {
+          const architectId = session.client_reference_id;
+          const customerId = session.customer;
+          const subscriptionId = session.subscription;
 
-          if (architect) {
-            // Get more details about the subscription
+          if (!architectId) {
+            console.log("❌ No architect ID found in session");
+            return response.status(400).send("No architect ID provided");
+          }
+
+          try {
+            // Find architect
+            const architect = await User.findById(architectId);
+            if (!architect) {
+              console.log(`❌ Architect not found: ${architectId}`);
+              return response.status(404).send("Architect not found");
+            }
+
+            // Get subscription details from Stripe
             const stripeSubscription = await stripe.subscriptions.retrieve(
               subscriptionId
             );
 
-            // Update architect payment information
-            architect.customerId = customerId;
-            architect.hasAccess = true;
-            architect.paymentStatus = "completed";
-
-            // Calculate subscription dates from Stripe data
+            // Calculate subscription dates
             const startDate = new Date(
               stripeSubscription.current_period_start * 1000
             );
@@ -61,105 +70,147 @@ router.post(
               stripeSubscription.current_period_end * 1000
             );
 
-            // Get plan details from product
+            // Get plan from metadata or default to Premium
             const plan = session.metadata?.plan || "Premium";
 
-            // Create a new subscription record
-            const subscription = new Subscription({
+            // Check if architect already has an active subscription
+            const existingSubscription = await Subscription.findOne({
+              architectId: architectId,
+              status: "active",
+            });
+
+            if (existingSubscription) {
+              // Cancel existing subscription
+              existingSubscription.status = "cancelled";
+              await existingSubscription.save();
+              console.log(
+                `🔄 Cancelled existing subscription for architect ${architectId}`
+              );
+            }
+
+            // Create new subscription record
+            const subscriptionData = {
               architectId: architectId,
               plan: plan,
               startDate: startDate,
               endDate: endDate,
               status: "active",
-              price: stripeSubscription.plan.amount / 100,
+              price: stripeSubscription.items.data[0].price.unit_amount / 100, // Convert from cents
               paymentMethod: "Card",
+              stripeSubscriptionId: subscriptionId,
+              stripeCustomerId: customerId,
               transactions: [
                 {
-                  amount: stripeSubscription.plan.amount / 100,
+                  amount:
+                    stripeSubscription.items.data[0].price.unit_amount / 100,
                   date: new Date(),
-                  transactionId: session.subscription,
+                  transactionId: session.payment_intent || subscriptionId,
                   status: "success",
                 },
               ],
-            });
+            };
 
-            // Save the subscription
+            const subscription = new Subscription(subscriptionData);
             const savedSubscription = await subscription.save();
 
-            // Update architect with subscription reference
+            // Update architect record
+            architect.customerId = customerId;
+            architect.hasAccess = true;
+            architect.paymentStatus = "completed";
             architect.subscription = savedSubscription._id;
+            architect.subscriptionType = plan.toLowerCase();
             await architect.save();
 
             console.log(
-              `✅ Architect ${
+              `✅ Subscription created successfully for architect ${
                 architect.email || architectId
-              } subscription confirmed.`
+              }`
             );
+          } catch (error) {
+            console.error("❌ Error processing subscription:", error);
+            return response.status(500).send("Error processing subscription");
           }
-        } catch (error) {
-          console.error(
-            "❌ Error updating architect after Stripe subscription:",
-            error
-          );
         }
       }
+
+      // Handle subscription updates
+      else if (event.type === "customer.subscription.updated") {
+        const stripeSubscription = event.data.object;
+        await handleSubscriptionUpdate(stripeSubscription);
+      }
+
+      // Handle subscription cancellations
+      else if (event.type === "customer.subscription.deleted") {
+        const stripeSubscription = event.data.object;
+        await handleSubscriptionCancellation(stripeSubscription);
+      }
+
+      // Handle failed payments
+      else if (event.type === "invoice.payment_failed") {
+        const invoice = event.data.object;
+        await handlePaymentFailure(invoice);
+      }
+
+      // Handle successful payments
+      else if (event.type === "invoice.payment_succeeded") {
+        const invoice = event.data.object;
+        await handlePaymentSuccess(invoice);
+      }
+
+      // Log unhandled events
+      else {
+        console.log(`ℹ️  Unhandled event type: ${event.type}`);
+      }
+    } catch (error) {
+      console.error("❌ Webhook processing error:", error);
+      return response.status(500).send("Webhook processing failed");
     }
 
-    // Handle subscription lifecycle events
-    else if (event.type === "customer.subscription.updated") {
-      const subscription = event.data.object;
-      await handleSubscriptionUpdate(subscription);
-    } else if (event.type === "customer.subscription.deleted") {
-      const subscription = event.data.object;
-      await handleSubscriptionCancellation(subscription);
-    }
-    // 🧾 Optional: Handle other events
-    else if (event.type === "payment_intent.succeeded") {
-      const paymentIntent = event.data.object;
-      console.log(
-        `✅ PaymentIntent for ${paymentIntent.amount} was successful!`
-      );
-    } else if (event.type === "payment_method.attached") {
-      const paymentMethod = event.data.object;
-      console.log("💳 Payment method attached");
-    } else {
-      console.log(`Unhandled event type ${event.type}.`);
-    }
-
-    response.send(); // Always respond with 200
+    // Always respond with 200
+    response.status(200).send("Webhook processed successfully");
   }
 );
 
 // Handle subscription updates
 async function handleSubscriptionUpdate(stripeSubscription) {
   try {
-    // Find the architect by Stripe customer ID
-    const architect = await Architect.findOne({
+    console.log(`🔄 Processing subscription update: ${stripeSubscription.id}`);
+
+    // Find architect by Stripe customer ID
+    const architect = await User.findOne({
       customerId: stripeSubscription.customer,
     });
 
     if (!architect) {
       console.log(
-        "❌ Architect not found for customer:",
-        stripeSubscription.customer
+        `❌ Architect not found for customer: ${stripeSubscription.customer}`
       );
       return;
     }
 
-    // Find and update the subscription
-    const subscription = await Subscription.findById(architect.subscription);
+    // Find subscription
+    const subscription = await Subscription.findOne({
+      stripeSubscriptionId: stripeSubscription.id,
+    });
 
     if (subscription) {
-      // Update subscription based on Stripe status
+      // Update subscription status
+      const oldStatus = subscription.status;
+
       if (stripeSubscription.status === "active") {
         subscription.status = "active";
+        architect.hasAccess = true;
+        architect.subscriptionType = subscription.plan.toLowerCase();
       } else if (stripeSubscription.status === "canceled") {
         subscription.status = "cancelled";
-      } else if (stripeSubscription.status === "unpaid") {
-        subscription.status = "expired";
+        architect.hasAccess = false;
+        architect.subscriptionType = "none";
+      } else if (stripeSubscription.status === "past_due") {
+        subscription.status = "past_due";
+        architect.hasAccess = false;
       }
 
-      // Update end date if available
+      // Update end date
       if (stripeSubscription.current_period_end) {
         subscription.endDate = new Date(
           stripeSubscription.current_period_end * 1000
@@ -167,39 +218,110 @@ async function handleSubscriptionUpdate(stripeSubscription) {
       }
 
       await subscription.save();
-      console.log(`✅ Subscription updated for architect ${architect._id}`);
+      await architect.save();
+
+      console.log(
+        `✅ Subscription updated: ${oldStatus} → ${subscription.status} for architect ${architect._id}`
+      );
     }
   } catch (error) {
     console.error("❌ Error updating subscription:", error);
   }
 }
 
-// Handle subscription cancellations
+// Handle subscription cancellation
 async function handleSubscriptionCancellation(stripeSubscription) {
   try {
-    // Find the architect by Stripe customer ID
-    const architect = await Architect.findOne({
+    console.log(
+      `❌ Processing subscription cancellation: ${stripeSubscription.id}`
+    );
+
+    const architect = await User.findOne({
       customerId: stripeSubscription.customer,
     });
 
     if (!architect) {
       console.log(
-        "❌ Architect not found for customer:",
-        stripeSubscription.customer
+        `❌ Architect not found for customer: ${stripeSubscription.customer}`
       );
       return;
     }
 
-    // Update the subscription
-    const subscription = await Subscription.findById(architect.subscription);
+    const subscription = await Subscription.findOne({
+      stripeSubscriptionId: stripeSubscription.id,
+    });
 
     if (subscription) {
       subscription.status = "cancelled";
       await subscription.save();
+
+      architect.hasAccess = false;
+      architect.subscriptionType = "none";
+      await architect.save();
+
       console.log(`✅ Subscription cancelled for architect ${architect._id}`);
     }
   } catch (error) {
     console.error("❌ Error cancelling subscription:", error);
+  }
+}
+
+// Handle payment failures
+async function handlePaymentFailure(invoice) {
+  try {
+    console.log(`💳 Processing payment failure for invoice: ${invoice.id}`);
+
+    const architect = await User.findOne({
+      customerId: invoice.customer,
+    });
+
+    if (architect) {
+      // Temporarily disable access on payment failure
+      architect.hasAccess = false;
+      architect.paymentStatus = "failed";
+      await architect.save();
+
+      console.log(
+        `⚠️ Access disabled for architect ${architect._id} due to payment failure`
+      );
+    }
+  } catch (error) {
+    console.error("❌ Error handling payment failure:", error);
+  }
+}
+
+// Handle successful payments
+async function handlePaymentSuccess(invoice) {
+  try {
+    console.log(`💰 Processing successful payment for invoice: ${invoice.id}`);
+
+    const architect = await User.findOne({
+      customerId: invoice.customer,
+    });
+
+    if (architect) {
+      architect.hasAccess = true;
+      architect.paymentStatus = "completed";
+      await architect.save();
+
+      // Add transaction record if subscription exists
+      const subscription = await Subscription.findById(architect.subscription);
+      if (subscription) {
+        subscription.transactions.push({
+          amount: invoice.amount_paid / 100, // Convert from cents
+          date: new Date(invoice.created * 1000),
+          transactionId: invoice.payment_intent,
+          status: "success",
+        });
+        await subscription.save();
+      }
+
+      console.log(
+        `✅ Payment processed successfully for architect ${architect._id}`
+      );
+    }
+  } catch (error) {
+    console.error("❌ Error handling payment success:", error);
   }
 }
 

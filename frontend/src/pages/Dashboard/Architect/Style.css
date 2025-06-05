@@ -38,10 +38,25 @@
   transition: grid-template-columns 0.3s ease-in-out; /* Smooth transition */
 }
 
+/* Desktop - 3 columns when dashboard is selected */
+.AppGlass.dashboard-layout {
+  grid-template-columns: var(--sidebar-width, 11rem) 1fr 20rem;
+}
+
+/* Desktop - 2 columns for other pages */
+.AppGlass.other-layout {
+  grid-template-columns: var(--sidebar-width, 11rem) 1fr;
+}
+
 @media screen and (max-width: 1200px) {
   .AppGlass {
     grid-template-columns: 10% auto; /* 2 columns for smaller screens */
     overflow-y: scroll;
+  }
+
+  /* Hide right side on tablet to move it below main content */
+  .right-side-container {
+    display: none;
   }
 }
 
@@ -49,5 +64,48 @@
   .AppGlass {
     grid-template-columns: 1fr; /* Single column for mobile */
     gap: 8px; /* Reduce gap for smaller screens */
+    grid-template-rows: auto 1fr; /* Sidebar on top, content below */
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Stack everything vertically on mobile */
+  .main-dash-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  /* Hide the separate right side container on mobile */
+  .right-side-container {
+    display: none;
+  }
+}
+
+/* Mobile-specific RightSide styling */
+.mobile-right-side {
+  display: none; /* Hidden on desktop */
+}
+
+@media screen and (max-width: 1200px) {
+  .mobile-right-side {
+    display: block; /* Show on tablet and mobile */
+    margin-top: 2rem;
+    width: 100%;
+  }
+
+  .desktop-only {
+    display: none; /* Hide desktop right side */
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .mobile-right-side {
+    display: block;
+    margin-top: 1rem;
   }
 }

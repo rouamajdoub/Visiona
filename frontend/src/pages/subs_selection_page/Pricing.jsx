@@ -5,12 +5,16 @@ import "./Pricing.css";
 import Header from "./header/Header";
 import Diff from "./Diff/Diff";
 import {
-  createSubscription,
-  selectCreateStatus,
+  createCheckoutSession,
+  fetchArchitectSubscription,
+  selectCheckoutStatus,
+  selectCheckoutSession,
   selectSubscriptionError,
+  selectCurrentSubscription,
   clearErrors,
+  clearCheckoutSession,
   resetOperationStatus,
-} from "../../redux/slices/subscriptionSlice"; // Adjust path as needed
+} from "../../redux/slices/subscriptionSlice";
 
 const pricingTiers = [
   {
@@ -30,7 +34,7 @@ const pricingTiers = [
   {
     title: "VIP",
     monthlyPrice: 120,
-    buttonText: "Upgrade to Pro",
+    buttonText: "Upgrade to VIP",
     popular: true,
     inverse: true,
     features: [
@@ -41,73 +45,76 @@ const pricingTiers = [
       "Exclusive architect recommendations",
       "Priority customer support",
     ],
-    link: "https://buy.stripe.com/test_bIYfZCdFj6YSbcs3cc",
-    priceId: "prod_S1L9JODnAOUsla",
   },
   {
     title: "Premium",
     monthlyPrice: 200,
-    buttonText: "Get Business Plan",
+    buttonText: "Get Premium Plan",
     popular: false,
     inverse: false,
     features: [
-      "All Pro features included",
+      "All VIP features included",
       "Personalized architect selection assistance",
       "Priority access to top-rated architects",
       "Project milestone tracking",
       "Legal and contract assistance",
       "Premium customer support",
     ],
-    link: "https://buy.stripe.com/test_14k6p244J0Aua8oeUV",
-    priceId: "prod_S45K8IsY2smSX0",
   },
 ];
 
 export const Pricing = () => {
   const dispatch = useDispatch();
-  const createStatus = useSelector(selectCreateStatus);
+  const checkoutStatus = useSelector(selectCheckoutStatus);
+  const checkoutSession = useSelector(selectCheckoutSession);
   const subscriptionError = useSelector(selectSubscriptionError);
+  const currentSubscription = useSelector(selectCurrentSubscription);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingPlan, setProcessingPlan] = useState(null);
 
   // Get current user/architect ID - adjust this based on your auth implementation
-  const currentArchitect = useSelector((state) => state.auth?.user); // Adjust path as needed
+  const currentArchitect = useSelector((state) => state.auth?.user);
   const architectId = currentArchitect?._id || currentArchitect?.id;
 
   useEffect(() => {
     // Clear any previous errors when component mounts
     dispatch(clearErrors());
-  }, [dispatch]);
+
+    // Fetch current subscription if architect is logged in
+    if (architectId) {
+      dispatch(fetchArchitectSubscription(architectId));
+    }
+  }, [dispatch, architectId]);
 
   useEffect(() => {
-    // Handle subscription creation status changes
-    if (createStatus === "succeeded" && processingPlan) {
-      // Subscription created successfully, redirect to Stripe
-      const selectedTier = pricingTiers.find(
-        (tier) => tier.title === processingPlan
-      );
-      if (selectedTier && selectedTier.link) {
-        window.open(selectedTier.link, "_blank");
+    // Handle checkout session creation
+    if (checkoutStatus === "succeeded" && checkoutSession) {
+      // Redirect to Stripe Checkout
+      if (checkoutSession.url) {
+        window.location.href = checkoutSession.url;
       }
 
       // Reset states
       setIsProcessing(false);
       setProcessingPlan(null);
-      dispatch(resetOperationStatus("create"));
-    } else if (createStatus === "failed") {
+      dispatch(clearCheckoutSession());
+      dispatch(resetOperationStatus("checkout"));
+    } else if (checkoutStatus === "failed") {
       // Handle error
       setIsProcessing(false);
       setProcessingPlan(null);
-      console.error("Subscription creation failed:", subscriptionError);
+      console.error("Checkout session creation failed:", subscriptionError);
       alert(
-        `Failed to create subscription: ${subscriptionError || "Unknown error"}`
+        `Failed to create checkout session: ${
+          subscriptionError || "Unknown error"
+        }`
       );
-      dispatch(resetOperationStatus("create"));
+      dispatch(resetOperationStatus("checkout"));
     }
-  }, [createStatus, processingPlan, subscriptionError, dispatch]);
+  }, [checkoutStatus, checkoutSession, subscriptionError, dispatch]);
 
-  const handlePayment = async (plan, link, priceId) => {
+  const handlePayment = async (plan) => {
     // Handle free plan differently
     if (plan === "Free") {
       alert("You're already on the free plan!");
@@ -125,36 +132,34 @@ export const Pricing = () => {
       return;
     }
 
-    // Validate required data
-    if (!link) {
-      alert("Payment link not available. Please try again later.");
-      return;
+    // Check if user already has an active subscription
+    if (currentSubscription && currentSubscription.status === "active") {
+      const confirmUpgrade = window.confirm(
+        `You already have an active ${currentSubscription.plan} subscription. Do you want to upgrade to ${plan}?`
+      );
+      if (!confirmUpgrade) {
+        return;
+      }
     }
 
     try {
       setIsProcessing(true);
       setProcessingPlan(plan);
 
-      // Calculate end date (1 year from now)
-      const now = new Date();
-      const endDate = new Date(now);
-      endDate.setFullYear(endDate.getFullYear() + 1);
+      // Create success and cancel URLs
+      const baseUrl = window.location.origin;
+      const successUrl = `${baseUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${baseUrl}/subscription/cancel`;
 
-      // Create subscription data
-      const subscriptionData = {
-        architectId: architectId,
-        plan: plan,
-        startDate: new Date(),
-        endDate: endDate,
-        status: "pending", // Will be updated to "active" after successful payment
-        price: plan === "VIP" ? 120 : 200,
-        paymentMethod: "Stripe",
-        priceId: priceId,
-        stripePaymentLink: link,
-      };
-
-      // Dispatch create subscription action
-      dispatch(createSubscription(subscriptionData));
+      // Create checkout session
+      dispatch(
+        createCheckoutSession({
+          architectId,
+          plan,
+          successUrl,
+          cancelUrl,
+        })
+      );
     } catch (error) {
       console.error("Error handling payment:", error);
       alert("An error occurred. Please try again.");
@@ -167,11 +172,49 @@ export const Pricing = () => {
     if (isProcessing && processingPlan === tier.title) {
       return "Processing...";
     }
+
+    // Show current subscription status
+    if (currentSubscription && currentSubscription.status === "active") {
+      if (currentSubscription.plan === tier.title) {
+        return "Current Plan";
+      }
+    }
+
     return tier.buttonText;
   };
 
   const isButtonDisabled = (tier) => {
-    return isProcessing || (tier.monthlyPrice > 0 && !architectId);
+    // Disable if processing
+    if (isProcessing) return true;
+
+    // Disable if not authenticated and not free plan
+    if (tier.monthlyPrice > 0 && !architectId) return true;
+
+    // Disable if current plan is the same
+    if (
+      currentSubscription &&
+      currentSubscription.status === "active" &&
+      currentSubscription.plan === tier.title
+    ) {
+      return true;
+    }
+
+    return false;
+  };
+
+  const getCardClassName = (tier) => {
+    let className = `pricing-card ${tier.inverse ? "inverse" : ""}`;
+
+    // Add special styling for current plan
+    if (
+      currentSubscription &&
+      currentSubscription.status === "active" &&
+      currentSubscription.plan === tier.title
+    ) {
+      className += " current-plan";
+    }
+
+    return className;
   };
 
   return (
@@ -204,88 +247,95 @@ export const Pricing = () => {
           </div>
         )}
 
+        {/* Show current subscription info */}
+        {currentSubscription && currentSubscription.status === "active" && (
+          <div
+            className="current-subscription"
+            style={{
+              backgroundColor: "#d4edda",
+              border: "1px solid #c3e6cb",
+              color: "#155724",
+              padding: "15px",
+              borderRadius: "4px",
+              marginBottom: "20px",
+              textAlign: "center",
+            }}
+          >
+            You currently have an active{" "}
+            <strong>{currentSubscription.plan}</strong> subscription.
+            {currentSubscription.endDate && (
+              <span>
+                {" "}
+                Valid until{" "}
+                {new Date(currentSubscription.endDate).toLocaleDateString()}.
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="pricing-tiers">
-          {pricingTiers.map(
-            (
-              {
-                title,
-                monthlyPrice,
-                buttonText,
-                popular,
-                inverse,
-                features,
-                link,
-                priceId,
-              },
-              index
-            ) => (
-              <div
-                key={index}
-                className={`pricing-card ${inverse ? "inverse" : ""}`}
-              >
-                <div className="card-header">
-                  <h3
-                    className={`card-title ${
-                      inverse ? "text-white" : "text-black"
-                    }`}
-                  >
-                    {title}
-                  </h3>
-                  {popular && (
-                    <div className="popular-badge">
-                      <motion.span
-                        animate={{ backgroundPositionX: "100%" }}
-                        transition={{
-                          duration: 1,
-                          repeat: Infinity,
-                          ease: "linear",
-                          repeatType: "loop",
-                        }}
-                        className="popular-text"
-                      >
-                        Popular
-                      </motion.span>
+          {pricingTiers.map((tier, index) => (
+            <div key={index} className={getCardClassName(tier)}>
+              <div className="card-header">
+                <h3
+                  className={`card-title ${
+                    tier.inverse ? "text-white" : "text-black"
+                  }`}
+                >
+                  {tier.title}
+                </h3>
+                {tier.popular && (
+                  <div className="popular-badge">
+                    <motion.span
+                      animate={{ backgroundPositionX: "100%" }}
+                      transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        ease: "linear",
+                        repeatType: "loop",
+                      }}
+                      className="popular-text"
+                    >
+                      Popular
+                    </motion.span>
+                  </div>
+                )}
+                {/* Show current plan badge */}
+                {currentSubscription &&
+                  currentSubscription.status === "active" &&
+                  currentSubscription.plan === tier.title && (
+                    <div className="current-badge">
+                      <span className="current-text">Current Plan</span>
                     </div>
                   )}
-                </div>
-                <div className="price">
-                  <span className="monthly-price">{monthlyPrice} TND</span>
-                  <span className="price-label">/Year</span>
-                </div>
-                {monthlyPrice >= 0 && (
-                  <button
-                    className={`pricing-button ${
-                      inverse ? "inverse-button" : ""
-                    } ${
-                      isButtonDisabled({ title, monthlyPrice })
-                        ? "disabled"
-                        : ""
-                    }`}
-                    onClick={() => handlePayment(title, link, priceId)}
-                    disabled={isButtonDisabled({ title, monthlyPrice })}
-                    style={{
-                      opacity: isButtonDisabled({ title, monthlyPrice })
-                        ? 0.6
-                        : 1,
-                      cursor: isButtonDisabled({ title, monthlyPrice })
-                        ? "not-allowed"
-                        : "pointer",
-                    }}
-                  >
-                    {getButtonText({ title, buttonText })}
-                  </button>
-                )}
-                <ul className="feature-list">
-                  {features.map((feature, index) => (
-                    <li className="feature-item" key={index}>
-                      <span className="checkmark">✔️</span>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
               </div>
-            )
-          )}
+              <div className="price">
+                <span className="monthly-price">{tier.monthlyPrice} TND</span>
+                <span className="price-label">/Year</span>
+              </div>
+              <button
+                className={`pricing-button ${
+                  tier.inverse ? "inverse-button" : ""
+                } ${isButtonDisabled(tier) ? "disabled" : ""}`}
+                onClick={() => handlePayment(tier.title)}
+                disabled={isButtonDisabled(tier)}
+                style={{
+                  opacity: isButtonDisabled(tier) ? 0.6 : 1,
+                  cursor: isButtonDisabled(tier) ? "not-allowed" : "pointer",
+                }}
+              >
+                {getButtonText(tier)}
+              </button>
+              <ul className="feature-list">
+                {tier.features.map((feature, featureIndex) => (
+                  <li className="feature-item" key={featureIndex}>
+                    <span className="checkmark">✔️</span>
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
         <Diff />
       </div>

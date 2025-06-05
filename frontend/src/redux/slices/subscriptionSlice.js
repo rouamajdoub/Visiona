@@ -57,6 +57,46 @@ export const fetchArchitectSubscription = createAsyncThunk(
   }
 );
 
+// NEW: Create Stripe checkout session
+export const createCheckoutSession = createAsyncThunk(
+  "subscriptions/createCheckoutSession",
+  async ({ architectId, plan, successUrl, cancelUrl }, { rejectWithValue }) => {
+    try {
+      if (!architectId || !plan) {
+        return rejectWithValue("Architect ID and plan are required");
+      }
+
+      const response = await axios.post(`${API_URL}/create-checkout-session`, {
+        architectId,
+        plan,
+        successUrl,
+        cancelUrl,
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  }
+);
+
+// NEW: Verify checkout session
+export const verifyCheckoutSession = createAsyncThunk(
+  "subscriptions/verifyCheckoutSession",
+  async (sessionId, { rejectWithValue }) => {
+    try {
+      if (!sessionId) {
+        return rejectWithValue("Session ID is required");
+      }
+      const response = await axios.get(
+        `${API_URL}/verify-session/${sessionId}`
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(getErrorMessage(error));
+    }
+  }
+);
+
 export const createSubscription = createAsyncThunk(
   "subscriptions/create",
   async (subscriptionData, { rejectWithValue }) => {
@@ -136,29 +176,6 @@ export const deleteSubscription = createAsyncThunk(
   }
 );
 
-export const processSubscriptionPayment = createAsyncThunk(
-  "subscriptions/processPayment",
-  async ({ architectId, plan, paymentDetails }, { rejectWithValue }) => {
-    try {
-      // Validate required fields
-      if (!architectId || !plan || !paymentDetails) {
-        return rejectWithValue(
-          "Architect ID, plan, and payment details are required"
-        );
-      }
-
-      const response = await axios.post(`${API_URL}/process-payment`, {
-        architectId,
-        plan,
-        paymentDetails,
-      });
-      return response.data;
-    } catch (error) {
-      return rejectWithValue(getErrorMessage(error));
-    }
-  }
-);
-
 // Check feature access
 export const checkFeatureAccess = createAsyncThunk(
   "subscriptions/checkFeatureAccess",
@@ -168,7 +185,7 @@ export const checkFeatureAccess = createAsyncThunk(
         return rejectWithValue("Architect ID and feature are required");
       }
       const response = await axios.get(
-        `${API_URL}/feature-access/${architectId}/${feature}`
+        `${API_URL}/access/${architectId}/${feature}`
       );
       return response.data;
     } catch (error) {
@@ -183,6 +200,7 @@ const subscriptionSlice = createSlice({
     items: [],
     currentSubscription: null,
     featureAccess: null,
+    checkoutSession: null, // NEW: Store checkout session data
     loading: false,
     error: null,
     operationStatus: {
@@ -191,7 +209,8 @@ const subscriptionSlice = createSlice({
       delete: "idle",
       cancel: "idle",
       renew: "idle",
-      payment: "idle",
+      checkout: "idle", // NEW: Checkout status
+      verify: "idle", // NEW: Verify status
     },
   },
   reducers: {
@@ -200,6 +219,9 @@ const subscriptionSlice = createSlice({
     },
     clearCurrentSubscription: (state) => {
       state.currentSubscription = null;
+    },
+    clearCheckoutSession: (state) => {
+      state.checkoutSession = null;
     },
     resetOperationStatus: (state, action) => {
       const operation = action.payload;
@@ -272,6 +294,43 @@ const subscriptionSlice = createSlice({
         state.currentSubscription = null;
       })
 
+      // NEW: Create checkout session
+      .addCase(createCheckoutSession.pending, (state) => {
+        state.operationStatus.checkout = "loading";
+        state.error = null;
+      })
+      .addCase(createCheckoutSession.fulfilled, (state, action) => {
+        state.operationStatus.checkout = "succeeded";
+        state.checkoutSession = action.payload;
+      })
+      .addCase(createCheckoutSession.rejected, (state, action) => {
+        state.operationStatus.checkout = "failed";
+        state.error = action.payload;
+      })
+
+      // NEW: Verify checkout session
+      .addCase(verifyCheckoutSession.pending, (state) => {
+        state.operationStatus.verify = "loading";
+        state.error = null;
+      })
+      .addCase(verifyCheckoutSession.fulfilled, (state, action) => {
+        state.operationStatus.verify = "succeeded";
+        if (action.payload.subscription) {
+          state.currentSubscription = action.payload.subscription;
+          // Add to items if not already present
+          const exists = state.items.find(
+            (item) => item._id === action.payload.subscription._id
+          );
+          if (!exists) {
+            state.items.push(action.payload.subscription);
+          }
+        }
+      })
+      .addCase(verifyCheckoutSession.rejected, (state, action) => {
+        state.operationStatus.verify = "failed";
+        state.error = action.payload;
+      })
+
       // Create subscription
       .addCase(createSubscription.pending, (state) => {
         state.operationStatus.create = "loading";
@@ -317,13 +376,15 @@ const subscriptionSlice = createSlice({
       .addCase(cancelSubscription.fulfilled, (state, action) => {
         state.operationStatus.cancel = "succeeded";
         const index = state.items.findIndex(
-          (item) => item._id === action.payload._id
+          (item) => item._id === action.payload.subscription._id
         );
         if (index !== -1) {
-          state.items[index] = action.payload;
+          state.items[index] = action.payload.subscription;
         }
-        if (state.currentSubscription?._id === action.payload._id) {
-          state.currentSubscription = action.payload;
+        if (
+          state.currentSubscription?._id === action.payload.subscription._id
+        ) {
+          state.currentSubscription = action.payload.subscription;
         }
       })
       .addCase(cancelSubscription.rejected, (state, action) => {
@@ -370,27 +431,6 @@ const subscriptionSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Process payment
-      .addCase(processSubscriptionPayment.pending, (state) => {
-        state.operationStatus.payment = "loading";
-        state.error = null;
-      })
-      .addCase(processSubscriptionPayment.fulfilled, (state, action) => {
-        state.operationStatus.payment = "succeeded";
-        state.currentSubscription = action.payload;
-        // Add to items if not already present
-        const exists = state.items.find(
-          (item) => item._id === action.payload._id
-        );
-        if (!exists) {
-          state.items.push(action.payload);
-        }
-      })
-      .addCase(processSubscriptionPayment.rejected, (state, action) => {
-        state.operationStatus.payment = "failed";
-        state.error = action.payload;
-      })
-
       // Check feature access
       .addCase(checkFeatureAccess.fulfilled, (state, action) => {
         state.featureAccess = action.payload;
@@ -404,6 +444,7 @@ const subscriptionSlice = createSlice({
 export const {
   clearErrors,
   clearCurrentSubscription,
+  clearCheckoutSession,
   resetOperationStatus,
   optimisticUpdateSubscription,
 } = subscriptionSlice.actions;
@@ -413,6 +454,8 @@ export const selectAllSubscriptions = (state) =>
   state.subscriptions?.items || [];
 export const selectCurrentSubscription = (state) =>
   state.subscriptions?.currentSubscription;
+export const selectCheckoutSession = (state) =>
+  state.subscriptions?.checkoutSession;
 export const selectSubscriptionLoading = (state) =>
   state.subscriptions?.loading || false;
 export const selectSubscriptionError = (state) => state.subscriptions?.error;
@@ -430,8 +473,10 @@ export const selectCancelStatus = (state) =>
   state.subscriptions?.operationStatus?.cancel || "idle";
 export const selectRenewStatus = (state) =>
   state.subscriptions?.operationStatus?.renew || "idle";
-export const selectPaymentStatus = (state) =>
-  state.subscriptions?.operationStatus?.payment || "idle";
+export const selectCheckoutStatus = (state) =>
+  state.subscriptions?.operationStatus?.checkout || "idle";
+export const selectVerifyStatus = (state) =>
+  state.subscriptions?.operationStatus?.verify || "idle";
 
 // Derived selectors
 export const selectActiveSubscriptions = (state) => {

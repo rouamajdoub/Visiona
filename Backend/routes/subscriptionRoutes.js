@@ -1,7 +1,21 @@
-// routes/subscriptionRoutes.js - Enhanced version
+// routes/subscriptionRoutes.js - Enhanced version with Stripe integration
 const express = require("express");
 const router = express.Router();
 const subscriptionController = require("../controllers/subscriptionController");
+
+// IMPORTANT: Webhook route must be BEFORE express.json() middleware
+// This should be added to your main app.js file with raw body parsing
+// router.post("/webhook", express.raw({type: 'application/json'}), subscriptionController.handleStripeWebhook);
+
+// Stripe Checkout Routes
+router.post(
+  "/create-checkout-session",
+  subscriptionController.createCheckoutSession
+);
+router.get(
+  "/verify-session/:sessionId",
+  subscriptionController.verifyCheckoutSession
+);
 
 // Subscription CRUD routes
 router.post("/", subscriptionController.createSubscription);
@@ -16,14 +30,17 @@ router.get(
   subscriptionController.getSubscriptionByArchitect
 );
 
-// Payment processing routes
-router.post("/process-payment", subscriptionController.processPayment);
+// Subscription management routes
+router.put("/:id/cancel", subscriptionController.cancelSubscription);
 
 // Utility routes
 router.post("/check-expired", subscriptionController.checkExpiredSubscriptions);
+router.get("/stats/overview", subscriptionController.getSubscriptionStats);
 
-// Subscription management routes
-router.put("/:id/cancel", subscriptionController.cancelSubscription);
-router.put("/:id/renew", subscriptionController.renewSubscription);
+// Feature access check
+router.get(
+  "/access/:architectId/:feature",
+  subscriptionController.checkFeatureAccess
+);
 
 module.exports = router;

@@ -13,7 +13,9 @@ import About from "./pages/About/HeroSlider.jsx";
 import InteriorDesignTrends from "./pages/landing/trending/Trending.jsx";
 import Policy from "./pages/landing/P-Policy/Policy.jsx";
 import { Pricing } from "./pages/subs_selection_page/Pricing.jsx";
+import SubscriptionSuccess from "./pages/subs_selection_page/SubscriptionSuccess.jsx";
 
+import SubscriptionCancel from "./pages/subs_selection_page/SubscriptionCancel.jsx";
 // Protected Pages - Admin
 import Dashboard from "./pages/Dashboard/Admin/AdminDashboard.jsx";
 
@@ -89,6 +91,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/subscription/success" element={<SubscriptionSuccess />} />
+        <Route path="/subscription/cancel" element={<SubscriptionCancel />} />
 
         {/* Client Routes */}
         <Route
