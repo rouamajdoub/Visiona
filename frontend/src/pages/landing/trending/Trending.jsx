@@ -6,12 +6,18 @@ import {
   User,
   ArrowRight,
 } from "lucide-react";
+import "./Trend.css";
+import img1 from "./img/1.jpg";
+import img2 from "./img/2.jpg";
+import img3 from "./img/3.jpg";
+import img4 from "./img/4.jpg";
+import img5 from "./img/5.jpg";
+import img6 from "./img/6.jpg";
 
 export default function InteriorDesignBlog() {
   const [activeTab, setActiveTab] = useState("latest");
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Using placeholder images since we can't import the actual images
   const blogPosts = [
     {
       id: 1,
@@ -20,8 +26,7 @@ export default function InteriorDesignBlog() {
         "Bringing nature indoors through living walls, natural materials, and abundant plants to improve wellbeing and air quality.",
       content:
         "Discover how incorporating natural elements into your interior spaces can transform your home into a sanctuary of wellness and beauty...",
-      image:
-        "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&h=300&fit=crop",
+      image: img1,
       author: "Sarah Johnson",
       date: "March 15, 2024",
       readTime: "5 min read",
@@ -34,8 +39,7 @@ export default function InteriorDesignBlog() {
         "Moving away from sharp angles, curved walls and arched doorways create softer, more welcoming spaces.",
       content:
         "The rise of curved architecture represents a shift towards more organic, human-centered design approaches...",
-      image:
-        "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500&h=300&fit=crop",
+      image: img2,
       author: "Michael Chen",
       date: "March 12, 2024",
       readTime: "4 min read",
@@ -48,8 +52,7 @@ export default function InteriorDesignBlog() {
         "Post-pandemic interiors prioritize adaptable spaces that serve multiple purposes for work, leisure, and wellness.",
       content:
         "Learn how to create flexible living spaces that adapt to your changing needs throughout the day...",
-      image:
-        "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&h=300&fit=crop",
+      image: img3,
       author: "Emma Rodriguez",
       date: "March 10, 2024",
       readTime: "6 min read",
@@ -62,8 +65,7 @@ export default function InteriorDesignBlog() {
         "Rich textures in plaster, terrazzo, and natural stone create visual interest and tactile experiences.",
       content:
         "Explore how different textures can add depth and character to your interior spaces...",
-      image:
-        "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500&h=300&fit=crop",
+      image: img4,
       author: "David Park",
       date: "March 8, 2024",
       readTime: "4 min read",
@@ -76,8 +78,7 @@ export default function InteriorDesignBlog() {
         "Striking color combinations define spaces and create mood without the need for physical barriers.",
       content:
         "Master the art of using bold colors to transform and define your living spaces...",
-      image:
-        "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&h=300&fit=crop",
+      image: img5,
       author: "Lisa Thompson",
       date: "March 5, 2024",
       readTime: "5 min read",
@@ -90,8 +91,7 @@ export default function InteriorDesignBlog() {
         "Reclaimed wood, recycled metals, and biodegradable finishes lead eco-conscious design approaches.",
       content:
         "Discover sustainable materials that don't compromise on style while protecting our environment...",
-      image:
-        "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500&h=300&fit=crop",
+      image: img6,
       author: "Alex Kumar",
       date: "March 3, 2024",
       readTime: "7 min read",
@@ -128,26 +128,22 @@ export default function InteriorDesignBlog() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="blog-container">
       {/* Header */}
-      <header className="bg-gradient-to-r from-slate-900 to-slate-800 text-white py-16">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Interior Design Blog
-            </h1>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto">
-              Discover the latest trends, tips, and inspiration for creating
-              beautiful spaces
-            </p>
-          </div>
+      <header className="blog-header">
+        <div className="header-content">
+          <h1 className="header-title">Interior Design Blog</h1>
+          <p className="header-subtitle">
+            Discover the latest trends, tips, and inspiration for creating
+            beautiful spaces
+          </p>
         </div>
       </header>
 
       {/* Navigation Tabs */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6">
-          <nav className="flex space-x-8 overflow-x-auto py-4">
+      <div className="nav-container">
+        <div className="nav-content">
+          <nav className="nav-tabs">
             {categories.map((category) => (
               <button
                 key={category.id}
@@ -155,10 +151,8 @@ export default function InteriorDesignBlog() {
                   setActiveTab(category.id);
                   setCurrentSlide(0);
                 }}
-                className={`whitespace-nowrap px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                  activeTab === category.id
-                    ? "bg-blue-100 text-blue-700 border-b-2 border-blue-500"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                className={`nav-tab ${
+                  activeTab === category.id ? "active" : ""
                 }`}
               >
                 {category.name}
@@ -169,151 +163,123 @@ export default function InteriorDesignBlog() {
       </div>
 
       {/* Blog Posts Section */}
-      <section className="py-12">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">
+      <section className="posts-section">
+        <div className="posts-content">
+          <h2 className="section-title">
             {activeTab === "latest"
               ? "Latest Posts"
               : categories.find((c) => c.id === activeTab)?.name}
           </h2>
 
-          <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {visiblePosts.map((post) => (
-                <article
-                  key={post.id}
-                  className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group"
-                >
-                  <div className="relative overflow-hidden">
-                    <img
-                      src={post.image}
-                      alt={post.title}
-                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-4 left-4">
-                      <span className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-gray-700 capitalize">
-                        {post.category}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
-                      {post.title}
-                    </h3>
-                    <p className="text-gray-600 mb-4 line-clamp-3">
-                      {post.excerpt}
-                    </p>
-
-                    <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                      <div className="flex items-center space-x-4">
-                        <span className="flex items-center">
-                          <User size={14} className="mr-1" />
-                          {post.author}
-                        </span>
-                        <span className="flex items-center">
-                          <Calendar size={14} className="mr-1" />
-                          {post.date}
-                        </span>
-                      </div>
-                      <span className="text-blue-600 font-medium">
-                        {post.readTime}
-                      </span>
-                    </div>
-
-                    <button className="flex items-center text-blue-600 font-medium hover:text-blue-700 transition-colors group">
-                      Read More
-                      <ArrowRight
-                        size={16}
-                        className="ml-1 group-hover:translate-x-1 transition-transform"
-                      />
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            {maxSlides > 1 && (
-              <div className="flex items-center justify-center mt-12 space-x-4">
-                <button
-                  onClick={prevSlide}
-                  className="p-2 rounded-full bg-white shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={currentSlide === 0}
-                >
-                  <ChevronLeft size={24} />
-                </button>
-
-                <div className="flex space-x-2">
-                  {Array.from({ length: maxSlides }, (_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentSlide(i)}
-                      className={`w-3 h-3 rounded-full transition-all ${
-                        currentSlide === i
-                          ? "bg-blue-600"
-                          : "bg-gray-300 hover:bg-gray-400"
-                      }`}
-                    />
-                  ))}
+          <div className="posts-grid">
+            {visiblePosts.map((post) => (
+              <article key={post.id} className="post-card">
+                <div className="post-image-container">
+                  <img
+                    src={post.image}
+                    alt={post.title}
+                    className="post-image"
+                  />
+                  <div className="post-category-badge">{post.category}</div>
                 </div>
 
-                <button
-                  onClick={nextSlide}
-                  className="p-2 rounded-full bg-white shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={currentSlide === maxSlides - 1}
-                >
-                  <ChevronRight size={24} />
-                </button>
-              </div>
-            )}
+                <div className="post-content">
+                  <h3 className="post-title">{post.title}</h3>
+                  <p className="post-excerpt">{post.excerpt}</p>
+
+                  <div className="post-meta">
+                    <div className="post-meta-left">
+                      <span className="meta-item">
+                        <User size={14} />
+                        {post.author}
+                      </span>
+                      <span className="meta-item">
+                        <Calendar size={14} />
+                        {post.date}
+                      </span>
+                    </div>
+                    <span className="read-time">{post.readTime}</span>
+                  </div>
+
+                  <button className="read-more-btn">
+                    Read More
+                    <ArrowRight size={16} className="arrow-icon" />
+                  </button>
+                </div>
+              </article>
+            ))}
           </div>
+
+          {maxSlides > 1 && (
+            <div className="pagination">
+              <button
+                onClick={prevSlide}
+                className="pagination-btn"
+                disabled={currentSlide === 0}
+              >
+                <ChevronLeft size={24} />
+              </button>
+
+              <div className="pagination-dots">
+                {Array.from({ length: maxSlides }, (_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentSlide(i)}
+                    className={`pagination-dot ${
+                      currentSlide === i ? "active" : ""
+                    }`}
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={nextSlide}
+                className="pagination-btn"
+                disabled={currentSlide === maxSlides - 1}
+              >
+                <ChevronRight size={24} />
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Featured Resources */}
-      <section className="bg-gray-50 py-16">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-            Design Resources
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <h3 className="text-xl font-bold mb-3 text-gray-900">
-                Design Guides
-              </h3>
-              <p className="text-gray-600 mb-4">
+      <section className="resources-section">
+        <div className="resources-content">
+          <h2 className="resources-title">Design Resources</h2>
+          <div className="resources-grid">
+            <div className="resource-card">
+              <h3 className="resource-title">Design Guides</h3>
+              <p className="resource-description">
                 Comprehensive guides to help you navigate interior design
                 principles and techniques.
               </p>
-              <button className="text-blue-600 font-medium hover:text-blue-700 transition-colors">
+              <a href="/Login" className="resource-link">
                 Explore Guides →
-              </button>
+              </a>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <h3 className="text-xl font-bold mb-3 text-gray-900">
-                Color Palettes
-              </h3>
-              <p className="text-gray-600 mb-4">
+            <div className="resource-card">
+              <h3 className="resource-title">Color Palettes</h3>
+              <p className="resource-description">
                 Curated color combinations and palettes for every style and
                 mood.
               </p>
-              <button className="text-blue-600 font-medium hover:text-blue-700 transition-colors">
+              <a href="/Login" className="resource-link">
                 Browse Palettes →
-              </button>
+              </a>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <h3 className="text-xl font-bold mb-3 text-gray-900">
-                Expert Tips
-              </h3>
-              <p className="text-gray-600 mb-4">
+            <div className="resource-card">
+              <h3 className="resource-title">Expert Tips</h3>
+              <p className="resource-description">
                 Professional advice and insider secrets from leading interior
                 designers.
               </p>
-              <button className="text-blue-600 font-medium hover:text-blue-700 transition-colors">
+              <a href="/Login" className="resource-link">
                 Read Tips →
-              </button>
+              </a>
             </div>
           </div>
         </div>

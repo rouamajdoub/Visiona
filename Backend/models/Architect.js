@@ -182,7 +182,7 @@ const architectSchema = new mongoose.Schema(
     },
     subscriptionType: {
       type: String,
-      enum: ["Free", "premium", "vip", "none"],
+      enum: ["free", "premium", "vip", "none"],
       default: "none",
     },
 

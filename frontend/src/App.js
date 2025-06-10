@@ -20,7 +20,7 @@ import SubscriptionCancel from "./pages/subs_selection_page/SubscriptionCancel.j
 import Dashboard from "./pages/Dashboard/Admin/AdminDashboard.jsx";
 
 // Protected Pages - Architect
-import ArchitectDashboard from "./pages/Dashboard/Architect/Main.jsx";
+import Main from "./pages/Dashboard/Architect/Main.jsx";
 import Calender from "./pages/Dashboard/Architect/pages/Calendar/Calendar.jsx";
 
 // Protected Pages - Client
@@ -79,7 +79,7 @@ function App() {
           path="/architect"
           element={
             <ProtectedRoute roles={["architect"]} requireApproved={true}>
-              <ArchitectDashboard />
+              <Main />
             </ProtectedRoute>
           }
         />

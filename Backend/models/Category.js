@@ -45,6 +45,12 @@ CategorySchema.virtual("subcategories", {
   foreignField: "parentCategory",
   justOne: false,
 });
+CategorySchema.virtual("productsCount", {
+  ref: "Product",
+  localField: "_id",
+  foreignField: "category",
+  count: true,
+});
 
 // Set slug before saving
 CategorySchema.pre("save", function (next) {

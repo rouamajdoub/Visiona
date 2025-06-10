@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useArchitect } from "./ArchitectContext"; // Update path accordingly
+import { useArchitect } from "./ArchitectContext";
 import {
   fetchArchitectProfile,
   clearCurrentArchitect,
@@ -11,7 +11,7 @@ import {
   selectErrorStates,
 } from "../../../../redux/slices/findArchitectSlice";
 import "./ArchitectProfile.css";
-
+import ArchitectReviews from "../Review/ArchitectReviews";
 // Leaflet Map Component
 const ArchitectMap = ({ architect }) => {
   const mapRef = useRef(null);
@@ -132,26 +132,34 @@ const ArchitectMap = ({ architect }) => {
   if (!architect?.location?.coordinates) {
     return (
       <div className="arch-profile-map-placeholder">
-        <p className="arch-profile-map-placeholder-text">
-          Location not available
-        </p>
+        <div className="arch-profile-map-placeholder-content">
+          <div className="arch-profile-map-placeholder-icon">📍</div>
+          <p className="arch-profile-map-placeholder-text">
+            Location not available
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="arch-profile-map-container">
-      <h3 className="arch-profile-map-title">Office Location</h3>
+      <h3 className="arch-profile-section-title">Office Location</h3>
       <div ref={mapRef} className="arch-profile-map"></div>
       <div className="arch-profile-location-info">
-        <p className="arch-profile-location-address">
-          <strong>Address:</strong>{" "}
-          {architect.location.address || "Address not provided"}
-        </p>
-        <p className="arch-profile-location-city">
-          <strong>City:</strong> {architect.location.city},{" "}
-          {architect.location.governorate}
-        </p>
+        <div className="arch-profile-location-item">
+          <span className="arch-profile-location-icon">📍</span>
+          <div className="arch-profile-location-details">
+            <p className="arch-profile-location-address">
+              <strong>Address:</strong>{" "}
+              {architect.location.address || "Address not provided"}
+            </p>
+            <p className="arch-profile-location-city">
+              <strong>City:</strong> {architect.location.city},{" "}
+              {architect.location.governorate}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -159,7 +167,7 @@ const ArchitectMap = ({ architect }) => {
 
 const ArchitectProfile = () => {
   const dispatch = useDispatch();
-  const { selectedArchitectId, showArchitectList } = useArchitect(); // Get from context
+  const { selectedArchitectId, showArchitectList } = useArchitect();
   const architect = useSelector(selectCurrentArchitect);
   const loading = useSelector(selectLoadingStates);
   const error = useSelector(selectErrorStates);
@@ -190,7 +198,6 @@ const ArchitectProfile = () => {
     }
   };
 
-  // Handle back navigation - use context function
   const handleBack = () => {
     showArchitectList();
   };
@@ -235,12 +242,14 @@ const ArchitectProfile = () => {
         <div className="arch-profile-portfolio-grid">
           {architect.portfolio.map((project, index) => (
             <div key={index} className="arch-profile-portfolio-item">
-              <img
-                src={project.image || "/default-project.jpg"}
-                alt={project.title}
-                className="arch-profile-portfolio-img"
-              />
-              <div className="arch-profile-portfolio-overlay">
+              <div className="arch-profile-portfolio-image-container">
+                <img
+                  src={project.image || "/default-project.jpg"}
+                  alt={project.title}
+                  className="arch-profile-portfolio-img"
+                />
+              </div>
+              <div className="arch-profile-portfolio-content">
                 <h4 className="arch-profile-portfolio-title">
                   {project.title}
                 </h4>
@@ -303,12 +312,13 @@ const ArchitectProfile = () => {
     );
   };
 
-  // Early returns should be inside the component function
   if (loading.profile) {
     return (
       <div className="arch-profile-loading">
         <div className="arch-profile-spinner"></div>
-        <p>Loading architect profile...</p>
+        <p className="arch-profile-loading-text">
+          Loading architect profile...
+        </p>
       </div>
     );
   }
@@ -316,6 +326,7 @@ const ArchitectProfile = () => {
   if (error.profile) {
     return (
       <div className="arch-profile-error">
+        <div className="arch-profile-error-icon">⚠️</div>
         <p className="arch-profile-error-text">{error.profile}</p>
         <button className="arch-profile-back-btn" onClick={handleBack}>
           Back to List
@@ -327,6 +338,7 @@ const ArchitectProfile = () => {
   if (!architect) {
     return (
       <div className="arch-profile-not-found">
+        <div className="arch-profile-not-found-icon">🔍</div>
         <p className="arch-profile-not-found-text">Architect not found</p>
         <button className="arch-profile-back-btn" onClick={handleBack}>
           Back to List
@@ -337,10 +349,13 @@ const ArchitectProfile = () => {
 
   return (
     <div className="arch-profile-container">
+      <div className="arch-profile-background-gradient"></div>
+
       {/* Header */}
       <div className="arch-profile-header">
         <button className="arch-profile-back-btn" onClick={handleBack}>
-          ← Back to List
+          <span className="arch-profile-back-icon">←</span>
+          Back to List
         </button>
         <button
           className={`arch-profile-favorite-btn ${
@@ -349,9 +364,10 @@ const ArchitectProfile = () => {
           onClick={handleFavoriteToggle}
           disabled={loading.addingFavorite || loading.removingFavorite}
         >
-          {architect.isFavorite
-            ? "♥ Remove from Favorites"
-            : "♡ Add to Favorites"}
+          <span className="arch-profile-favorite-icon">
+            {architect.isFavorite ? "♥" : "♡"}
+          </span>
+          {architect.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
         </button>
       </div>
 
@@ -359,21 +375,24 @@ const ArchitectProfile = () => {
       <div className="arch-profile-main">
         <div className="arch-profile-info">
           <div className="arch-profile-image-section">
-            <img
-              src={architect.profilePicture || "/default-avatar.png"}
-              alt={architect.name}
-              className="arch-profile-image"
-            />
-            <div className="arch-profile-status">
-              <span
-                className={`arch-profile-status-badge ${
-                  architect.isOnline
-                    ? "arch-profile-online"
-                    : "arch-profile-offline"
-                }`}
-              >
-                {architect.isOnline ? "Online" : "Offline"}
-              </span>
+            <div className="arch-profile-image-container">
+              <img
+                src={architect.profilePicture || "/default-avatar.png"}
+                alt={architect.name}
+                className="arch-profile-image"
+              />
+              <div className="arch-profile-status">
+                <span
+                  className={`arch-profile-status-badge ${
+                    architect.isOnline
+                      ? "arch-profile-online"
+                      : "arch-profile-offline"
+                  }`}
+                >
+                  <span className="arch-profile-status-dot"></span>
+                  {architect.isOnline ? "Online" : "Offline"}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -387,18 +406,21 @@ const ArchitectProfile = () => {
 
             <div className="arch-profile-basic-info">
               <div className="arch-profile-info-item">
+                <span className="arch-profile-info-icon">💼</span>
                 <span className="arch-profile-info-label">Experience:</span>
                 <span className="arch-profile-info-value">
                   {architect.experienceYears} years
                 </span>
               </div>
               <div className="arch-profile-info-item">
+                <span className="arch-profile-info-icon">📍</span>
                 <span className="arch-profile-info-label">Location:</span>
                 <span className="arch-profile-info-value">
                   {architect.location?.city}, {architect.location?.governorate}
                 </span>
               </div>
               <div className="arch-profile-info-item">
+                <span className="arch-profile-info-icon">📅</span>
                 <span className="arch-profile-info-label">Joined:</span>
                 <span className="arch-profile-info-value">
                   {new Date(architect.createdAt).toLocaleDateString()}
@@ -413,6 +435,7 @@ const ArchitectProfile = () => {
               </h3>
               <div className="arch-profile-contact-info">
                 <div className="arch-profile-contact-item">
+                  <span className="arch-profile-contact-icon">✉️</span>
                   <span className="arch-profile-contact-label">Email:</span>
                   <a
                     href={`mailto:${architect.email}`}
@@ -423,6 +446,7 @@ const ArchitectProfile = () => {
                 </div>
                 {architect.phone && (
                   <div className="arch-profile-contact-item">
+                    <span className="arch-profile-contact-icon">📞</span>
                     <span className="arch-profile-contact-label">Phone:</span>
                     <a
                       href={`tel:${architect.phone}`}
@@ -434,6 +458,7 @@ const ArchitectProfile = () => {
                 )}
                 {architect.website && (
                   <div className="arch-profile-contact-item">
+                    <span className="arch-profile-contact-icon">🌐</span>
                     <span className="arch-profile-contact-label">Website:</span>
                     <a
                       href={architect.website}
@@ -465,7 +490,8 @@ const ArchitectProfile = () => {
             <div className="arch-profile-services-grid">
               {architect.services.map((service, index) => (
                 <div key={index} className="arch-profile-service-item">
-                  {service}
+                  <span className="arch-profile-service-icon">🔧</span>
+                  <span className="arch-profile-service-text">{service}</span>
                 </div>
               ))}
             </div>
@@ -479,6 +505,7 @@ const ArchitectProfile = () => {
             <div className="arch-profile-languages-list">
               {architect.languages.map((language, index) => (
                 <span key={index} className="arch-profile-language-item">
+                  <span className="arch-profile-language-icon">🗣️</span>
                   {language}
                 </span>
               ))}

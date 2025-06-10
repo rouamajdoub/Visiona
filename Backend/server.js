@@ -8,14 +8,23 @@ const multer = require("multer");
 const cities = require("./utils/tunisiaCities.json");
 const path = require("path");
 const fs = require("fs");
-
+const session = require("express-session");
 const asyncHandler = require("express-async-handler");
 const cookieParser = require("cookie-parser");
 const { auth } = require("express-openid-connect");
-const passport = require("./config/passport"); // Add passport config
-const session = require("express-session"); // Add session middleware
-const userRoutes = require("./routes/userRoutes");
+require("./config/passport");
+
+// Import routes
+
+//stripe
+const webhookRoutes = require("./Stripe/webhook/route");
 const subscriptionRoutes = require("./routes/subscriptionRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
+
+//the rest of the imports
+
+const passport = require("./config/passport");
+const userRoutes = require("./routes/userRoutes");
 const projects = require("./routes/projectsRoutes");
 const marketplaceRoutes = require("./routes/marketplaceRoutes");
 const kanbanRoutes = require("./routes/kanbanRoutes");
@@ -37,12 +46,7 @@ const globalOptionRoutes = require("./routes/GlobalOptionRoutes");
 const matchingRoutes = require("./routes/matchingRoutes");
 const locationRoutes = require("./routes/locationRoutes");
 const findarchitectRoutes = require("./routes/findarchitectRoutes");
-require("./config/passport");
-
-// Stripe
-const webhookRoutes = require("./Stripe/webhook/route");
-const paymentRoutes = require("./routes/paymentRoutes");
-
+const productRoutes = require("./routes/productRoutes");
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -125,7 +129,7 @@ connectDB();
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/auth", googleAuthRoutes); // Add Google auth routes
+app.use("/api/auth", googleAuthRoutes);
 app.use("/api/admins", adminRoutes);
 
 app.use("/api/users", userRoutes);
@@ -136,6 +140,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/arch-req", architectRoutes);
 app.use("/api/arch-stats", statsRoutes);
 app.use("/api/marketplace", marketplaceRoutes);
+app.use("/api/prod", productRoutes);
 app.use("/api/quotes", quoteRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/profile", profileRoutes);

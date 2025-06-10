@@ -227,11 +227,7 @@ const ArchitectsHighlight = () => {
           </p>
 
           <div className="cta-buttons">
-            <a href="/projects" className="cta-button explore-button">
-              <Search size={18} />
-              Explore Projects
-            </a>
-            <a href="/architects" className="cta-button meet-button">
+            <a href="/architects" className="cta-button explore-button">
               <Users size={18} />
               Meet the Architects
             </a>
