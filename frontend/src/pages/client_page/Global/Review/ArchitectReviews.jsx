@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   getProjectReviews,
   createProjectReview,
+  markReviewAsHelpful,
   selectProjectReviews,
   selectReviewsLoading,
   selectReviewsError,
@@ -28,6 +29,7 @@ const ArchitectReviews = ({ architectId, architectName }) => {
   });
   const [sortBy, setSortBy] = useState("newest");
   const [filterRating, setFilterRating] = useState("all");
+  const [helpfulLoading, setHelpfulLoading] = useState({});
 
   useEffect(() => {
     if (architectId) {
@@ -45,14 +47,18 @@ const ArchitectReviews = ({ architectId, architectName }) => {
         recommendToOthers: true,
       });
       dispatch(resetReviewState());
+      // Refresh reviews after successful submission
+      if (architectId) {
+        dispatch(getProjectReviews(architectId));
+      }
     }
-  }, [success, dispatch]);
+  }, [success, dispatch, architectId]);
 
   const handleSubmitReview = () => {
     if (reviewData.comment.trim() && reviewData.title.trim()) {
       dispatch(
         createProjectReview({
-          projectId: architectId,
+          projectId: architectId, // This represents the architect's profile/projects
           reviewData,
         })
       );
@@ -64,6 +70,22 @@ const ArchitectReviews = ({ architectId, architectName }) => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  const handleMarkAsHelpful = async (reviewId) => {
+    setHelpfulLoading((prev) => ({ ...prev, [reviewId]: true }));
+
+    try {
+      await dispatch(markReviewAsHelpful(reviewId)).unwrap();
+      // Refresh reviews to show updated helpful count
+      if (architectId) {
+        dispatch(getProjectReviews(architectId));
+      }
+    } catch (error) {
+      console.error("Error marking review as helpful:", error);
+    } finally {
+      setHelpfulLoading((prev) => ({ ...prev, [reviewId]: false }));
+    }
   };
 
   // Calculate statistics
@@ -102,6 +124,8 @@ const ArchitectReviews = ({ architectId, architectName }) => {
           return b.rating - a.rating;
         case "lowest":
           return a.rating - b.rating;
+        case "helpful":
+          return (b.helpfulCount || 0) - (a.helpfulCount || 0);
         default:
           return 0;
       }
@@ -133,6 +157,16 @@ const ArchitectReviews = ({ architectId, architectName }) => {
       day: "numeric",
     });
   };
+
+  if (!architectId || !architectName) {
+    return (
+      <div className="architect-reviews">
+        <div className="reviews-error">
+          <p>Unable to load reviews. Missing architect information.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="architect-reviews">
@@ -180,7 +214,7 @@ const ArchitectReviews = ({ architectId, architectName }) => {
       {showReviewForm && (
         <div className="review-form-container">
           <div className="review-form">
-            <h3>Write Your Review</h3>
+            <h3>Write Your Review for {architectName}</h3>
 
             <div className="form-group">
               <label>Rating</label>
@@ -197,7 +231,11 @@ const ArchitectReviews = ({ architectId, architectName }) => {
                 onChange={(e) => handleInputChange("title", e.target.value)}
                 placeholder="Summarize your experience..."
                 className="form-input"
+                maxLength={100}
               />
+              <small className="char-count">
+                {reviewData.title.length}/100
+              </small>
             </div>
 
             <div className="form-group">
@@ -205,10 +243,14 @@ const ArchitectReviews = ({ architectId, architectName }) => {
               <textarea
                 value={reviewData.comment}
                 onChange={(e) => handleInputChange("comment", e.target.value)}
-                placeholder="Tell others about your experience working with this architect..."
+                placeholder={`Tell others about your experience working with ${architectName}...`}
                 rows="5"
                 className="form-textarea"
+                maxLength={1000}
               />
+              <small className="char-count">
+                {reviewData.comment.length}/1000
+              </small>
             </div>
 
             <div className="form-group checkbox-group">
@@ -222,7 +264,7 @@ const ArchitectReviews = ({ architectId, architectName }) => {
                   className="checkbox-input"
                 />
                 <span className="checkbox-label">
-                  I would recommend this architect to others
+                  I would recommend {architectName} to others
                 </span>
               </div>
             </div>
@@ -233,6 +275,7 @@ const ArchitectReviews = ({ architectId, architectName }) => {
               <button
                 className="cancel-btn"
                 onClick={() => setShowReviewForm(false)}
+                disabled={isLoading}
               >
                 Cancel
               </button>
@@ -262,6 +305,7 @@ const ArchitectReviews = ({ architectId, architectName }) => {
               <option value="oldest">Oldest first</option>
               <option value="highest">Highest rated</option>
               <option value="lowest">Lowest rated</option>
+              <option value="helpful">Most helpful</option>
             </select>
           </div>
 
@@ -288,7 +332,8 @@ const ArchitectReviews = ({ architectId, architectName }) => {
 
         {!isLoading && reviews.length === 0 && (
           <div className="no-reviews">
-            <p>No reviews yet. Be the first to review this architect!</p>
+            <div className="no-reviews-icon">📝</div>
+            <p>No reviews yet. Be the first to review {architectName}!</p>
           </div>
         )}
 
@@ -297,7 +342,17 @@ const ArchitectReviews = ({ architectId, architectName }) => {
             <div className="review-header">
               <div className="reviewer-info">
                 <div className="reviewer-avatar">
-                  {review.user?.name?.charAt(0) || "U"}
+                  {review.user?.profilePicture ? (
+                    <img
+                      src={review.user.profilePicture}
+                      alt={review.user.name}
+                      className="avatar-img"
+                    />
+                  ) : (
+                    <span className="avatar-initials">
+                      {review.user?.name?.charAt(0)?.toUpperCase() || "U"}
+                    </span>
+                  )}
                 </div>
                 <div className="reviewer-details">
                   <h4 className="reviewer-name">
@@ -317,14 +372,35 @@ const ArchitectReviews = ({ architectId, architectName }) => {
 
               {review.recommendToOthers && (
                 <div className="recommendation">
-                  <span className="recommend-badge">✓ Recommends</span>
+                  <span className="recommend-badge">
+                    ✓ Recommends {architectName}
+                  </span>
                 </div>
               )}
             </div>
 
             <div className="review-actions">
-              <button className="helpful-btn">👍 Helpful</button>
-              <button className="reply-btn">💬 Reply</button>
+              <button
+                className={`helpful-btn ${
+                  review.isHelpfulByCurrentUser ? "marked-helpful" : ""
+                }`}
+                onClick={() => handleMarkAsHelpful(review._id)}
+                disabled={helpfulLoading[review._id]}
+              >
+                <span className="helpful-icon">👍</span>
+                <span className="helpful-text">
+                  {helpfulLoading[review._id] ? "Loading..." : "Helpful"}
+                </span>
+                {(review.helpfulCount || 0) > 0 && (
+                  <span className="helpful-count">({review.helpfulCount})</span>
+                )}
+              </button>
+
+              {/* Optional: Reply functionality can be added later */}
+              {/* <button className="reply-btn">
+                <span className="reply-icon">💬</span>
+                Reply
+              </button> */}
             </div>
           </div>
         ))}

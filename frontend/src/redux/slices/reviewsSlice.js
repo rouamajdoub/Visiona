@@ -20,6 +20,11 @@ const initialState = {
   error: null,
   success: false,
   message: "",
+
+  // Additional loading states for specific actions
+  markingHelpful: false,
+  updatingReview: false,
+  deletingReview: false,
 };
 
 // Enhanced async thunks with better validation
@@ -118,9 +123,21 @@ export const createProjectReview = createAsyncThunk(
     }
 
     try {
+      // Get the token from the auth state
+      const state = thunkAPI.getState();
+      const token = state.auth?.token || localStorage.getItem("token");
+
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      };
+
       const response = await axios.post(
         `${API_URL}/projects/${projectId}/reviews`,
-        reviewData
+        reviewData,
+        config
       );
       return response.data;
     } catch (error) {
@@ -139,9 +156,21 @@ export const createProductReview = createAsyncThunk(
     }
 
     try {
+      // Get the token from the auth state
+      const state = thunkAPI.getState();
+      const token = state.auth?.token || localStorage.getItem("token");
+
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      };
+
       const response = await axios.post(
         `${API_URL}/products/${productId}/reviews`,
-        reviewData
+        reviewData,
+        config
       );
       return response.data;
     } catch (error) {
@@ -158,7 +187,7 @@ export const createAppReview = createAsyncThunk(
     try {
       // Get the token from the auth state
       const state = thunkAPI.getState();
-      const token = state.auth.token || localStorage.getItem("token");
+      const token = state.auth?.token || localStorage.getItem("token");
 
       if (!token) {
         return thunkAPI.rejectWithValue("Authentication token not found");
@@ -184,6 +213,100 @@ export const createAppReview = createAsyncThunk(
         error.response?.data?.message ||
         error.message ||
         "Failed to submit review";
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Mark review as helpful - THIS WAS MISSING
+export const markReviewAsHelpful = createAsyncThunk(
+  "reviews/markReviewAsHelpful",
+  async (reviewId, thunkAPI) => {
+    if (!reviewId) {
+      return thunkAPI.rejectWithValue("Review ID is required");
+    }
+
+    try {
+      // Get the token from the auth state
+      const state = thunkAPI.getState();
+      const token = state.auth?.token || localStorage.getItem("token");
+
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      };
+
+      const response = await axios.post(
+        `${API_URL}/reviews/${reviewId}/helpful`,
+        {},
+        config
+      );
+      return { reviewId, data: response.data };
+    } catch (error) {
+      const message = error.response?.data?.error || error.message;
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Update a review (user can update their own review)
+export const updateReview = createAsyncThunk(
+  "reviews/updateReview",
+  async ({ reviewId, reviewData }, thunkAPI) => {
+    if (!reviewId) {
+      return thunkAPI.rejectWithValue("Review ID is required");
+    }
+
+    try {
+      // Get the token from the auth state
+      const state = thunkAPI.getState();
+      const token = state.auth?.token || localStorage.getItem("token");
+
+      const config = {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      };
+
+      const response = await axios.put(
+        `${API_URL}/reviews/${reviewId}`,
+        reviewData,
+        config
+      );
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.error || error.message;
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Delete user's own review
+export const deleteUserReview = createAsyncThunk(
+  "reviews/deleteUserReview",
+  async (reviewId, thunkAPI) => {
+    if (!reviewId) {
+      return thunkAPI.rejectWithValue("Review ID is required");
+    }
+
+    try {
+      // Get the token from the auth state
+      const state = thunkAPI.getState();
+      const token = state.auth?.token || localStorage.getItem("token");
+
+      const config = {
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      };
+
+      await axios.delete(`${API_URL}/reviews/${reviewId}`, config);
+      return reviewId;
+    } catch (error) {
+      const message = error.response?.data?.error || error.message;
       return thunkAPI.rejectWithValue(message);
     }
   }
@@ -310,9 +433,18 @@ const reviewsSlice = createSlice({
       state.error = null;
       state.success = false;
       state.message = "";
+      state.markingHelpful = false;
+      state.updatingReview = false;
+      state.deletingReview = false;
     },
     clearCurrentReview: (state) => {
       state.currentReview = null;
+    },
+    clearReviewError: (state) => {
+      state.error = null;
+    },
+    clearReviewSuccess: (state) => {
+      state.success = false;
     },
   },
   extraReducers: (builder) => {
@@ -397,8 +529,10 @@ const reviewsSlice = createSlice({
         state.isLoading = false;
         state.success = true;
         state.message = "Project review created successfully";
-        // Add to my reviews
-        state.myReviews.unshift(action.payload.data);
+        // Add to my reviews if it exists
+        if (action.payload.data) {
+          state.myReviews.unshift(action.payload.data);
+        }
       })
       .addCase(createProjectReview.rejected, (state, action) => {
         state.isLoading = false;
@@ -416,8 +550,10 @@ const reviewsSlice = createSlice({
         state.isLoading = false;
         state.success = true;
         state.message = "Product review created successfully";
-        // Add to my reviews
-        state.myReviews.unshift(action.payload.data);
+        // Add to my reviews if it exists
+        if (action.payload.data) {
+          state.myReviews.unshift(action.payload.data);
+        }
       })
       .addCase(createProductReview.rejected, (state, action) => {
         state.isLoading = false;
@@ -435,11 +571,145 @@ const reviewsSlice = createSlice({
         state.isLoading = false;
         state.success = true;
         state.message = "App review created successfully";
-        // Add to my reviews
-        state.myReviews.unshift(action.payload.data);
+        // Add to my reviews if it exists
+        if (action.payload.data) {
+          state.myReviews.unshift(action.payload.data);
+        }
       })
       .addCase(createAppReview.rejected, (state, action) => {
         state.isLoading = false;
+        state.error = action.payload;
+        state.success = false;
+      })
+
+      // Mark review as helpful - THIS WAS MISSING
+      .addCase(markReviewAsHelpful.pending, (state) => {
+        state.markingHelpful = true;
+        state.error = null;
+      })
+      .addCase(markReviewAsHelpful.fulfilled, (state, action) => {
+        state.markingHelpful = false;
+        state.success = true;
+        state.message = "Review marked as helpful";
+
+        const { reviewId, data } = action.payload;
+
+        // Helper function to update helpful count in review lists
+        const updateHelpfulInList = (list) => {
+          const index = list.findIndex((review) => review._id === reviewId);
+          if (index !== -1) {
+            list[index] = {
+              ...list[index],
+              helpfulCount:
+                data.helpfulCount || (list[index].helpfulCount || 0) + 1,
+              isHelpfulByCurrentUser: true,
+            };
+          }
+        };
+
+        // Update in all relevant lists
+        updateHelpfulInList(state.projectReviews);
+        updateHelpfulInList(state.productReviews);
+        updateHelpfulInList(state.appReviews);
+        updateHelpfulInList(state.myReviews);
+        updateHelpfulInList(state.allReviews);
+
+        // Update current review if it matches
+        if (state.currentReview && state.currentReview._id === reviewId) {
+          state.currentReview = {
+            ...state.currentReview,
+            helpfulCount:
+              data.helpfulCount || (state.currentReview.helpfulCount || 0) + 1,
+            isHelpfulByCurrentUser: true,
+          };
+        }
+      })
+      .addCase(markReviewAsHelpful.rejected, (state, action) => {
+        state.markingHelpful = false;
+        state.error = action.payload;
+      })
+
+      // Update review
+      .addCase(updateReview.pending, (state) => {
+        state.updatingReview = true;
+        state.error = null;
+        state.success = false;
+      })
+      .addCase(updateReview.fulfilled, (state, action) => {
+        state.updatingReview = false;
+        state.success = true;
+        state.message = "Review updated successfully";
+
+        const updatedReview = action.payload.data;
+
+        // Helper function to update review in lists
+        const updateReviewInList = (list) => {
+          const index = list.findIndex(
+            (review) => review._id === updatedReview._id
+          );
+          if (index !== -1) {
+            list[index] = updatedReview;
+          }
+        };
+
+        // Update in all relevant lists
+        updateReviewInList(state.projectReviews);
+        updateReviewInList(state.productReviews);
+        updateReviewInList(state.appReviews);
+        updateReviewInList(state.myReviews);
+        updateReviewInList(state.allReviews);
+
+        // Update current review if it matches
+        if (
+          state.currentReview &&
+          state.currentReview._id === updatedReview._id
+        ) {
+          state.currentReview = updatedReview;
+        }
+      })
+      .addCase(updateReview.rejected, (state, action) => {
+        state.updatingReview = false;
+        state.error = action.payload;
+        state.success = false;
+      })
+
+      // Delete user review
+      .addCase(deleteUserReview.pending, (state) => {
+        state.deletingReview = true;
+        state.error = null;
+        state.success = false;
+      })
+      .addCase(deleteUserReview.fulfilled, (state, action) => {
+        state.deletingReview = false;
+        state.success = true;
+        state.message = "Review deleted successfully";
+
+        const reviewId = action.payload;
+
+        // Remove from all review lists
+        state.projectReviews = state.projectReviews.filter(
+          (review) => review._id !== reviewId
+        );
+        state.productReviews = state.productReviews.filter(
+          (review) => review._id !== reviewId
+        );
+        state.appReviews = state.appReviews.filter(
+          (review) => review._id !== reviewId
+        );
+        state.myReviews = state.myReviews.filter(
+          (review) => review._id !== reviewId
+        );
+        state.allReviews = state.allReviews.filter(
+          (review) => review._id !== reviewId
+        );
+
+        // Clear current review if it's the one being deleted
+        if (state.currentReview && state.currentReview._id === reviewId) {
+          state.currentReview = null;
+        }
+      })
+      .addCase(deleteUserReview.rejected, (state, action) => {
+        state.deletingReview = false;
         state.error = action.payload;
         state.success = false;
       })
@@ -451,7 +721,6 @@ const reviewsSlice = createSlice({
       })
       .addCase(getAllReviews.fulfilled, (state, action) => {
         state.isLoading = false;
-        // You might want to store this in a separate field for admin overview
         state.allReviews = action.payload.data || [];
       })
       .addCase(getAllReviews.rejected, (state, action) => {
@@ -577,6 +846,10 @@ const reviewsSlice = createSlice({
           [...state.myReviews],
           updatedReview
         );
+        state.allReviews = updateReviewInList(
+          [...state.allReviews],
+          updatedReview
+        );
       })
       .addCase(updateReviewStatus.rejected, (state, action) => {
         state.isLoading = false;
@@ -613,6 +886,9 @@ const reviewsSlice = createSlice({
         state.myReviews = state.myReviews.filter(
           (review) => review._id !== reviewId
         );
+        state.allReviews = state.allReviews.filter(
+          (review) => review._id !== reviewId
+        );
 
         // Clear current review if it's the one being deleted
         if (state.currentReview && state.currentReview._id === reviewId) {
@@ -628,7 +904,12 @@ const reviewsSlice = createSlice({
 });
 
 // Export actions
-export const { resetReviewState, clearCurrentReview } = reviewsSlice.actions;
+export const {
+  resetReviewState,
+  clearCurrentReview,
+  clearReviewError,
+  clearReviewSuccess,
+} = reviewsSlice.actions;
 
 // Export selectors
 export const selectProjectReviews = (state) => state.reviews.projectReviews;
@@ -637,11 +918,103 @@ export const selectAppReviews = (state) => state.reviews.appReviews;
 export const selectMyReviews = (state) => state.reviews.myReviews;
 export const selectSuspiciousReviews = (state) =>
   state.reviews.suspiciousReviews;
+export const selectAllReviews = (state) => state.reviews.allReviews;
 export const selectCurrentReview = (state) => state.reviews.currentReview;
+
+// Loading state selectors
 export const selectReviewsLoading = (state) => state.reviews.isLoading;
+export const selectMarkingHelpful = (state) => state.reviews.markingHelpful;
+export const selectUpdatingReview = (state) => state.reviews.updatingReview;
+export const selectDeletingReview = (state) => state.reviews.deletingReview;
+
+// Error and success selectors
 export const selectReviewsError = (state) => state.reviews.error;
 export const selectReviewsSuccess = (state) => state.reviews.success;
 export const selectReviewsMessage = (state) => state.reviews.message;
 
-// Export reducer
+// Computed selectors
+export const selectReviewById = (state, reviewId) => {
+  const allReviewsArrays = [
+    state.reviews.projectReviews,
+    state.reviews.productReviews,
+    state.reviews.appReviews,
+    state.reviews.myReviews,
+    state.reviews.allReviews,
+    state.reviews.suspiciousReviews,
+  ];
+
+  for (const reviewsArray of allReviewsArrays) {
+    const review = reviewsArray.find((review) => review._id === reviewId);
+    if (review) return review;
+  }
+
+  return null;
+};
+
+// Get reviews by status
+export const selectReviewsByStatus = (state, status) => {
+  return state.reviews.allReviews.filter((review) => review.status === status);
+};
+
+// Get reviews by rating
+export const selectReviewsByRating = (state, rating) => {
+  const allReviewsArrays = [
+    ...state.reviews.projectReviews,
+    ...state.reviews.productReviews,
+    ...state.reviews.appReviews,
+  ];
+
+  return allReviewsArrays.filter((review) => review.rating === rating);
+};
+
+// Get user's reviews count
+export const selectUserReviewsCount = (state) => state.reviews.myReviews.length;
+
+// Get average rating from reviews array
+export const selectAverageRating = (reviews) => {
+  if (!reviews || reviews.length === 0) return 0;
+  const totalRating = reviews.reduce(
+    (sum, review) => sum + (review.rating || 0),
+    0
+  );
+  return (totalRating / reviews.length).toFixed(1);
+};
+
+// Get reviews statistics
+export const selectReviewsStats = (state) => {
+  const allReviews = [
+    ...state.reviews.projectReviews,
+    ...state.reviews.productReviews,
+    ...state.reviews.appReviews,
+  ];
+
+  if (allReviews.length === 0) {
+    return {
+      total: 0,
+      averageRating: 0,
+      ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    };
+  }
+
+  const ratingDistribution = allReviews.reduce(
+    (acc, review) => {
+      const rating = review.rating || 0;
+      if (rating >= 1 && rating <= 5) {
+        acc[rating] = (acc[rating] || 0) + 1;
+      }
+      return acc;
+    },
+    { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+  );
+
+  const averageRating = selectAverageRating(allReviews);
+
+  return {
+    total: allReviews.length,
+    averageRating: parseFloat(averageRating),
+    ratingDistribution,
+  };
+};
+
+// Default export
 export default reviewsSlice.reducer;

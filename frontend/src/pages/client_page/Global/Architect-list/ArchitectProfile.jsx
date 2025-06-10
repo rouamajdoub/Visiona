@@ -12,6 +12,7 @@ import {
 } from "../../../../redux/slices/findArchitectSlice";
 import "./ArchitectProfile.css";
 import ArchitectReviews from "../Review/ArchitectReviews";
+
 // Leaflet Map Component
 const ArchitectMap = ({ architect }) => {
   const mapRef = useRef(null);
@@ -60,19 +61,44 @@ const ArchitectMap = ({ architect }) => {
     let lat, lng;
     const coordinates = architect.location.coordinates;
 
-    console.log("Coordinates data:", coordinates, "Type:", typeof coordinates);
+    // Debug logging
+    console.log("Full architect.location:", architect.location);
+    console.log("Raw coordinates:", coordinates);
+    console.log("Coordinates type:", typeof coordinates);
+    console.log("Is array:", Array.isArray(coordinates));
 
+    // Extract coordinates based on format
     if (Array.isArray(coordinates) && coordinates.length >= 2) {
       // Standard GeoJSON format: [longitude, latitude]
       [lng, lat] = coordinates;
-    } else if (coordinates && typeof coordinates === "object") {
+      console.log("Extracted from array - lng:", lng, "lat:", lat);
+    } else if (
+      coordinates &&
+      typeof coordinates === "object" &&
+      !Array.isArray(coordinates)
+    ) {
       // Handle object format like {lat: 36.8, lng: 10.2} or {latitude: 36.8, longitude: 10.2}
       lat = coordinates.lat || coordinates.latitude;
       lng = coordinates.lng || coordinates.lon || coordinates.longitude;
+      console.log("Extracted from object - lng:", lng, "lat:", lat);
     } else {
       console.error("Invalid coordinates format:", coordinates);
       return;
     }
+
+    // Additional check to ensure values are defined and valid numbers
+    if (lat === undefined || lng === undefined) {
+      console.error("Coordinates are undefined after extraction:", {
+        lat,
+        lng,
+        original: coordinates,
+      });
+      return;
+    }
+
+    // Convert to numbers if they're strings
+    lat = parseFloat(lat);
+    lng = parseFloat(lng);
 
     // Validate coordinate values
     if (
@@ -85,9 +111,11 @@ const ArchitectMap = ({ architect }) => {
       lng < -180 ||
       lng > 180
     ) {
-      console.error("Invalid coordinate values:", { lat, lng });
+      console.error("Invalid coordinate values after parsing:", { lat, lng });
       return;
     }
+
+    console.log("Final coordinates being used:", { lat, lng });
 
     try {
       // Initialize map
@@ -124,6 +152,8 @@ const ArchitectMap = ({ architect }) => {
           <p>${architect.location.city}, ${architect.location.governorate}</p>
         </div>
       `);
+
+      console.log("Map initialized successfully");
     } catch (error) {
       console.error("Error initializing map:", error);
     }
@@ -257,54 +287,6 @@ const ArchitectProfile = () => {
                   {project.description}
                 </p>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const renderReviews = () => {
-    if (!architect?.reviews || architect.reviews.length === 0) return null;
-
-    return (
-      <div className="arch-profile-reviews">
-        <h3 className="arch-profile-section-title">Client Reviews</h3>
-        <div className="arch-profile-reviews-list">
-          {architect.reviews.slice(0, 3).map((review, index) => (
-            <div key={index} className="arch-profile-review-item">
-              <div className="arch-profile-review-header">
-                <div className="arch-profile-review-author">
-                  <img
-                    src={review.client?.profilePicture || "/default-avatar.png"}
-                    alt={review.client?.name}
-                    className="arch-profile-review-avatar"
-                  />
-                  <div className="arch-profile-review-info">
-                    <h4 className="arch-profile-review-name">
-                      {review.client?.name}
-                    </h4>
-                    <div className="arch-profile-review-rating">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <span
-                          key={star}
-                          className={`arch-profile-review-star ${
-                            star <= review.rating
-                              ? "arch-profile-star-filled"
-                              : "arch-profile-star-empty"
-                          }`}
-                        >
-                          ★
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <span className="arch-profile-review-date">
-                  {new Date(review.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-              <p className="arch-profile-review-text">{review.comment}</p>
             </div>
           ))}
         </div>
@@ -516,11 +498,14 @@ const ArchitectProfile = () => {
         {/* Portfolio Section */}
         {renderPortfolio()}
 
-        {/* Reviews Section */}
-        {renderReviews()}
-
         {/* Map Section */}
         <ArchitectMap architect={architect} />
+
+        {/* Reviews Section - Now using the dedicated component */}
+        <ArchitectReviews
+          architectId={architect._id}
+          architectName={architect.name}
+        />
       </div>
     </div>
   );
