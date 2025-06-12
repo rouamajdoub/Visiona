@@ -1,17 +1,22 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
+// Update API URL to match your backend routes
 const API_URL = "http://localhost:5000/api/profile";
 const getToken = () => localStorage.getItem("token");
 
 // Helper function for authenticated requests
-const configureHeaders = () => {
-  return {
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-      // Let browser set Content-Type for FormData
-    },
+const configureHeaders = (isFormData = false) => {
+  const headers = {
+    Authorization: `Bearer ${getToken()}`,
   };
+
+  // Don't set Content-Type for FormData - let browser handle it
+  if (!isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  return { headers };
 };
 
 // Enhanced validation for location data with better error handling
@@ -76,7 +81,7 @@ const prepareProfileData = (profileData) => {
 
   // Handle array fields that might be strings with better error handling
   const arrayFields = [
-    "specializations",
+    "specialization",
     "certifications",
     "projectTypes",
     "services",
@@ -180,9 +185,12 @@ export const updateArchitectProfile = createAsyncThunk(
   async (profileData, { rejectWithValue }) => {
     try {
       let preparedData;
+      let isFormData = false;
 
       // Check if it's FormData (for file uploads)
       if (profileData instanceof FormData) {
+        isFormData = true;
+
         // For FormData, validate location data if present
         const locationData = profileData.get("location");
         if (locationData && locationData !== "undefined") {
@@ -197,7 +205,12 @@ export const updateArchitectProfile = createAsyncThunk(
         }
 
         // Validate other FormData fields
-        const fieldsToValidate = ["education", "socialMedia"];
+        const fieldsToValidate = [
+          "education",
+          "socialMedia",
+          "softwareProficiency",
+          "languages",
+        ];
         fieldsToValidate.forEach((field) => {
           const fieldData = profileData.get(field);
           if (fieldData && fieldData !== "undefined") {
@@ -219,7 +232,7 @@ export const updateArchitectProfile = createAsyncThunk(
       const response = await axios.put(
         `${API_URL}/me`,
         preparedData,
-        configureHeaders()
+        configureHeaders(isFormData)
       );
 
       return response.data;
@@ -244,6 +257,11 @@ export const updateArchitectProfile = createAsyncThunk(
           errorDetails = errors;
         }
         // Handle MongoDB validation errors
+        else if (details && Array.isArray(details)) {
+          errorMessage = details.map((detail) => detail.message).join(", ");
+          errorDetails = details;
+        }
+        // Handle validation error from your backend
         else if (error.response.data.name === "ValidationError") {
           const validationErrors = Object.values(
             error.response.data.errors || {}
@@ -251,22 +269,33 @@ export const updateArchitectProfile = createAsyncThunk(
           errorMessage = validationErrors.map((err) => err.message).join(", ");
           errorDetails = validationErrors;
         }
-        // Handle geo keys error specifically
-        else if (message && message.includes("Can't extract geo keys")) {
-          errorMessage =
-            "Invalid location coordinates. Please check your location data and try again.";
-        }
-        // Handle cast errors
-        else if (message && message.includes("Cast to embedded failed")) {
-          errorMessage =
-            "Invalid data format. Please check your input fields and try again.";
-        }
         // Handle file upload errors
-        else if (message && message.includes("File too large")) {
+        else if (message && message.includes("Only image files are allowed")) {
           errorMessage =
-            "One or more files are too large. Please choose smaller files.";
-        } else if (message && message.includes("Invalid file type")) {
-          errorMessage = "Invalid file type. Please upload only image files.";
+            "Please upload only image files for profile picture, company logo, and portfolio.";
+        } else if (
+          message &&
+          message.includes("Only PDF and image files are allowed")
+        ) {
+          errorMessage =
+            "Please upload only PDF and image files for documents.";
+        } else if (message && message.includes("File too large")) {
+          errorMessage = "One or more files exceed the 5MB size limit.";
+        }
+        // Handle required field errors
+        else if (
+          message &&
+          message.includes("is required and cannot be empty")
+        ) {
+          errorMessage = message;
+        }
+        // Handle duplicate errors
+        else if (
+          error.response.status === 400 &&
+          message &&
+          message.includes("already exists")
+        ) {
+          errorMessage = message;
         }
         // Handle authentication errors
         else if (error.response.status === 401) {
@@ -279,10 +308,7 @@ export const updateArchitectProfile = createAsyncThunk(
           errorMessage = "Server error occurred. Please try again later.";
         }
         // Use server provided messages
-        else if (details && Array.isArray(details)) {
-          errorMessage = details.join(", ");
-          errorDetails = details;
-        } else if (serverError) {
+        else if (serverError) {
           errorMessage = serverError;
         } else if (message) {
           errorMessage = message;
@@ -357,12 +383,38 @@ export const deleteArchitectAccount = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await axios.delete(`${API_URL}/me`, configureHeaders());
+      // Clear token after successful deletion
+      localStorage.removeItem("token");
       return { success: true };
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         "Failed to delete account";
+      return rejectWithValue({
+        error: errorMessage,
+        status: error.response?.status,
+      });
+    }
+  }
+);
+
+// Update payment status
+export const updatePaymentStatus = createAsyncThunk(
+  "architect/updatePaymentStatus",
+  async (paymentStatus, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(
+        `${API_URL}/me/payment`,
+        { paymentStatus },
+        configureHeaders()
+      );
+      return response.data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Failed to update payment status";
       return rejectWithValue({
         error: errorMessage,
         status: error.response?.status,
@@ -397,31 +449,6 @@ export const updateArchitectLocation = createAsyncThunk(
   }
 );
 
-// New: Bulk update specific profile sections
-export const updateProfileSection = createAsyncThunk(
-  "architect/updateSection",
-  async ({ section, data }, { rejectWithValue }) => {
-    try {
-      const response = await axios.patch(
-        `${API_URL}/me/${section}`,
-        data,
-        configureHeaders()
-      );
-      return { section, data: response.data };
-    } catch (error) {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        `Failed to update ${section}`;
-      return rejectWithValue({
-        error: errorMessage,
-        section,
-        status: error.response?.status,
-      });
-    }
-  }
-);
-
 const architectSlice = createSlice({
   name: "architect",
   initialState: {
@@ -433,7 +460,7 @@ const architectSlice = createSlice({
     updateError: null,
     updateSuccess: false,
     locationUpdateLoading: false,
-    sectionUpdateLoading: false,
+    paymentUpdateLoading: false,
     lastUpdated: null,
     // Add flags for different operations
     deletePortfolioLoading: false,
@@ -448,6 +475,10 @@ const architectSlice = createSlice({
       state.updateError = null;
       state.updateSuccess = false;
       state.lastUpdated = null;
+      state.locationUpdateLoading = false;
+      state.paymentUpdateLoading = false;
+      state.deletePortfolioLoading = false;
+      state.deleteAccountLoading = false;
     },
 
     clearUpdateStatus: (state) => {
@@ -455,7 +486,7 @@ const architectSlice = createSlice({
       state.updateError = null;
       state.updateSuccess = false;
       state.locationUpdateLoading = false;
-      state.sectionUpdateLoading = false;
+      state.paymentUpdateLoading = false;
     },
 
     // Enhanced local profile update with validation
@@ -554,20 +585,21 @@ const architectSlice = createSlice({
         state.updateError = action.payload;
       })
 
-      // Update profile section cases
-      .addCase(updateProfileSection.pending, (state) => {
-        state.sectionUpdateLoading = true;
+      // Update payment status cases
+      .addCase(updatePaymentStatus.pending, (state) => {
+        state.paymentUpdateLoading = true;
         state.updateError = null;
       })
-      .addCase(updateProfileSection.fulfilled, (state, action) => {
-        state.sectionUpdateLoading = false;
-        if (state.profile) {
-          state.profile = { ...state.profile, ...action.payload.data };
+      .addCase(updatePaymentStatus.fulfilled, (state, action) => {
+        state.paymentUpdateLoading = false;
+        if (state.profile && action.payload.architect) {
+          state.profile = { ...state.profile, ...action.payload.architect };
         }
+        state.updateError = null;
         state.lastUpdated = new Date().toISOString();
       })
-      .addCase(updateProfileSection.rejected, (state, action) => {
-        state.sectionUpdateLoading = false;
+      .addCase(updatePaymentStatus.rejected, (state, action) => {
+        state.paymentUpdateLoading = false;
         state.updateError = action.payload;
       })
 
@@ -644,12 +676,12 @@ export const selectArchitectUpdateSuccess = (state) =>
   state.architect.updateSuccess;
 export const selectArchitectLocationUpdateLoading = (state) =>
   state.architect.locationUpdateLoading;
+export const selectArchitectPaymentUpdateLoading = (state) =>
+  state.architect.paymentUpdateLoading;
 export const selectArchitectLastUpdated = (state) =>
   state.architect.lastUpdated;
 
 // New selectors for enhanced functionality
-export const selectArchitectSectionUpdateLoading = (state) =>
-  state.architect.sectionUpdateLoading;
 export const selectArchitectDeletePortfolioLoading = (state) =>
   state.architect.deletePortfolioLoading;
 export const selectArchitectDeleteAccountLoading = (state) =>
@@ -678,6 +710,7 @@ export const selectArchitectProfileCompleteness = (state) => {
     "bio",
     "experienceYears",
     "specialty",
+    "patenteNumber",
     "location.city",
     "location.country",
   ];
@@ -689,6 +722,8 @@ export const selectArchitectProfileCompleteness = (state) => {
     "profilePicture",
     "education.degree",
     "socialMedia.linkedin",
+    "portfolio",
+    "certifications",
   ];
 
   let completed = 0;

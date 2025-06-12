@@ -1,6 +1,6 @@
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const Subscription = require("../models/Subscriptions");
-const User = require("../models/User");
+const User = require("../models/Architect");
 
 // Pricing configuration
 const PRICING = {
@@ -265,16 +265,15 @@ exports.createSubscription = async (req, res) => {
   try {
     const subscription = new Subscription(req.body);
     await subscription.save();
-
+    console.log("*********", req.body);
     // FIXED: Properly update architect's subscription fields
-    if (req.body.architectId && req.body.plan) {
-      await User.findByIdAndUpdate(req.body.architectId, {
-        subscription: subscription._id,
-        subscriptionType: req.body.plan.toLowerCase(),
-        hasAccess: true,
-        paymentStatus: req.body.paymentStatus || "completed",
-      });
-    }
+
+    await User.findByIdAndUpdate(req.body.user.id, {
+      subscription: subscription._id,
+      subscriptionType: subscription.plan.toLowerCase(),
+      hasAccess: true,
+      paymentStatus: "completed",
+    });
 
     res.status(201).json(subscription);
   } catch (error) {

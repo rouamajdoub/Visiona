@@ -395,12 +395,6 @@ const ArchitectReviews = ({ architectId, architectName }) => {
                   <span className="helpful-count">({review.helpfulCount})</span>
                 )}
               </button>
-
-              {/* Optional: Reply functionality can be added later */}
-              {/* <button className="reply-btn">
-                <span className="reply-icon">💬</span>
-                Reply
-              </button> */}
             </div>
           </div>
         ))}

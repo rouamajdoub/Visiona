@@ -3,12 +3,14 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const express = require("express");
 const mongoose = require("mongoose");
+// require("../models/User");
+require("../../models/Subscriptions");
 const router = express.Router();
 
 // Make sure to use consistent model names
 const User = mongoose.model("User"); // Changed from "architect" to match your controller
-const Subscription = mongoose.model("Subscription");
 
+const Subscription = mongoose.model("Subscription");
 router.post(
   "/webhook",
   express.raw({ type: "application/json" }),

@@ -241,12 +241,42 @@ body {
 .form-row {
   display: flex;
   gap: 15px;
+  flex-direction: column;
 }
 
 .form-row .form-group {
   flex: 1;
 }
+.year-picker-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
 
+.year-picker-input {
+  flex: 1;
+  padding-right: 40px; /* Make room for the button */
+}
+
+.year-picker-button {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  z-index: 1;
+  color: white; /* Makes the FaCalendar icon white */
+}
+
+.year-picker-button:hover {
+  background-color: #f0f0f0;
+  background-color: rgba(255, 255, 255, 0.1); /* Subtle white hover effect */
+  transform: scale(1.1); /* Slightly enlarges on hover */
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
 /* Error Message */
 .error-message {
   color: #ff6b6b;
@@ -711,8 +741,9 @@ input[type="number"] {
   }
 
   .form-row {
+    display: flex;
+    gap: 15px;
     flex-direction: column;
-    gap: 0;
   }
 
   .role-buttons {

@@ -296,6 +296,7 @@ const NeedSheetForm = () => {
     };
 
     dispatch(createNeedsheet(transformedData));
+    navigate("/matching-loading");
   };
 
   // Number input validation with range checking
