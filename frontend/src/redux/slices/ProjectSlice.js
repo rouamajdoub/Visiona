@@ -487,8 +487,8 @@ const initialState = {
   searchResults: [],
   clientProjects: [],
   serviceCategories: [],
+  selectedCategorySubcategories: [],
   serviceSubcategories: [],
-  selectedCategorySubcategories: [], // subcategories for selected category
   categoriesLoading: false,
   subcategoriesLoading: false,
   loading: false,

@@ -1,15 +1,25 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
-
-// Sample product data - in a real app, this would come from an API
+import img1 from "../img/1.jpg";
+import img2 from "../img/2.png";
+import img3 from "../img/3.png";
+import img4 from "../img/4.jpeg";
+import img5 from "../img/5.jpeg";
+import img6 from "../img/6.png";
+import img7 from "../img/7.png";
+import img8 from "../img/8.png";
+import img9 from "../img/9.png";
+import img10 from "../img/10.png";
+import img11 from "../img/11.png";
+import img12 from "../img/12.png";
 const sampleProducts = [
   {
     id: 1,
     title: "Minimalist Wooden Coffee Table",
     price: 299,
     category: "furniture",
-    image: "/placeholder.svg?height=300&width=400",
+    image: img1,
     description:
       "A sleek, minimalist coffee table crafted from sustainable oak. The perfect centerpiece for your living room with its clean lines and natural finish.",
     popularity: 4.8,
@@ -20,7 +30,7 @@ const sampleProducts = [
     title: "Scandinavian Lounge Chair",
     price: 499,
     category: "furniture",
-    image: "/placeholder.svg?height=300&width=400",
+    image: img2,
     description:
       "Embrace comfort and style with this Scandinavian-inspired lounge chair. Features organic curves and premium upholstery for ultimate relaxation.",
     popularity: 4.9,
@@ -31,7 +41,7 @@ const sampleProducts = [
     title: "Geometric Pendant Light",
     price: 129,
     category: "lighting",
-    image: "/placeholder.svg?height=300&width=400",
+    image: img3,
     description:
       "Transform your space with this striking geometric pendant light. Casts beautiful shadow patterns while providing warm, ambient lighting.",
     popularity: 4.5,
@@ -42,7 +52,7 @@ const sampleProducts = [
     title: "Handwoven Wool Area Rug",
     price: 349,
     category: "textiles",
-    image: "/placeholder.svg?height=300&width=400",
+    image: img4,
     description:
       "Add warmth and texture to your floors with this handwoven wool rug. Features a subtle pattern in neutral tones that complement any interior.",
     popularity: 4.7,
@@ -53,7 +63,7 @@ const sampleProducts = [
     title: "Ceramic Vase Set",
     price: 89,
     category: "decor",
-    image: "/placeholder.svg?height=300&width=400",
+    image: img5,
     description:
       "A set of three handcrafted ceramic vases in complementary shapes and sizes. Perfect for displaying fresh or dried arrangements.",
     popularity: 4.6,
@@ -64,7 +74,7 @@ const sampleProducts = [
     title: "Modular Bookshelf System",
     price: 599,
     category: "furniture",
-    image: "/placeholder.svg?height=300&width=400",
+    image: img6,
     description:
       "A customizable bookshelf system that grows with your collection. Combine multiple units for a statement wall or use individually.",
     popularity: 4.8,
@@ -75,7 +85,7 @@ const sampleProducts = [
     title: "Abstract Wall Art",
     price: 249,
     category: "decor",
-    image: "/placeholder.svg?height=300&width=400",
+    image: img7,
     description:
       "Original abstract canvas art to add a pop of color to your walls. Each piece is hand-painted and unique.",
     popularity: 4.4,
@@ -86,7 +96,7 @@ const sampleProducts = [
     title: "Smart Home Lighting Kit",
     price: 199,
     category: "lighting",
-    image: "/placeholder.svg?height=300&width=400",
+    image: img8,
     description:
       "Control the ambiance of your home with this smart lighting kit. Includes bulbs, strips, and a hub for seamless integration.",
     popularity: 4.9,
@@ -97,7 +107,7 @@ const sampleProducts = [
     title: "Linen Throw Pillows",
     price: 79,
     category: "textiles",
-    image: "/placeholder.svg?height=300&width=400",
+    image: img9,
     description:
       "Set of four linen throw pillows in complementary earth tones. Add texture and comfort to any seating area.",
     popularity: 4.7,
@@ -108,7 +118,7 @@ const sampleProducts = [
     title: "Marble Side Table",
     price: 349,
     category: "furniture",
-    image: "/placeholder.svg?height=300&width=400",
+    image: img10,
     description:
       "Elegant side table with a genuine marble top and brass-finished legs. A touch of luxury for your living space.",
     popularity: 4.8,
@@ -119,7 +129,7 @@ const sampleProducts = [
     title: "Handblown Glass Decanter",
     price: 119,
     category: "decor",
-    image: "/placeholder.svg?height=300&width=400",
+    image: img11,
     description:
       "Artisanal handblown glass decanter with matching tumblers. A functional art piece for your bar or dining table.",
     popularity: 4.6,
@@ -130,7 +140,7 @@ const sampleProducts = [
     title: "Velvet Accent Chair",
     price: 449,
     category: "furniture",
-    image: "/placeholder.svg?height=300&width=400",
+    image: img12,
     description:
       "Make a statement with this plush velvet accent chair. Available in jewel tones to add a touch of luxury to any room.",
     popularity: 4.7,

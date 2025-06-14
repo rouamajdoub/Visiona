@@ -7,6 +7,10 @@ import {
   resetFilters,
   fetchQuoteById,
   clearCurrentQuote,
+  sendQuoteEmail,
+  clearEmailError,
+  clearEmailSuccess,
+  convertToInvoice,
 } from "../../../../../redux/slices/quotesSlice";
 import {
   Table,
@@ -40,6 +44,8 @@ import {
   Tooltip,
   AppBar,
   Toolbar,
+  Snackbar,
+  TextareaAutosize,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -49,6 +55,9 @@ import {
   FilterAlt as FilterIcon,
   Close as CloseIcon,
   Visibility as VisibilityIcon,
+  Email as EmailIcon,
+  Receipt as InvoiceIcon,
+  Send as SendIcon,
 } from "@mui/icons-material";
 import FileDownload from "js-file-download";
 import axios from "axios";
@@ -58,19 +67,41 @@ import "./Quotes.css";
 
 const Quotes = () => {
   const dispatch = useDispatch();
-  const { quotes, loading, error, filters, currentQuote } = useSelector(
-    (state) => state.quotes
-  );
+  const {
+    quotes,
+    loading,
+    error,
+    filters,
+    currentQuote,
+    emailLoading,
+    emailSuccess,
+    emailError,
+    emailMessage,
+    success,
+    message,
+  } = useSelector((state) => state.quotes);
+
   const [showFilters, setShowFilters] = useState(false);
   const [quoteToDelete, setQuoteToDelete] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [convertLoading, setConvertLoading] = useState(false);
 
   // State for dialogs
   const [openFormDialog, setOpenFormDialog] = useState(false);
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
   const [selectedQuoteId, setSelectedQuoteId] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
+
+  // Email dialog state - renamed to avoid conflict
+  const [openEmailDialog, setOpenEmailDialog] = useState(false);
+  const [localEmailMessage, setLocalEmailMessage] = useState(""); // Renamed from emailMessage
+  const [quoteToEmail, setQuoteToEmail] = useState(null);
+
+  // Snackbar state
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
 
   useEffect(() => {
     dispatch(fetchQuotes(filters));
@@ -82,6 +113,36 @@ const Quotes = () => {
       dispatch(clearCurrentQuote());
     }
   }, [openDetailsDialog, openFormDialog, dispatch]);
+
+  // Handle email success/error feedback
+  useEffect(() => {
+    if (emailSuccess) {
+      setSnackbarMessage(emailMessage || "Quote sent successfully!");
+      setSnackbarSeverity("success");
+      setSnackbarOpen(true);
+      dispatch(clearEmailSuccess());
+      setOpenEmailDialog(false);
+      setLocalEmailMessage(""); // Updated variable name
+    }
+  }, [emailSuccess, emailMessage, dispatch]);
+
+  useEffect(() => {
+    if (emailError) {
+      setSnackbarMessage(emailError);
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      dispatch(clearEmailError());
+    }
+  }, [emailError, dispatch]);
+
+  // Handle general success messages
+  useEffect(() => {
+    if (success && message) {
+      setSnackbarMessage(message);
+      setSnackbarSeverity("success");
+      setSnackbarOpen(true);
+    }
+  }, [success, message]);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -107,6 +168,50 @@ const Quotes = () => {
       setShowDeleteModal(false);
       setQuoteToDelete(null);
     });
+  };
+
+  // Email functionality
+  const handleSendEmail = (quote) => {
+    setQuoteToEmail(quote);
+    setLocalEmailMessage(
+      // Updated variable name
+      `Hi ${quote.clientName},\n\nPlease find attached your quote for ${quote.projectTitle}.\n\nBest regards,\nYour Company`
+    );
+    setOpenEmailDialog(true);
+  };
+
+  const handleEmailSubmit = () => {
+    if (quoteToEmail) {
+      dispatch(
+        sendQuoteEmail({
+          id: quoteToEmail._id,
+          message: localEmailMessage, // Updated variable name
+        })
+      );
+    }
+  };
+
+  const handleCloseEmailDialog = () => {
+    setOpenEmailDialog(false);
+    setLocalEmailMessage(""); // Updated variable name
+    setQuoteToEmail(null);
+  };
+
+  // Convert to invoice functionality
+  const handleConvertToInvoice = async (quoteId) => {
+    try {
+      setConvertLoading(true);
+      await dispatch(convertToInvoice(quoteId)).unwrap();
+      setSnackbarMessage("Quote converted to invoice successfully!");
+      setSnackbarSeverity("success");
+      setSnackbarOpen(true);
+    } catch (error) {
+      setSnackbarMessage(error || "Failed to convert quote to invoice");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+    } finally {
+      setConvertLoading(false);
+    }
   };
 
   // Open new quote form dialog
@@ -154,12 +259,14 @@ const Quotes = () => {
         responseType: "blob",
       });
 
-      // Use the quote ID or better yet, get the actual filename from headers if available
       const filename = `quote-${id.substring(id.length - 8)}.pdf`;
       FileDownload(response.data, filename);
       setPdfLoading(false);
     } catch (error) {
       console.error("Error downloading PDF:", error);
+      setSnackbarMessage("Failed to download PDF");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
       setPdfLoading(false);
     }
   };
@@ -210,6 +317,96 @@ const Quotes = () => {
         color={getStatusColor()}
         size="small"
       />
+    );
+  };
+
+  // Enhanced Action Buttons Component
+  const ActionButtons = ({ quote }) => {
+    const canSendEmail = quote.status === "draft" || quote.status === "revised";
+    const canConvertToInvoice =
+      quote.status === "accepted" && !quote.convertedToInvoice;
+
+    return (
+      <Box display="flex" gap={0.5}>
+        <Tooltip title="View Details">
+          <IconButton
+            size="small"
+            onClick={() => handleViewQuote(quote._id)}
+            className="quotes-action-btn"
+          >
+            <VisibilityIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title="Edit Quote">
+          <IconButton
+            size="small"
+            onClick={() => handleEditQuote(quote._id)}
+            className="quotes-action-btn"
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        {canSendEmail && (
+          <Tooltip title="Send Email">
+            <IconButton
+              size="small"
+              onClick={() => handleSendEmail(quote)}
+              className="quotes-action-btn quotes-email-btn"
+              disabled={emailLoading}
+            >
+              {emailLoading && quoteToEmail?._id === quote._id ? (
+                <CircularProgress size={16} />
+              ) : (
+                <EmailIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+        )}
+
+        {canConvertToInvoice && (
+          <Tooltip title="Convert to Invoice">
+            <IconButton
+              size="small"
+              onClick={() => handleConvertToInvoice(quote._id)}
+              className="quotes-action-btn quotes-convert-btn"
+              disabled={convertLoading}
+            >
+              {convertLoading ? (
+                <CircularProgress size={16} />
+              ) : (
+                <InvoiceIcon fontSize="small" />
+              )}
+            </IconButton>
+          </Tooltip>
+        )}
+
+        <Tooltip title="Download PDF">
+          <IconButton
+            size="small"
+            onClick={() => handleGeneratePDF(quote._id)}
+            disabled={pdfLoading}
+            className="quotes-action-btn"
+          >
+            {pdfLoading ? (
+              <CircularProgress size={16} />
+            ) : (
+              <PdfIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip title="Delete Quote">
+          <IconButton
+            size="small"
+            onClick={() => handleDelete(quote)}
+            className="quotes-action-btn quotes-delete-btn"
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </Box>
     );
   };
 
@@ -311,6 +508,63 @@ const Quotes = () => {
         </Box>
       </CardContent>
     </Card>
+  );
+
+  // Email Dialog Component
+  const EmailDialog = () => (
+    <Dialog
+      open={openEmailDialog}
+      onClose={handleCloseEmailDialog}
+      maxWidth="md"
+      fullWidth
+      className="quotes-email-dialog"
+    >
+      <DialogTitle>
+        <Box display="flex" alignItems="center" gap={1}>
+          <EmailIcon />
+          Send Quote to {quoteToEmail?.clientName}
+        </Box>
+      </DialogTitle>
+      <DialogContent>
+        <DialogContentText sx={{ mb: 2 }}>
+          Quote: {quoteToEmail?.projectTitle} -{" "}
+          {formatCurrency(quoteToEmail?.totalAmount)}
+        </DialogContentText>
+        <TextField
+          autoFocus
+          margin="dense"
+          id="email-message"
+          label="Email Message"
+          fullWidth
+          multiline
+          rows={6}
+          variant="outlined"
+          value={localEmailMessage} // Updated variable name
+          onChange={(e) => setLocalEmailMessage(e.target.value)} // Updated variable name
+          placeholder="Enter your message to the client..."
+          className="quote-form-field"
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button
+          onClick={handleCloseEmailDialog}
+          className="quotes-email-dialog-cancel"
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={handleEmailSubmit}
+          variant="contained"
+          startIcon={
+            emailLoading ? <CircularProgress size={16} /> : <SendIcon />
+          }
+          disabled={emailLoading}
+          className="quotes-email-dialog-send"
+        >
+          {emailLoading ? "Sending..." : "Send Email"}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 
   // Delete confirmation dialog
@@ -550,43 +804,7 @@ const Quotes = () => {
                         <QuoteStatusBadge status={quote.status} />
                       </TableCell>
                       <TableCell align="right">
-                        <Tooltip title="View Details">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleViewQuote(quote._id)}
-                          >
-                            <VisibilityIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Edit Quote">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEditQuote(quote._id)}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete Quote">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDelete(quote)}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Download PDF">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleGeneratePDF(quote._id)}
-                            disabled={pdfLoading}
-                          >
-                            {pdfLoading ? (
-                              <CircularProgress size={20} />
-                            ) : (
-                              <PdfIcon fontSize="small" />
-                            )}
-                          </IconButton>
-                        </Tooltip>
+                        <ActionButtons quote={quote} />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -597,9 +815,27 @@ const Quotes = () => {
         </>
       )}
 
+      {/* Dialogs */}
       <DeleteConfirmationDialog />
       <FormDialog />
       <DetailsDialog />
+      <EmailDialog />
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -8,6 +8,7 @@ const {
   deleteQuote,
   convertToInvoice,
   generatePDF,
+  sendQuoteEmail,
 } = require("../controllers/quoteController");
 
 // Middleware
@@ -19,6 +20,10 @@ router.route("/").post(createQuote).get(getAllQuotes);
 
 router.route("/:id").get(getQuoteById).patch(updateQuote).delete(deleteQuote);
 router.patch("/:id/convert-to-invoice", convertToInvoice);
+
+// ==== EMAIL ROUTES ====
+// Send quote to client via email
+router.post("/:id/send-email", sendQuoteEmail);
 
 // ==== SHARED ROUTES ====
 // Generate PDF for a specific quote

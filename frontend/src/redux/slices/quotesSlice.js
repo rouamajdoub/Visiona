@@ -90,6 +90,21 @@ export const generatePDF = createAsyncThunk(
   }
 );
 
+// NEW: Send quote email async thunk
+export const sendQuoteEmail = createAsyncThunk(
+  "quotes/sendQuoteEmail",
+  async ({ id, message = "" }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(`/api/quotes/${id}/send-email`, {
+        message,
+      });
+      return { id, ...response.data };
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+
 const initialState = {
   quotes: [],
   currentQuote: null,
@@ -97,6 +112,11 @@ const initialState = {
   error: null,
   success: false,
   message: "",
+  // NEW: Email specific state
+  emailLoading: false,
+  emailSuccess: false,
+  emailError: null,
+  emailMessage: "",
   filters: {
     status: "",
     client: "",
@@ -115,6 +135,14 @@ const quotesSlice = createSlice({
     clearSuccess: (state) => {
       state.success = false;
       state.message = "";
+    },
+    // NEW: Email specific clearers
+    clearEmailError: (state) => {
+      state.emailError = null;
+    },
+    clearEmailSuccess: (state) => {
+      state.emailSuccess = false;
+      state.emailMessage = "";
     },
     setFilters: (state, action) => {
       state.filters = { ...state.filters, ...action.payload };
@@ -240,6 +268,49 @@ const quotesSlice = createSlice({
         state.loading = false;
         state.error =
           action.payload?.message || "Failed to convert quote to invoice";
+      })
+
+      // NEW: sendQuoteEmail
+      .addCase(sendQuoteEmail.pending, (state) => {
+        state.emailLoading = true;
+        state.emailError = null;
+      })
+      .addCase(sendQuoteEmail.fulfilled, (state, action) => {
+        state.emailLoading = false;
+        state.emailSuccess = true;
+        state.emailMessage =
+          action.payload.message || "Quote sent successfully to client";
+        state.emailError = null;
+
+        // Update the quote status to 'sent' and add sentDate
+        state.quotes = state.quotes.map((quote) => {
+          if (quote._id === action.payload.id) {
+            return {
+              ...quote,
+              status: "sent",
+              sentDate: action.payload.sentAt || new Date(),
+            };
+          }
+          return quote;
+        });
+
+        // Update current quote if it matches
+        if (
+          state.currentQuote &&
+          state.currentQuote._id === action.payload.id
+        ) {
+          state.currentQuote = {
+            ...state.currentQuote,
+            status: "sent",
+            sentDate: action.payload.sentAt || new Date(),
+          };
+        }
+      })
+      .addCase(sendQuoteEmail.rejected, (state, action) => {
+        state.emailLoading = false;
+        state.emailError =
+          action.payload?.message || "Failed to send quote email";
+        state.emailSuccess = false;
       });
   },
 });
@@ -247,6 +318,8 @@ const quotesSlice = createSlice({
 export const {
   clearError,
   clearSuccess,
+  clearEmailError,
+  clearEmailSuccess,
   setFilters,
   resetFilters,
   clearCurrentQuote,

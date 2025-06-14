@@ -5,6 +5,7 @@ const { NotFoundError, BadRequestError } = require("../utils/customErrors");
 const { StatusCodes } = require("http-status-codes");
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
+const { sendQuoteToClient } = require("../utils/emailService");
 
 // Helper function to handle errors consistently
 const handleError = (res, error) => {
@@ -259,6 +260,68 @@ const deleteQuote = async (req, res) => {
   }
 };
 
+// Send quote to client via email
+const sendQuoteEmail = async (req, res) => {
+  try {
+    const { message } = req.body; // Optional custom message from architect
+
+    // Find the quote with populated client and architect info
+    const quote = await Quote.findOne({
+      _id: req.params.id,
+      architect: req.user.id,
+    })
+      .populate("client", "name email")
+      .populate(
+        "architect",
+        "firstName lastName prenom nomDeFamille companyName email phone"
+      );
+
+    if (!quote) {
+      throw new NotFoundError("Quote not found");
+    }
+
+    // Validate that client email exists
+    const clientEmail = quote.client?.email || quote.clientEmail;
+    if (!clientEmail) {
+      throw new BadRequestError(
+        "Client email not found. Please ensure the client has a valid email address."
+      );
+    }
+
+    // Send the email with PDF attachment
+    const emailResult = await sendQuoteToClient(quote, req.user, message);
+
+    if (!emailResult.success) {
+      throw new BadRequestError(`Failed to send email: ${emailResult.error}`);
+    }
+
+    // Update quote status and add to revision history
+    await Quote.findByIdAndUpdate(quote._id, {
+      status: "sent",
+      sentDate: new Date(),
+      $push: {
+        revisionHistory: {
+          date: new Date(),
+          changes: "Quote sent to client via email",
+          revisedBy: req.user.id,
+        },
+      },
+    });
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: "Quote sent successfully to client",
+      data: {
+        messageId: emailResult.messageId,
+        sentTo: clientEmail,
+        sentAt: new Date(),
+      },
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+};
+
 // Convert quote to invoice
 const convertToInvoice = async (req, res) => {
   try {
@@ -492,7 +555,7 @@ const generatePDF = async (req, res) => {
       doc
         .text("Discount:", totalsX, yPos)
         .text(
-          `$${quote.discount.toFixed(2)}`,
+          `${quote.discount.toFixed(2)}`,
           itemStartX + descriptionWidth + 3 * numberColWidth,
           yPos
         );
@@ -503,7 +566,7 @@ const generatePDF = async (req, res) => {
       doc
         .text(`Tax (${quote.taxRate}%):`, totalsX, yPos)
         .text(
-          `$${quote.taxAmount.toFixed(2)}`,
+          `${quote.taxAmount.toFixed(2)}`,
           itemStartX + descriptionWidth + 3 * numberColWidth,
           yPos
         );
@@ -515,7 +578,7 @@ const generatePDF = async (req, res) => {
       .fontSize(12)
       .text("TOTAL:", totalsX, yPos, { bold: true })
       .text(
-        `$${quote.totalAmount.toFixed(2)}`,
+        `${quote.totalAmount.toFixed(2)}`,
         itemStartX + descriptionWidth + 3 * numberColWidth,
         yPos,
         { bold: true }
@@ -558,4 +621,5 @@ module.exports = {
   deleteQuote,
   convertToInvoice,
   generatePDF,
+  sendQuoteEmail,
 };

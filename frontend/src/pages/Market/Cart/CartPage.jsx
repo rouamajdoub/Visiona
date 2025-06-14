@@ -50,7 +50,7 @@ const CartPage = () => {
                 <div className="cart-item-details">
                   <h3>{item.title}</h3>
                   <span className="cart-item-category">{item.category}</span>
-                  <span className="cart-item-price">${item.price}</span>
+                  <span className="cart-item-price">TND{item.price}</span>
                 </div>
 
                 <div className="cart-item-quantity">

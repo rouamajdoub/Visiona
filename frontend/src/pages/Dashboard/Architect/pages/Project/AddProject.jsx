@@ -65,7 +65,7 @@ const AddProject = ({ onCancel }) => {
     shortDescription: "",
     description: "",
     category: "",
-    subcategory: "", // Add subcategory field
+    subcategory: "",
     budget: "",
     startDate: "",
     endDate: "",
@@ -116,11 +116,15 @@ const AddProject = ({ onCancel }) => {
   useEffect(() => {
     if (success && message) {
       setSnackbarOpen(true);
+      // Clean up state after successful creation
       setTimeout(() => {
-        if (onCancel) onCancel();
+        dispatch(resetProjectState()); // Reset state before closing
+        if (onCancel) {
+          onCancel();
+        }
       }, 2000);
     }
-  }, [success, message, navigate, onCancel]);
+  }, [success, message, navigate, onCancel, dispatch]);
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -283,8 +287,6 @@ const AddProject = ({ onCancel }) => {
       title: projectData.title,
       shortDescription: projectData.shortDescription,
       description: projectData.description,
-      category: projectData.category,
-      subcategory: projectData.subcategory, // Include subcategory
       budget: projectData.budget,
       startDate: projectData.startDate,
       endDate: projectData.endDate,
@@ -293,7 +295,8 @@ const AddProject = ({ onCancel }) => {
       clientId: projectData.clientId,
       status: projectData.status,
       tags: projectData.tags,
-
+      category: selectedCategory?._id || "",
+      subcategory: selectedSubcategory?._id || "",
       // Files - extract just the file objects
       coverImage: projectData.coverImage,
       beforePhotos: beforePhotos.map((photo) => photo.file),
@@ -317,7 +320,7 @@ const AddProject = ({ onCancel }) => {
   const getErrorMessage = (error) => {
     if (typeof error === "string") return error;
     if (error && typeof error === "object") {
-      return error.message || JSON.stringify(error);
+      return error.message || "An error occurred";
     }
     return "An error occurred";
   };
@@ -326,10 +329,13 @@ const AddProject = ({ onCancel }) => {
   const getSuccessMessage = (msg) => {
     if (typeof msg === "string") return msg;
     if (msg && typeof msg === "object") {
-      return msg.message || JSON.stringify(msg);
+      return msg.message || "Operation completed successfully!";
     }
     return "Operation completed successfully!";
   };
+
+  // Safe array check helper
+  const safeArray = (arr) => (Array.isArray(arr) ? arr : []);
 
   return (
     <Paper
@@ -389,7 +395,7 @@ const AddProject = ({ onCancel }) => {
 
           <Autocomplete
             id="client-select"
-            options={Array.isArray(clients) ? clients : []}
+            options={safeArray(clients)}
             getOptionLabel={(option) => option?.name || ""}
             value={selectedClient}
             onChange={handleClientSelect}
@@ -433,7 +439,7 @@ const AddProject = ({ onCancel }) => {
             )}
           />
 
-          {(!clients || !Array.isArray(clients) || clients.length === 0) && (
+          {safeArray(clients).length === 0 && (
             <Typography
               variant="caption"
               color="error"
@@ -469,9 +475,7 @@ const AddProject = ({ onCancel }) => {
             <Grid item xs={12} md={6}>
               <Autocomplete
                 id="category-select"
-                options={
-                  Array.isArray(serviceCategories) ? serviceCategories : []
-                }
+                options={safeArray(serviceCategories)}
                 getOptionLabel={(option) => option?.name || ""}
                 value={selectedCategory}
                 onChange={handleCategorySelect}
@@ -526,11 +530,7 @@ const AddProject = ({ onCancel }) => {
             <Grid item xs={12} md={6}>
               <Autocomplete
                 id="subcategory-select"
-                options={
-                  Array.isArray(selectedCategorySubcategories)
-                    ? selectedCategorySubcategories
-                    : []
-                }
+                options={safeArray(selectedCategorySubcategories)}
                 getOptionLabel={(option) => option?.name || ""}
                 value={selectedSubcategory}
                 onChange={handleSubcategorySelect}
@@ -546,8 +546,7 @@ const AddProject = ({ onCancel }) => {
                     helperText={
                       !selectedCategory
                         ? "Please select a category first"
-                        : !selectedCategorySubcategories ||
-                          selectedCategorySubcategories.length === 0
+                        : safeArray(selectedCategorySubcategories).length === 0
                         ? "No subcategories available for selected category"
                         : ""
                     }
@@ -680,16 +679,15 @@ const AddProject = ({ onCancel }) => {
                 </Button>
               </Box>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-                {Array.isArray(projectData.tags) &&
-                  projectData.tags.map((tagItem, index) => (
-                    <Chip
-                      key={index}
-                      label={tagItem}
-                      onDelete={() => removeTag(tagItem)}
-                      color="primary"
-                      variant="outlined"
-                    />
-                  ))}
+                {safeArray(projectData.tags).map((tagItem, index) => (
+                  <Chip
+                    key={index}
+                    label={tagItem}
+                    onDelete={() => removeTag(tagItem)}
+                    color="primary"
+                    variant="outlined"
+                  />
+                ))}
               </Box>
             </Grid>
 

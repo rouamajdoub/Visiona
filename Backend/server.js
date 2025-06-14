@@ -88,6 +88,7 @@ app.use(cookieParser());
 app.use(bodyParser.json({ limit: "50mb" }));
 
 // Serve static files
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Session middleware (required for Passport)
