@@ -4,8 +4,11 @@ import {
   fetchSubscriptions,
   deleteSubscription,
 } from "../../../../redux/slices/adminSlice";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, IconButton } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+
 const SubscriptionManagement = () => {
   const dispatch = useDispatch();
   const {
@@ -25,7 +28,7 @@ const SubscriptionManagement = () => {
 
   const handleDelete = (id) => {
     const confirmDelete = window.confirm(
-      "Êtes-vous sûr de vouloir supprimer cet abonnement ?"
+      "Are you sure you want to delete this subscription?"
     );
     if (confirmDelete) {
       dispatch(deleteSubscription(id));
@@ -45,7 +48,7 @@ const SubscriptionManagement = () => {
     { field: "id", headerName: "ID", flex: 1 },
     {
       field: "architect",
-      headerName: "Architecte",
+      headerName: "Architect",
       flex: 1,
       renderCell: ({ row }) => (
         <Typography>
@@ -57,13 +60,13 @@ const SubscriptionManagement = () => {
     { field: "plan", headerName: "Plan", flex: 1 },
     {
       field: "startDate",
-      headerName: "Date de début",
+      headerName: "Start Date",
       flex: 1,
       renderCell: ({ value }) => new Date(value).toLocaleDateString(),
     },
     {
       field: "endDate",
-      headerName: "Date de fin",
+      headerName: "End Date",
       flex: 1,
       renderCell: ({ row }) => (
         <Typography>
@@ -71,20 +74,28 @@ const SubscriptionManagement = () => {
         </Typography>
       ),
     },
-    { field: "status", headerName: "Statut", flex: 1 },
-    { field: "price", headerName: "Prix", flex: 1 },
+    { field: "status", headerName: "Status", flex: 1 },
+    { field: "price", headerName: "Price", flex: 1 },
     {
       field: "actions",
       headerName: "Actions",
       renderCell: ({ row }) => (
-        <Box>
-          <button className="btn-edit" onClick={() => handleEdit(row)}>
-            Modifier
-          </button>
+        <Box display="flex" gap={1}>
+          <IconButton
+            onClick={() => handleEdit(row)}
+            sx={{ color: "blue" }}
+            aria-label="edit"
+          >
+            <EditIcon />
+          </IconButton>
 
-          <button className="btn-delete" onClick={() => handleDelete(row.id)}>
-            Supprimer
-          </button>
+          <IconButton
+            onClick={() => handleDelete(row.id)}
+            sx={{ color: "red" }}
+            aria-label="delete"
+          >
+            <DeleteIcon />
+          </IconButton>
         </Box>
       ),
     },

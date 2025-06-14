@@ -159,7 +159,17 @@ const Calendar = () => {
 
   return (
     <Box m="20px">
-      <h1 className="calendar-title">Calendar</h1>
+      <Typography
+        variant="h3"
+        sx={{
+          color: "#09153e",
+          fontWeight: "bold",
+
+          marginBottom: "20px",
+        }}
+      >
+        Calendar
+      </Typography>
 
       {showError && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -177,7 +187,7 @@ const Calendar = () => {
           <Box flex="1 1 20%" p="15px">
             <Typography
               variant="h4"
-              sx={{ color: "var(--black)", fontWeight: "bold" }}
+              sx={{ color: "#09153e", fontWeight: "bold" }}
             >
               Events
             </Typography>
@@ -273,8 +283,13 @@ const Calendar = () => {
         onClose={handleDialogClose}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: "#f5f5f5",
+          },
+        }}
       >
-        <DialogTitle>
+        <DialogTitle sx={{ color: "#09153e" }}>
           {dialogMode === "add" ? "Add New Event" : "Edit Event"}
         </DialogTitle>
         <DialogContent>
@@ -287,7 +302,27 @@ const Calendar = () => {
             value={eventForm.title}
             onChange={handleInputChange}
             required
-            sx={{ mb: 2 }}
+            sx={{
+              mb: 2,
+              "& .MuiInputBase-root": {
+                backgroundColor: "#ffffff",
+                color: "#000000",
+              },
+              "& .MuiInputLabel-root": {
+                color: "#09153e",
+              },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: "#09153e",
+                },
+                "&:hover fieldset": {
+                  borderColor: "#09153e",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#09153e",
+                },
+              },
+            }}
           />
           <TextField
             margin="dense"
@@ -298,7 +333,27 @@ const Calendar = () => {
             rows={3}
             value={eventForm.description}
             onChange={handleInputChange}
-            sx={{ mb: 2 }}
+            sx={{
+              mb: 2,
+              "& .MuiInputBase-root": {
+                backgroundColor: "#ffffff",
+                color: "#000000",
+              },
+              "& .MuiInputLabel-root": {
+                color: "#09153e",
+              },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: "#09153e",
+                },
+                "&:hover fieldset": {
+                  borderColor: "#09153e",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#09153e",
+                },
+              },
+            }}
           />
           <TextField
             margin="dense"
@@ -310,7 +365,27 @@ const Calendar = () => {
             onChange={handleInputChange}
             required
             InputLabelProps={{ shrink: true }}
-            sx={{ mb: 2 }}
+            sx={{
+              mb: 2,
+              "& .MuiInputBase-root": {
+                backgroundColor: "#ffffff",
+                color: "#000000",
+              },
+              "& .MuiInputLabel-root": {
+                color: "#09153e",
+              },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: "#09153e",
+                },
+                "&:hover fieldset": {
+                  borderColor: "#09153e",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#09153e",
+                },
+              },
+            }}
           />
           <TextField
             margin="dense"
@@ -319,7 +394,27 @@ const Calendar = () => {
             fullWidth
             value={eventForm.location}
             onChange={handleInputChange}
-            sx={{ mb: 2 }}
+            sx={{
+              mb: 2,
+              "& .MuiInputBase-root": {
+                backgroundColor: "#ffffff",
+                color: "#000000",
+              },
+              "& .MuiInputLabel-root": {
+                color: "#09153e",
+              },
+              "& .MuiOutlinedInput-root": {
+                "& fieldset": {
+                  borderColor: "#09153e",
+                },
+                "&:hover fieldset": {
+                  borderColor: "#09153e",
+                },
+                "&.Mui-focused fieldset": {
+                  borderColor: "#09153e",
+                },
+              },
+            }}
           />
         </DialogContent>
         <DialogActions>

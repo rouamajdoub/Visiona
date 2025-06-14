@@ -100,7 +100,15 @@ export default function KanbanBoard() {
           marginBottom: "20px",
         }}
       >
-        <Typography variant="h4" sx={{ color: "#242d49" }}>
+        <Typography
+          variant="h3"
+          sx={{
+            color: "#09153e",
+            fontWeight: "bold",
+
+            marginBottom: "20px",
+          }}
+        >
           Task Management
         </Typography>
         <Button

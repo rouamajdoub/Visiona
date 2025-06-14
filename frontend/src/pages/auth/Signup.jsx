@@ -1030,66 +1030,22 @@ const Signup = () => {
                       <label>
                         <FaClock className="input-icon" /> Graduation Year
                       </label>
-                      <div className="year-picker-container">
-                        <input
-                          value={field.graduationYear}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            // Only allow numbers and reasonable year range
-                            if (
-                              value === "" ||
-                              (/^\d+$/.test(value) &&
-                                parseInt(value) >= 1950 &&
-                                parseInt(value) <=
-                                  new Date().getFullYear() + 10)
-                            ) {
-                              const values = [...educationFields];
-                              values[index].graduationYear = value;
-                              setEducationFields(values);
-                            }
-                          }}
-                          placeholder="Enter Graduation Year"
-                          className="year-picker-input"
-                          type="text"
-                        />
-                        <button
-                          type="button"
-                          className="year-picker-button"
-                          onClick={() => {
-                            // Create and show a year picker
-                            const yearInput = document.createElement("input");
-                            yearInput.type = "month";
-                            yearInput.min = "1950-01";
-                            yearInput.max = `${
-                              new Date().getFullYear() + 10
-                            }-12`;
-                            yearInput.style.position = "absolute";
-                            yearInput.style.left = "-9999px";
-                            yearInput.style.opacity = "0";
-
-                            document.body.appendChild(yearInput);
-
-                            yearInput.addEventListener("change", (e) => {
-                              const selectedDate = new Date(e.target.value);
-                              const year = selectedDate.getFullYear();
-                              const values = [...educationFields];
-                              values[index].graduationYear = year.toString();
-                              setEducationFields(values);
-                              document.body.removeChild(yearInput);
-                            });
-
-                            yearInput.addEventListener("blur", () => {
-                              if (document.body.contains(yearInput)) {
-                                document.body.removeChild(yearInput);
-                              }
-                            });
-
-                            yearInput.showPicker();
-                          }}
-                        >
-                          <FaCalendar />
-                        </button>
-                      </div>
+                      <input
+                        value={field.graduationYear}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Allow empty string or valid 4-digit years
+                          if (value === "" || /^\d{1,4}$/.test(value)) {
+                            const values = [...educationFields];
+                            values[index].graduationYear = value;
+                            setEducationFields(values);
+                          }
+                        }}
+                        placeholder="e.g., 2020"
+                        type="text"
+                        maxLength="4"
+                        className="year-input"
+                      />
                     </div>
                   </div>
                 </div>
@@ -1192,6 +1148,7 @@ const Signup = () => {
                         Level
                       </label>
                       <select
+                        className="dropdown-item "
                         value={field.level}
                         onChange={(e) => {
                           const values = [...softwareFields];

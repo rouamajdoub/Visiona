@@ -240,42 +240,24 @@ body {
 /* Form Row for side-by-side elements */
 .form-row {
   display: flex;
-  gap: 15px;
   flex-direction: column;
 }
 
 .form-row .form-group {
   flex: 1;
 }
-.year-picker-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.year-picker-input {
-  flex: 1;
-  padding-right: 40px; /* Make room for the button */
-}
-
-.year-picker-button {
-  position: absolute;
-  right: 8px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  padding: 4px;
-  z-index: 1;
-  color: white; /* Makes the FaCalendar icon white */
-}
-
-.year-picker-button:hover {
-  background-color: #f0f0f0;
-  background-color: rgba(255, 255, 255, 0.1); /* Subtle white hover effect */
-  transform: scale(1.1); /* Slightly enlarges on hover */
-  transition: all 0.2s ease;
+.year-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
   border-radius: 4px;
+  font-size: 16px;
+}
+
+.year-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 /* Error Message */
 .error-message {
@@ -451,7 +433,7 @@ body {
   top: 100%;
   left: 0;
   right: 0;
-  background: rgba(36, 45, 73, 0.95);
+  background: rgba(226, 230, 241, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
@@ -466,7 +448,7 @@ body {
   cursor: pointer;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--black);
 }
 
 .dropdown-item:hover {
@@ -491,13 +473,9 @@ body {
 
 /* Improved Add Field Buttons */
 .add-field-btn {
-  background: linear-gradient(
-    135deg,
-    rgba(37, 194, 160, 0.2),
-    rgba(37, 194, 160, 0.3)
-  );
-  color: #25c2a0;
-  border: 1px solid rgba(37, 194, 160, 0.4);
+  background: #c896f1;
+  color: #242d49;
+  border: 1px solid #9546cd;
   padding: 12px 24px;
   border-radius: 8px;
   font-size: 14px;

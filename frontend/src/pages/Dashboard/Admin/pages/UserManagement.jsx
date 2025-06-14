@@ -2,11 +2,12 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUsers, deleteUser } from "../../../../redux/slices/adminSlice"; // Import actions from your slice
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, IconButton } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
 import SecurityOutlinedIcon from "@mui/icons-material/SecurityOutlined";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const UserManagement = () => {
   const dispatch = useDispatch();
@@ -62,9 +63,13 @@ const UserManagement = () => {
       field: "actions",
       headerName: "Actions",
       renderCell: ({ row }) => (
-        <button className="btn-delete" onClick={() => handleDelete(row._id)}>
-          Supprimer
-        </button>
+        <IconButton
+          onClick={() => handleDelete(row._id)}
+          sx={{ color: "red" }}
+          aria-label="delete"
+        >
+          <DeleteIcon />
+        </IconButton>
       ),
     },
   ];

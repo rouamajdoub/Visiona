@@ -8,9 +8,6 @@ const RightSide = () => {
       <div>
         <CalenderS />
       </div>
-      <div>
-        <CustomerReview />
-      </div>
     </div>
   );
 };

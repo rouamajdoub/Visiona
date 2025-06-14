@@ -5,6 +5,9 @@
   padding: 20px;
   background: transparent;
   min-height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Loading States */
@@ -15,7 +18,7 @@
   justify-content: center;
   min-height: 400px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.8);
+  color: #09153e;
 }
 
 .architect-profile-spinner {
@@ -24,11 +27,11 @@
   border-radius: 50%;
   background: linear-gradient(
     45deg,
-    rgba(255, 255, 255, 0.1),
-    rgba(255, 255, 255, 0.3)
+    rgba(9, 21, 62, 0.1),
+    rgba(9, 21, 62, 0.3)
   );
   backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(9, 21, 62, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -41,7 +44,7 @@
   height: 30px;
   border-radius: 50%;
   border: 3px solid transparent;
-  border-top: 3px solid rgba(255, 255, 255, 0.8);
+  border-top: 3px solid #09153e;
   animation: architect-profile-spin 1s linear infinite;
 }
 
@@ -76,11 +79,12 @@
   font-size: 4rem;
   margin-bottom: 20px;
   opacity: 0.7;
+  color: #09153e;
 }
 
 .architect-profile-error h3,
 .architect-profile-empty h3 {
-  color: rgba(255, 255, 255, 0.9);
+  color: #09153e;
   margin-bottom: 10px;
   font-size: 1.5rem;
   font-weight: 600;
@@ -88,7 +92,7 @@
 
 .architect-profile-error p,
 .architect-profile-empty p {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(9, 21, 62, 0.8);
   margin-bottom: 20px;
   font-size: 1rem;
 }
@@ -171,7 +175,7 @@
 .architect-profile-avatar-placeholder {
   font-size: 2.5rem;
   font-weight: bold;
-  color: rgba(255, 255, 255, 0.8);
+  color: #09153e;
   text-transform: uppercase;
 }
 
@@ -205,14 +209,14 @@
 .architect-profile-name {
   font-size: 2.5rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.95);
+  color: #09153e;
   margin: 0 0 8px 0;
   line-height: 1.2;
 }
 
 .architect-profile-title {
   font-size: 1.3rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(9, 21, 62, 0.9);
   margin: 0 0 16px 0;
   font-weight: 500;
 }
@@ -226,7 +230,7 @@
 
 .architect-profile-experience,
 .architect-profile-location {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(9, 21, 62, 0.8);
   font-size: 1rem;
   display: flex;
   align-items: center;
@@ -261,12 +265,8 @@
 }
 
 .architect-profile-edit-btn {
-  background: linear-gradient(
-    135deg,
-    rgba(99, 102, 241, 0.6),
-    rgba(139, 92, 246, 0.6)
-  );
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #ff919d, rgba(255, 145, 157, 0.8));
+  border: 1px solid rgba(255, 145, 157, 0.3);
   color: white;
   padding: 14px 28px;
   border-radius: 16px;
@@ -283,11 +283,11 @@
 .architect-profile-edit-btn:hover {
   background: linear-gradient(
     135deg,
-    rgba(99, 102, 241, 0.8),
-    rgba(139, 92, 246, 0.8)
+    rgba(255, 145, 157, 1),
+    rgba(255, 145, 157, 0.9)
   );
   transform: translateY(-2px);
-  box-shadow: 0 12px 35px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 12px 35px rgba(255, 145, 157, 0.4);
 }
 
 /* Completeness Indicator */
@@ -300,7 +300,7 @@
 }
 
 .architect-profile-completeness-label {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(9, 21, 62, 0.8);
   font-size: 0.875rem;
   font-weight: 500;
 }
@@ -327,7 +327,7 @@
 }
 
 .architect-profile-completeness-percent {
-  color: rgba(255, 255, 255, 0.8);
+  color: #09153e;
   font-size: 0.875rem;
   font-weight: 600;
 }
@@ -349,7 +349,7 @@
   padding: 14px 20px;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(9, 21, 62, 0.8);
   border-radius: 12px;
   cursor: pointer;
   font-weight: 500;
@@ -359,7 +359,7 @@
 }
 
 .architect-profile-nav-tab:hover {
-  color: rgba(255, 255, 255, 0.9);
+  color: #09153e;
   background: rgba(255, 255, 255, 0.05);
 }
 
@@ -369,7 +369,7 @@
     rgba(255, 255, 255, 0.1),
     rgba(255, 255, 255, 0.05)
   );
-  color: rgba(255, 255, 255, 0.95) !important;
+  color: #09153e !important;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
@@ -400,7 +400,7 @@
 
 .architect-profile-card h3,
 .architect-profile-card h4 {
-  color: rgba(255, 255, 255, 0.95);
+  color: #09153e;
   margin: 0 0 20px 0;
   font-weight: 600;
   font-size: 1.3rem;
@@ -418,7 +418,7 @@
 }
 
 .architect-profile-bio {
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(9, 21, 62, 0.9);
   font-size: 1.1rem;
   line-height: 1.6;
   margin: 0;
@@ -452,12 +452,12 @@
   display: block;
   font-size: 2.5rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.95);
+  color: #09153e;
   margin-bottom: 8px;
 }
 
 .architect-profile-stat-label {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(9, 21, 62, 0.8);
   font-size: 0.95rem;
   font-weight: 500;
 }
@@ -480,13 +480,13 @@
 }
 
 .architect-profile-contact-label {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(9, 21, 62, 0.8);
   font-weight: 500;
   min-width: 100px;
 }
 
 .architect-profile-contact-value {
-  color: rgba(255, 255, 255, 0.9);
+  color: #09153e;
   text-align: right;
   flex: 1;
 }
@@ -542,14 +542,14 @@
 }
 
 .architect-profile-portfolio-content h4 {
-  color: rgba(255, 255, 255, 0.95);
+  color: #09153e;
   margin: 0 0 12px 0;
   font-size: 1.2rem;
   font-weight: 600;
 }
 
 .architect-profile-portfolio-content p {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(9, 21, 62, 0.8);
   margin: 0 0 12px 0;
   line-height: 1.5;
   font-size: 0.95rem;
@@ -588,17 +588,18 @@
   font-size: 4rem;
   margin-bottom: 20px;
   opacity: 0.6;
+  color: #09153e;
 }
 
 .architect-profile-empty-portfolio h3 {
-  color: rgba(255, 255, 255, 0.9);
+  color: #09153e;
   margin-bottom: 10px;
   font-size: 1.5rem;
   font-weight: 600;
 }
 
 .architect-profile-empty-portfolio p {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(9, 21, 62, 0.8);
   font-size: 1rem;
 }
 
@@ -623,14 +624,14 @@
 }
 
 .architect-profile-detail-label {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(9, 21, 62, 0.8);
   font-weight: 500;
   min-width: 120px;
   font-size: 0.95rem;
 }
 
 .architect-profile-detail-value {
-  color: rgba(255, 255, 255, 0.9);
+  color: #09153e;
   text-align: right;
   flex: 1;
   word-break: break-word;
@@ -808,30 +809,43 @@
     color 0.3s ease;
 }
 
-/* Scrollbar Styling */
+/* Enhanced Scrollbar Styling */
 .architect-profile-container::-webkit-scrollbar {
-  width: 8px;
+  width: 12px;
 }
 
 .architect-profile-container::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
+  border-radius: 6px;
+  margin: 4px;
 }
 
 .architect-profile-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
+  background: linear-gradient(180deg, #ff919d, rgba(255, 145, 157, 0.8));
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 .architect-profile-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 145, 157, 1),
+    rgba(255, 145, 157, 0.9)
+  );
+}
+
+/* Firefox scrollbar */
+.architect-profile-container {
+  scrollbar-width: thin;
+  scrollbar-color: #ff919d rgba(255, 255, 255, 0.05);
 }
 
 /* Focus states for accessibility */
 .architect-profile-edit-btn:focus,
 .architect-profile-nav-tab:focus,
 .architect-profile-retry-btn:focus {
-  outline: 2px solid rgba(99, 102, 241, 0.6);
+  outline: 2px solid #ff919d;
   outline-offset: 2px;
 }
 
@@ -870,12 +884,12 @@
   .architect-profile-stat,
   .architect-profile-header {
     border-width: 2px;
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: rgba(9, 21, 62, 0.4);
   }
 
   .architect-profile-nav-active {
     border-width: 2px;
-    border-color: rgba(255, 255, 255, 0.4);
+    border-color: rgba(9, 21, 62, 0.5);
   }
 }
 
@@ -894,4 +908,20 @@
   .architect-profile-edit-btn:hover {
     transform: none !important;
   }
+}
+
+/* Smooth scrolling behavior */
+.architect-profile-container {
+  scroll-behavior: smooth;
+}
+
+/* Additional scroll optimization */
+.architect-profile-content {
+  contain: layout style paint;
+}
+
+/* Ensure content is properly contained within scrollable area */
+.architect-profile-container > * {
+  max-width: 100%;
+  box-sizing: border-box;
 }

@@ -27,11 +27,7 @@ const UserStat = ({ data }) => {
         justifyContent: "center",
       }}
     >
-      <Typography
-        variant="h4"
-        gutterBottom
-        sx={{ color: "black", fontWeight: "bold" }}
-      >
+      <Typography variant="h5" gutterBottom sx={{ color: "black" }}>
         User Distribution by Role
       </Typography>
       <Box

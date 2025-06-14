@@ -34,6 +34,32 @@ const RejectionReasonsChart = ({ rejectionReasons, loading, error }) => {
 
   const rejectionData = prepareRejectionData();
 
+  // Custom tooltip component
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0];
+      return (
+        <div
+          style={{
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            padding: "10px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          }}
+        >
+          <p style={{ margin: 0, fontWeight: "bold" }}>
+            {data.payload.value} rejections
+          </p>
+          <p style={{ margin: "4px 0 0 0", color: "#666" }}>
+            Reason: {data.payload.name}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   if (loading) {
     return (
       <Box
@@ -80,10 +106,6 @@ const RejectionReasonsChart = ({ rejectionReasons, loading, error }) => {
                   data={rejectionData}
                   cx="50%"
                   cy="50%"
-                  labelLine={true}
-                  label={({ name, percent }) =>
-                    `${name} (${(percent * 100).toFixed(0)}%)`
-                  }
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
@@ -95,14 +117,7 @@ const RejectionReasonsChart = ({ rejectionReasons, loading, error }) => {
                     />
                   ))}
                 </Pie>
-                <Tooltip
-                  formatter={(value) => [`${value} rejections`, "Count"]}
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    border: "1px solid #ccc",
-                  }}
-                />
-                <Legend />
+                <Tooltip content={<CustomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
           </Box>

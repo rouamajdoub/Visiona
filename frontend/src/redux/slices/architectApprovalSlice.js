@@ -3,6 +3,7 @@ import axios from "axios";
 
 // Base API URL - replace with your actual API base URL
 const API_BASE_URL = "/api/arch-req";
+const FILE_BASE_URL = "http://localhost:5000"; // Your backend server URL
 
 // Async thunks
 export const fetchArchitectRequests = createAsyncThunk(
@@ -73,9 +74,22 @@ export const fetchArchitectStats = createAsyncThunk(
   }
 );
 
-// Get document URL - this is not an async thunk as it just returns a URL string
-export const getDocumentUrl = (architectId, docType) => {
-  return `${API_BASE_URL}/requests/${architectId}/documents/${docType}`;
+// Get document URL - Updated to construct direct file URLs
+export const getDocumentUrl = (architect, docType) => {
+  if (!architect) return null;
+
+  let filePath = null;
+  if (docType === "patenteFile") {
+    filePath = architect.patenteFile;
+  } else if (docType === "cinFile") {
+    filePath = architect.cinFile;
+  }
+
+  if (!filePath) return null;
+
+  // Convert backslashes to forward slashes and construct full URL
+  const normalizedPath = filePath.replace(/\\/g, "/");
+  return `${FILE_BASE_URL}/${normalizedPath}`;
 };
 
 // Initial state

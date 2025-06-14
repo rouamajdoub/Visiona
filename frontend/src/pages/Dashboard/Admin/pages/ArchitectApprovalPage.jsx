@@ -69,7 +69,16 @@ const ArchitectApprovalPage = () => {
   const handleViewDocument = (docType) => {
     if (!selectedArchitect) return;
 
-    const documentUrl = getDocumentUrl(selectedArchitect._id, docType);
+    const documentUrl = getDocumentUrl(selectedArchitect, docType);
+
+    if (!documentUrl) {
+      // Handle case where document URL is not available
+      alert(
+        `${docType === "patenteFile" ? "Patent" : "CIN"} document not available`
+      );
+      return;
+    }
+
     setDocumentView({
       type: docType,
       url: documentUrl,

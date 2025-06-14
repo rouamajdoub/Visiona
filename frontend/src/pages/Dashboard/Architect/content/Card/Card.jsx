@@ -58,8 +58,7 @@ const CompactCard = ({ title, color, barValue, value, onClick }) => {
         <span>{title}</span>
       </div>
       <div className="detail">
-        <span>${value}</span>
-        <span>Last 24 hours</span>
+        <span>{value}</span>
       </div>
     </motion.div>
   );
@@ -113,7 +112,6 @@ const ExpandedCard = ({ title, color, series, onClose }) => {
       <div className="chartContainer">
         <Chart options={data.options} series={series} type="area" />
       </div>
-      <span>Last 24 hours</span>
     </motion.div>
   );
 };

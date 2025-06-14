@@ -29,6 +29,7 @@ import NeedSheetForm from "./pages/client_page/Global/NeedSheetForm/NeedSheetFor
 import ClientPortal from "./pages/client_page/Global/account/ClientPortal.jsx";
 import MatchSteps from "./pages/client_page/components/ai_matching/MatchSteps.jsx";
 import ArchitectMatches from "./pages/client_page/Global/NeedSheetForm/ArchitectMatches.jsx";
+import MatchingLoading from "./pages/client_page/Global/NeedSheetForm/MatchingLoadingPage.jsx";
 
 // Architect Container with Context
 import ArchitectContainer from "./pages/client_page/Global/Architect-list/ArchitectContainer.js";
@@ -137,6 +138,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/architects/matching" element={<MatchingLoading />} />
 
         {/* Mixed Access Routes - Any authenticated user */}
         <Route

@@ -27,11 +27,7 @@ const UserStatsChart = ({ data }) => {
         justifyContent: "center",
       }}
     >
-      <Typography
-        variant="h4"
-        gutterBottom
-        sx={{ color: "black", fontWeight: "bold" }}
-      >
+      <Typography variant="h5" gutterBottom sx={{ color: "black" }}>
         Number of Users by Month
       </Typography>
       <Box

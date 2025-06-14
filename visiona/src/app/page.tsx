@@ -19,9 +19,9 @@ export default function Home() {
       <div id="logoTicker">
         <LogoTicker />
       </div>
-      <div id="productShowcase">
+      {/* <div id="productShowcase">
         <ProductShowcase />
-      </div>
+      </div> */}
       <div id="features">
         <Features />
       </div>

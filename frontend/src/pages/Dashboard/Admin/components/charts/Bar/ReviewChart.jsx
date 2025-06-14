@@ -39,11 +39,7 @@ const ReviewChart = ({ productReviews }) => {
         justifyContent: "center",
       }}
     >
-      <Typography
-        variant="h4"
-        gutterBottom
-        sx={{ color: "black", fontWeight: "bold" }}
-      >
+      <Typography variant="h6" gutterBottom sx={{ color: "black" }}>
         Most Reviewed Products
       </Typography>
       <Box
