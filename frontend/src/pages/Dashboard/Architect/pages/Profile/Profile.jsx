@@ -18,6 +18,7 @@ import {
   Phone,
   Language,
 } from "@mui/icons-material";
+import ProfileEdit from "./ProfileEdit"; // Import the ProfileEdit component
 import "./ProfileMain.css";
 
 const Profile = () => {
@@ -28,6 +29,7 @@ const Profile = () => {
   const error = useSelector(selectArchitectError);
   const completeness = useSelector(selectArchitectProfileCompleteness);
   const [activeTab, setActiveTab] = useState("overview");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false); // Add state for dialog
 
   useEffect(() => {
     if (!profile) {
@@ -108,7 +110,11 @@ const Profile = () => {
   };
 
   const handleEditProfile = () => {
-    navigate("/edit-profile"); // Navigate to edit profile page
+    setIsEditDialogOpen(true); // Open the dialog instead of navigating
+  };
+
+  const handleCloseEditDialog = () => {
+    setIsEditDialogOpen(false); // Close the dialog
   };
 
   if (loading) {
@@ -522,6 +528,9 @@ const Profile = () => {
           )}
         </div>
       </div>
+
+      {/* Profile Edit Dialog */}
+      <ProfileEdit isOpen={isEditDialogOpen} onClose={handleCloseEditDialog} />
     </div>
   );
 };

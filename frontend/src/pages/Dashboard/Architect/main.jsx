@@ -6,13 +6,12 @@ import RightSide from "./content/RightSide/RightSide";
 import Profile from "./pages/Profile/Profile";
 import Calendar from "./pages/Calendar/Calendar";
 import Project from "./pages/Project/Project";
-import Market from "./pages/Market/Market";
 import Invoices from "./pages/Invoice/Invoices";
 import Quotes from "./pages/Quote/Quotes";
 import Matching from "./pages/Matching/Matching";
 import Clients from "./pages/Clients/ClientManagement";
 import KanbanBoard from "./pages/Project/kanban/KanbanBoard";
-
+import Product from "./pages/Market/ProductManagement";
 const Main = () => {
   const [expanded, setExpanded] = useState(true);
   const [selectedItem, setSelectedItem] = useState("dashboard");
@@ -36,7 +35,7 @@ const Main = () => {
       case "projects":
         return <Project />;
       case "market":
-        return <Market />;
+        return <Product />;
       case "invoices":
         return <Invoices />;
       case "quote":

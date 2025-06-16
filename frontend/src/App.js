@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute.js";
 import Login from "./pages/auth/Login.jsx";
 import Signup from "./pages/auth/Signup.jsx";
 import OAuthSuccess from "./pages/auth/AuthSuccess.jsx";
+
 import About from "./pages/About/HeroSlider.jsx";
 import InteriorDesignTrends from "./pages/landing/trending/Trending.jsx";
 import Policy from "./pages/landing/P-Policy/Policy.jsx";

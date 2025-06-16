@@ -70,7 +70,6 @@ const validateLocationData = (locationData) => {
   return cleanLocation;
 };
 
-// Enhanced data preparation with better validation
 const prepareProfileData = (profileData) => {
   const preparedData = { ...profileData };
 
@@ -84,8 +83,9 @@ const prepareProfileData = (profileData) => {
     "specialization",
     "certifications",
     "projectTypes",
-    "services",
+    // Remove "services" from here - it should be handled separately
   ];
+
   arrayFields.forEach((field) => {
     if (preparedData[field]) {
       if (typeof preparedData[field] === "string") {
@@ -94,17 +94,32 @@ const prepareProfileData = (profileData) => {
           preparedData[field] = Array.isArray(parsed) ? parsed : [parsed];
         } catch (e) {
           console.warn(`Failed to parse ${field}:`, preparedData[field]);
-          // Keep as array if it's already an array, otherwise make it an empty array
           preparedData[field] = Array.isArray(preparedData[field])
             ? preparedData[field]
             : [];
         }
       } else if (!Array.isArray(preparedData[field])) {
-        // Ensure it's an array
         preparedData[field] = [preparedData[field]];
       }
     }
   });
+
+  // Handle services separately - don't include in profile update if it's complex
+  if (preparedData.services) {
+    // If services is just an array of IDs, keep it
+    // If it's complex objects, remove it and handle via separate action
+    if (
+      Array.isArray(preparedData.services) &&
+      preparedData.services.every((service) => typeof service === "string")
+    ) {
+      // Keep simple service ID array
+    } else {
+      console.warn(
+        "Complex services data detected, removing from profile update"
+      );
+      delete preparedData.services;
+    }
+  }
 
   // Handle nested object fields with validation
   const nestedFields = [
@@ -114,13 +129,13 @@ const prepareProfileData = (profileData) => {
     "languages",
     "companyHistory",
   ];
+
   nestedFields.forEach((field) => {
     if (preparedData[field] && typeof preparedData[field] === "string") {
       try {
         preparedData[field] = JSON.parse(preparedData[field]);
       } catch (e) {
         console.warn(`Failed to parse ${field}:`, preparedData[field]);
-        // Set to appropriate default
         if (field === "education" || field === "socialMedia") {
           preparedData[field] = {};
         } else {
@@ -158,6 +173,30 @@ const prepareProfileData = (profileData) => {
   return preparedData;
 };
 
+// Add new action for updating architect services separately
+export const updateArchitectServices = createAsyncThunk(
+  "architect/updateServices",
+  async (serviceIds, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(
+        `${API_URL}/me/services`,
+        { services: serviceIds },
+        configureHeaders()
+      );
+      return response.data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Failed to update services";
+      return rejectWithValue({
+        error: errorMessage,
+        status: error.response?.status,
+      });
+    }
+  }
+);
+
 // Fetch architect profile
 export const fetchArchitectProfile = createAsyncThunk(
   "architect/fetchProfile",
@@ -179,7 +218,6 @@ export const fetchArchitectProfile = createAsyncThunk(
   }
 );
 
-// Enhanced update profile with better error handling and validation
 export const updateArchitectProfile = createAsyncThunk(
   "architect/updateProfile",
   async (profileData, { rejectWithValue }) => {
@@ -190,6 +228,27 @@ export const updateArchitectProfile = createAsyncThunk(
       // Check if it's FormData (for file uploads)
       if (profileData instanceof FormData) {
         isFormData = true;
+
+        // Handle services in FormData - remove complex service data
+        const servicesData = profileData.get("services");
+        if (servicesData && servicesData !== "undefined") {
+          try {
+            const parsedServices = JSON.parse(servicesData);
+            // Only keep if it's simple array of IDs
+            if (
+              Array.isArray(parsedServices) &&
+              parsedServices.every((s) => typeof s === "string")
+            ) {
+              profileData.set("services", JSON.stringify(parsedServices));
+            } else {
+              console.warn("Removing complex services data from FormData");
+              profileData.delete("services");
+            }
+          } catch (e) {
+            console.warn("Failed to parse services from FormData:", e);
+            profileData.delete("services");
+          }
+        }
 
         // For FormData, validate location data if present
         const locationData = profileData.get("location");
@@ -215,7 +274,7 @@ export const updateArchitectProfile = createAsyncThunk(
           const fieldData = profileData.get(field);
           if (fieldData && fieldData !== "undefined") {
             try {
-              JSON.parse(fieldData); // Just validate it's valid JSON
+              JSON.parse(fieldData);
             } catch (e) {
               console.warn(`Invalid JSON for ${field}, removing:`, fieldData);
               profileData.delete(field);
@@ -239,7 +298,7 @@ export const updateArchitectProfile = createAsyncThunk(
     } catch (error) {
       console.error("Update profile error:", error);
 
-      // Enhanced error handling with more specific messages
+      // Your existing error handling code remains the same...
       let errorMessage = "Failed to update profile";
       let errorDetails = null;
 
@@ -251,26 +310,22 @@ export const updateArchitectProfile = createAsyncThunk(
           errors,
         } = error.response.data;
 
-        // Handle validation errors from express-validator or mongoose
         if (errors && Array.isArray(errors)) {
           errorMessage = errors.map((err) => err.message || err.msg).join(", ");
           errorDetails = errors;
-        }
-        // Handle MongoDB validation errors
-        else if (details && Array.isArray(details)) {
+        } else if (details && Array.isArray(details)) {
           errorMessage = details.map((detail) => detail.message).join(", ");
           errorDetails = details;
-        }
-        // Handle validation error from your backend
-        else if (error.response.data.name === "ValidationError") {
+        } else if (error.response.data.name === "ValidationError") {
           const validationErrors = Object.values(
             error.response.data.errors || {}
           );
           errorMessage = validationErrors.map((err) => err.message).join(", ");
           errorDetails = validationErrors;
-        }
-        // Handle file upload errors
-        else if (message && message.includes("Only image files are allowed")) {
+        } else if (
+          message &&
+          message.includes("Only image files are allowed")
+        ) {
           errorMessage =
             "Please upload only image files for profile picture, company logo, and portfolio.";
         } else if (
@@ -281,41 +336,29 @@ export const updateArchitectProfile = createAsyncThunk(
             "Please upload only PDF and image files for documents.";
         } else if (message && message.includes("File too large")) {
           errorMessage = "One or more files exceed the 5MB size limit.";
-        }
-        // Handle required field errors
-        else if (
+        } else if (
           message &&
           message.includes("is required and cannot be empty")
         ) {
           errorMessage = message;
-        }
-        // Handle duplicate errors
-        else if (
+        } else if (
           error.response.status === 400 &&
           message &&
           message.includes("already exists")
         ) {
           errorMessage = message;
-        }
-        // Handle authentication errors
-        else if (error.response.status === 401) {
+        } else if (error.response.status === 401) {
           errorMessage = "Authentication failed. Please log in again.";
         } else if (error.response.status === 403) {
           errorMessage = "You don't have permission to perform this action.";
-        }
-        // Handle server errors
-        else if (error.response.status >= 500) {
+        } else if (error.response.status >= 500) {
           errorMessage = "Server error occurred. Please try again later.";
-        }
-        // Use server provided messages
-        else if (serverError) {
+        } else if (serverError) {
           errorMessage = serverError;
         } else if (message) {
           errorMessage = message;
         }
-      }
-      // Handle network errors
-      else if (error.code === "NETWORK_ERROR" || !error.response) {
+      } else if (error.code === "NETWORK_ERROR" || !error.response) {
         errorMessage =
           "Network error. Please check your connection and try again.";
       }
@@ -548,6 +591,22 @@ const architectSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.profile = null;
+      })
+      .addCase(updateArchitectServices.pending, (state) => {
+        state.updateLoading = true;
+        state.updateError = null;
+      })
+      .addCase(updateArchitectServices.fulfilled, (state, action) => {
+        state.updateLoading = false;
+        if (state.profile) {
+          state.profile.services = action.payload.services;
+        }
+        state.updateError = null;
+        state.lastUpdated = new Date().toISOString();
+      })
+      .addCase(updateArchitectServices.rejected, (state, action) => {
+        state.updateLoading = false;
+        state.updateError = action.payload;
       })
 
       // Update profile cases

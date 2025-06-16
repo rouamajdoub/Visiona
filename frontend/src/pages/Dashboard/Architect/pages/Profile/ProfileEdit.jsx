@@ -1,72 +1,58 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
 import {
-  fetchArchitectProfile,
   updateArchitectProfile,
+  updateArchitectServices,
+  selectArchitectProfile,
+  selectArchitectUpdateLoading,
+  selectArchitectUpdateError,
+  selectArchitectUpdateSuccess,
   clearUpdateStatus,
+  clearUpdateError,
 } from "../../../../../redux/slices/architectSlice";
+// Fixed imports - use the correct selector names
+import {
+  fetchCategories, // ✅ Correct - was fetchServiceCategories
+  selectAllCategories, // ✅ Correct - was selectServiceCategories
+  selectServiceCategoriesStatus, // ✅ Use this for loading state
+} from "../../../../../redux/slices/serviceCategoriesSlice";
 import "./Profile.css";
 
-import {
-  Save,
-  X,
-  Upload,
-  Plus,
-  Trash2,
-  Camera,
-  Building,
-  Globe,
-  Mail,
-  Briefcase,
-  Award,
-  Code,
-  FileText,
-} from "lucide-react";
-
-// Configure the base URL for API requests and image paths
-const API_BASE_URL = "http://localhost:5000"; // Update this to match your backend URL
-
-// Helper function to format image URLs
-const formatImageUrl = (imagePath) => {
-  if (!imagePath) return null;
-
-  // If the path already includes the full URL, return it as is
-  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-    return imagePath;
-  }
-
-  // Otherwise, prepend the API base URL
-  return `${API_BASE_URL}${imagePath}`;
-};
-
-const ProfileEdit = () => {
+const ProfileEdit = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { profile, loading, error, updateLoading, updateSuccess, updateError } =
-    useSelector((state) => state.architect);
+  const profile = useSelector(selectArchitectProfile);
+  const updateLoading = useSelector(selectArchitectUpdateLoading);
+  const updateError = useSelector(selectArchitectUpdateError);
+  const updateSuccess = useSelector(selectArchitectUpdateSuccess);
 
-  // Form state
+  // Service categories data - fixed selectors
+  const serviceCategories = useSelector(selectAllCategories);
+  const { loading: serviceCategoriesLoading } = useSelector(
+    selectServiceCategoriesStatus
+  );
+
+  // Form state - removed services from here since it's managed separately
   const [formData, setFormData] = useState({
     prenom: "",
     nomDeFamille: "",
     email: "",
     phoneNumber: "",
     bio: "",
-    companyName: "",
     experienceYears: "",
     specialty: "",
+    patenteNumber: "",
+    companyName: "",
     website: "",
-    certification: "",
-    education: {
-      degree: "",
-      institution: "",
-      graduationYear: "",
-    },
     location: {
       country: "",
       region: "",
       city: "",
+      coordinates: [],
+    },
+    education: {
+      degree: "",
+      institution: "",
+      graduationYear: "",
     },
     socialMedia: {
       linkedin: "",
@@ -74,1448 +60,663 @@ const ProfileEdit = () => {
       facebook: "",
       twitter: "",
     },
+    specialization: [],
+    certifications: [],
+    projectTypes: [],
+    softwareProficiency: [],
+    languages: [],
   });
 
-  // File upload states
-  const [profilePictureFile, setProfilePictureFile] = useState(null);
-  const [companyLogoFile, setCompanyLogoFile] = useState(null);
-  const [portfolioFiles, setPortfolioFiles] = useState([]);
-  const [profilePreview, setProfilePreview] = useState("");
-  const [companyLogoPreview, setCompanyLogoPreview] = useState("");
+  // Separate state for services
+  const [selectedServices, setSelectedServices] = useState([]);
+  const [profileImage, setProfileImage] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
 
-  // Arrays for multi-select inputs
-  const [specializations, setSpecializations] = useState([]);
-  const [certifications, setCertifications] = useState([]);
-  const [newSpecialization, setNewSpecialization] = useState("");
-  const [newCertification, setNewCertification] = useState("");
-  const [projectTypes, setProjectTypes] = useState([]);
-  const [newProjectType, setNewProjectType] = useState("");
-  const [services, setServices] = useState([]);
-  const [newService, setNewService] = useState("");
-
-  // Software proficiency
-  const [softwareSkills, setSoftwareSkills] = useState([]);
-  const [newSoftware, setNewSoftware] = useState({
-    name: "",
-    level: "Intermediate",
-  });
-
-  // Languages
-  const [languages, setLanguages] = useState([]);
-  const [newLanguage, setNewLanguage] = useState({
-    language: "",
-    proficiency: "Intermediate",
-  });
-
-  // Portfolio display and management
-  const [portfolioItems, setPortfolioItems] = useState([]);
-  const [portfolioPreviews, setPortfolioPreviews] = useState([]);
-  const [showDeletePortfolioModal, setShowDeletePortfolioModal] =
-    useState(false);
-  const [portfolioItemToDelete, setPortfolioItemToDelete] = useState(null);
-
-  // Company history
-  const [companyHistory, setCompanyHistory] = useState([]);
-  const [newCompany, setNewCompany] = useState({
-    name: "",
-    position: "",
-    startDate: "",
-    endDate: "",
-    isCurrentPosition: false,
-    description: "",
-  });
-
-  // Load profile data when component mounts
+  // Fetch service categories on component mount - fixed function name
   useEffect(() => {
-    if (!profile) {
-      dispatch(fetchArchitectProfile());
-    } else {
-      // Populate form with existing data
+    if (isOpen && (!serviceCategories || serviceCategories.length === 0)) {
+      dispatch(fetchCategories()); // ✅ Fixed - was fetchServiceCategories
+    }
+  }, [isOpen, serviceCategories, dispatch]);
+
+  // Initialize form data when profile loads
+  useEffect(() => {
+    if (profile) {
       setFormData({
         prenom: profile.prenom || "",
         nomDeFamille: profile.nomDeFamille || "",
         email: profile.email || "",
         phoneNumber: profile.phoneNumber || "",
         bio: profile.bio || "",
-        companyName: profile.companyName || "",
         experienceYears: profile.experienceYears || "",
         specialty: profile.specialty || "",
+        patenteNumber: profile.patenteNumber || "",
+        companyName: profile.companyName || "",
         website: profile.website || "",
-        certification: profile.certification || "",
-        education: profile.education || {
-          degree: "",
-          institution: "",
-          graduationYear: "",
+        location: {
+          country: profile.location?.country || "",
+          region: profile.location?.region || "",
+          city: profile.location?.city || "",
+          coordinates: profile.location?.coordinates || [],
         },
-        location: profile.location || {
-          country: "",
-          region: "",
-          city: "",
+        education: {
+          degree: profile.education?.degree || "",
+          institution: profile.education?.institution || "",
+          graduationYear: profile.education?.graduationYear || "",
         },
-        socialMedia: profile.socialMedia || {
-          linkedin: "",
-          instagram: "",
-          facebook: "",
-          twitter: "",
+        socialMedia: {
+          linkedin: profile.socialMedia?.linkedin || "",
+          instagram: profile.socialMedia?.instagram || "",
+          facebook: profile.socialMedia?.facebook || "",
+          twitter: profile.socialMedia?.twitter || "",
         },
+        specialization: profile.specialization || [],
+        certifications: profile.certifications || [],
+        projectTypes: profile.projectTypes || [],
+        softwareProficiency: profile.softwareProficiency || [],
+        languages: profile.languages || [],
       });
 
-      // Set profile picture preview if exists
+      // Set selected services separately
+      if (profile.services) {
+        // Extract service IDs if services are objects, otherwise use as-is
+        const serviceIds = profile.services.map((service) =>
+          typeof service === "object" ? service._id || service.id : service
+        );
+        setSelectedServices(serviceIds);
+      } else {
+        setSelectedServices([]);
+      }
+
       if (profile.profilePicture) {
-        setProfilePreview(formatImageUrl(profile.profilePicture));
+        setPreviewImage(profile.profilePicture);
       }
-
-      // Set company logo preview if exists
-      if (profile.companyLogo) {
-        setCompanyLogoPreview(formatImageUrl(profile.companyLogo));
-      }
-
-      // Set portfolio items if exist
-      if (profile.portfolio && profile.portfolio.length > 0) {
-        // Process portfolio items to ensure they have properly formatted URLs
-        const formattedPortfolioItems = profile.portfolio.map((item) => {
-          if (typeof item === "string") {
-            return { imageUrl: formatImageUrl(item) };
-          } else {
-            return {
-              ...item,
-              imageUrl: formatImageUrl(item.imageUrl || item),
-            };
-          }
-        });
-        setPortfolioItems(formattedPortfolioItems);
-      }
-
-      // Set arrays
-      setSpecializations(profile.specializations || []);
-      setCertifications(profile.certifications || []);
-      setProjectTypes(profile.projectTypes || []);
-      setServices(profile.services || []);
-      setSoftwareSkills(profile.softwareProficiency || []);
-      setLanguages(profile.languages || []);
-      setCompanyHistory(profile.companyHistory || []);
     }
-  }, [profile, dispatch]);
+  }, [profile]);
 
-  // Reset update status when component unmounts
-  useEffect(() => {
-    return () => {
-      dispatch(clearUpdateStatus());
-    };
-  }, [dispatch]);
-
-  // Navigate away if update was successful
+  // Handle successful update
   useEffect(() => {
     if (updateSuccess) {
-      setTimeout(() => {
-        navigate(-1);
-      }, 2000);
+      onClose();
+      dispatch(clearUpdateStatus());
     }
-  }, [updateSuccess, navigate]);
+  }, [updateSuccess, onClose, dispatch]);
 
-  // Handle input changes
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    // Handle nested objects
     if (name.includes(".")) {
       const [parent, child] = name.split(".");
-      setFormData({
-        ...formData,
+      setFormData((prev) => ({
+        ...prev,
         [parent]: {
-          ...formData[parent],
+          ...prev[parent],
           [child]: value,
         },
-      });
+      }));
     } else {
-      setFormData({
-        ...formData,
+      setFormData((prev) => ({
+        ...prev,
         [name]: value,
-      });
+      }));
     }
   };
 
-  // Handle file inputs
-  const handleFileChange = (e) => {
-    const { name, files } = e.target;
+  const handleArrayInputChange = (field, value) => {
+    const arrayValue = value
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item);
+    setFormData((prev) => ({
+      ...prev,
+      [field]: arrayValue,
+    }));
+  };
 
-    if (name === "profilePicture") {
-      if (files[0]) {
-        setProfilePictureFile(files[0]);
-        setProfilePreview(URL.createObjectURL(files[0]));
+  const handleServiceChange = (serviceId) => {
+    setSelectedServices((prev) => {
+      if (prev.includes(serviceId)) {
+        return prev.filter((id) => id !== serviceId);
+      } else {
+        return [...prev, serviceId];
       }
-    } else if (name === "companyLogo") {
-      if (files[0]) {
-        setCompanyLogoFile(files[0]);
-        setCompanyLogoPreview(URL.createObjectURL(files[0]));
-      }
-    } else if (name === "portfolio") {
-      const newFiles = Array.from(files);
-      setPortfolioFiles([...portfolioFiles, ...newFiles]);
-
-      // Create previews for new files
-      const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
-      setPortfolioPreviews([...portfolioPreviews, ...newPreviews]);
-    }
-  };
-
-  // Add a new specialization
-  const addSpecialization = () => {
-    if (newSpecialization && !specializations.includes(newSpecialization)) {
-      setSpecializations([...specializations, newSpecialization]);
-      setNewSpecialization("");
-    }
-  };
-
-  // Remove a specialization
-  const removeSpecialization = (index) => {
-    setSpecializations(specializations.filter((_, i) => i !== index));
-  };
-
-  // Add a new certification
-  const addCertification = () => {
-    if (newCertification && !certifications.includes(newCertification)) {
-      setCertifications([...certifications, newCertification]);
-      setNewCertification("");
-    }
-  };
-
-  // Remove a certification
-  const removeCertification = (index) => {
-    setCertifications(certifications.filter((_, i) => i !== index));
-  };
-
-  // Add a new project type
-  const addProjectType = () => {
-    if (newProjectType && !projectTypes.includes(newProjectType)) {
-      setProjectTypes([...projectTypes, newProjectType]);
-      setNewProjectType("");
-    }
-  };
-
-  // Remove a project type
-  const removeProjectType = (index) => {
-    setProjectTypes(projectTypes.filter((_, i) => i !== index));
-  };
-
-  // Add a new service
-  const addService = () => {
-    if (newService && !services.includes(newService)) {
-      setServices([...services, newService]);
-      setNewService("");
-    }
-  };
-
-  // Remove a service
-  const removeService = (index) => {
-    setServices(services.filter((_, i) => i !== index));
-  };
-
-  // Handle software skills input
-  const handleSoftwareChange = (e) => {
-    const { name, value } = e.target;
-    setNewSoftware({
-      ...newSoftware,
-      [name]: value,
     });
   };
 
-  // Add a new software skill
-  const addSoftwareSkill = () => {
-    if (newSoftware.name) {
-      setSoftwareSkills([...softwareSkills, newSoftware]);
-      setNewSoftware({ name: "", level: "Intermediate" });
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setProfileImage(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPreviewImage(event.target.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  // Remove a software skill
-  const removeSoftwareSkill = (index) => {
-    setSoftwareSkills(softwareSkills.filter((_, i) => i !== index));
-  };
-
-  // Handle language input
-  const handleLanguageChange = (e) => {
-    const { name, value } = e.target;
-    setNewLanguage({
-      ...newLanguage,
-      [name]: value,
-    });
-  };
-
-  // Add a new language
-  const addLanguage = () => {
-    if (newLanguage.language) {
-      setLanguages([...languages, newLanguage]);
-      setNewLanguage({ language: "", proficiency: "Intermediate" });
-    }
-  };
-
-  // Remove a language
-  const removeLanguage = (index) => {
-    setLanguages(languages.filter((_, i) => i !== index));
-  };
-
-  // Handle company input
-  const handleCompanyChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setNewCompany({
-      ...newCompany,
-      [name]: type === "checkbox" ? checked : value,
-    });
-
-    // If it's a current position, clear the end date
-    if (name === "isCurrentPosition" && checked) {
-      setNewCompany({
-        ...newCompany,
-        isCurrentPosition: true,
-        endDate: "",
-      });
-    }
-  };
-
-  // Add a new company to history
-  const addCompany = () => {
-    if (newCompany.name && newCompany.position && newCompany.startDate) {
-      setCompanyHistory([...companyHistory, newCompany]);
-      setNewCompany({
-        name: "",
-        position: "",
-        startDate: "",
-        endDate: "",
-        isCurrentPosition: false,
-        description: "",
-      });
-    }
-  };
-
-  // Remove a company from history
-  const removeCompany = (index) => {
-    setCompanyHistory(companyHistory.filter((_, i) => i !== index));
-  };
-
-  // Remove a portfolio preview
-  const removePortfolioPreview = (index) => {
-    const newPortfolioFiles = [...portfolioFiles];
-    const newPreviews = [...portfolioPreviews];
-
-    newPortfolioFiles.splice(index, 1);
-    newPreviews.splice(index, 1);
-
-    setPortfolioFiles(newPortfolioFiles);
-    setPortfolioPreviews(newPreviews);
-  };
-
-  // Request to delete an existing portfolio item
-  const handleDeletePortfolioItem = (index) => {
-    setPortfolioItemToDelete(index);
-    setShowDeletePortfolioModal(true);
-  };
-
-  // Confirm deletion of portfolio item
-  const confirmDeletePortfolioItem = () => {
-    const newItems = [...portfolioItems];
-    newItems.splice(portfolioItemToDelete, 1);
-    setPortfolioItems(newItems);
-    setShowDeletePortfolioModal(false);
-    setPortfolioItemToDelete(null);
-  };
-
-  // Extract original image paths for submission
-  const getOriginalPortfolioPaths = () => {
-    return portfolioItems.map((item) => {
-      // Extract the path portion without the API_BASE_URL
-      const imageUrl = item.imageUrl || item;
-      if (typeof imageUrl === "string" && imageUrl.startsWith(API_BASE_URL)) {
-        return imageUrl.substring(API_BASE_URL.length);
-      }
-      return imageUrl;
-    });
-  };
-
-  // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // For multipart/form-data requests with file uploads
-    if (profilePictureFile || companyLogoFile || portfolioFiles.length > 0) {
-      // Create FormData object for file uploads
-      const formDataToSend = new FormData();
+    try {
+      // First, update the profile data (excluding services)
+      const submitData = new FormData();
 
-      // Add basic form data
-      for (const key in formData) {
-        if (typeof formData[key] === "object" && formData[key] !== null) {
-          // Handle nested objects like location
-          if (key === "location") {
-            Object.entries(formData.location).forEach(([subKey, value]) => {
-              formDataToSend.append(`location[${subKey}]`, value);
-            });
-          } else if (key === "education") {
-            Object.entries(formData.education).forEach(([subKey, value]) => {
-              formDataToSend.append(`education[${subKey}]`, value);
-            });
-          } else if (key === "socialMedia") {
-            Object.entries(formData.socialMedia).forEach(([subKey, value]) => {
-              formDataToSend.append(`socialMedia[${subKey}]`, value);
-            });
-          }
+      // Add all form fields to FormData (services are excluded from formData)
+      Object.keys(formData).forEach((key) => {
+        if (
+          typeof formData[key] === "object" &&
+          !Array.isArray(formData[key])
+        ) {
+          submitData.append(key, JSON.stringify(formData[key]));
+        } else if (Array.isArray(formData[key])) {
+          submitData.append(key, JSON.stringify(formData[key]));
         } else {
-          formDataToSend.append(key, formData[key]);
+          submitData.append(key, formData[key]);
         }
-      }
-
-      // Add files if they exist
-      if (profilePictureFile) {
-        formDataToSend.append("profilePicture", profilePictureFile);
-      }
-
-      if (companyLogoFile) {
-        formDataToSend.append("companyLogo", companyLogoFile);
-      }
-
-      // Add portfolio files
-      portfolioFiles.forEach((file) => {
-        formDataToSend.append("portfolio", file);
       });
 
-      // Add existing portfolio items
-      const originalPortfolioPaths = getOriginalPortfolioPaths();
-      formDataToSend.append(
-        "existingPortfolio",
-        JSON.stringify(originalPortfolioPaths)
+      // Add profile image if selected
+      if (profileImage) {
+        submitData.append("profilePicture", profileImage);
+      }
+
+      // Update profile first
+      const profileUpdateResult = await dispatch(
+        updateArchitectProfile(submitData)
       );
 
-      // Add arrays with proper formatting
-      softwareSkills.forEach((skill, index) => {
-        formDataToSend.append(
-          `softwareProficiency[${index}][name]`,
-          skill.name
+      // If profile update was successful and services have changed, update services separately
+      if (profileUpdateResult.type === "architect/updateProfile/fulfilled") {
+        // Check if services have actually changed
+        const currentServices = profile.services || [];
+        const currentServiceIds = currentServices.map((service) =>
+          typeof service === "object" ? service._id || service.id : service
         );
-        formDataToSend.append(
-          `softwareProficiency[${index}][level]`,
-          skill.level
-        );
-        if (skill._id)
-          formDataToSend.append(
-            `softwareProficiency[${index}][_id]`,
-            skill._id
-          );
-      });
 
-      // Add specializations
-      specializations.forEach((item, index) => {
-        formDataToSend.append(`specializations[${index}]`, item);
-      });
+        const servicesChanged =
+          selectedServices.length !== currentServiceIds.length ||
+          selectedServices.some((id) => !currentServiceIds.includes(id));
 
-      // Add certifications
-      certifications.forEach((item, index) => {
-        formDataToSend.append(`certifications[${index}]`, item);
-      });
-
-      // Add project types
-      projectTypes.forEach((item, index) => {
-        formDataToSend.append(`projectTypes[${index}]`, item);
-      });
-
-      // Add services
-      services.forEach((item, index) => {
-        formDataToSend.append(`services[${index}]`, item);
-      });
-
-      // Add languages
-      languages.forEach((lang, index) => {
-        formDataToSend.append(`languages[${index}][language]`, lang.language);
-        formDataToSend.append(
-          `languages[${index}][proficiency]`,
-          lang.proficiency
-        );
-        if (lang._id)
-          formDataToSend.append(`languages[${index}][_id]`, lang._id);
-      });
-
-      // Add company history
-      companyHistory.forEach((company, index) => {
-        formDataToSend.append(`companyHistory[${index}][name]`, company.name);
-        formDataToSend.append(
-          `companyHistory[${index}][position]`,
-          company.position
-        );
-        formDataToSend.append(
-          `companyHistory[${index}][startDate]`,
-          company.startDate
-        );
-        formDataToSend.append(
-          `companyHistory[${index}][endDate]`,
-          company.endDate || ""
-        );
-        formDataToSend.append(
-          `companyHistory[${index}][isCurrentPosition]`,
-          company.isCurrentPosition ? "true" : "false"
-        );
-        formDataToSend.append(
-          `companyHistory[${index}][description]`,
-          company.description || ""
-        );
-        if (company._id)
-          formDataToSend.append(`companyHistory[${index}][_id]`, company._id);
-      });
-
-      // Dispatch update action
-      dispatch(updateArchitectProfile(formDataToSend));
-    } else {
-      // For regular JSON requests (no files)
-      const dataToSend = {
-        ...formData,
-        specializations,
-        certifications,
-        projectTypes,
-        services,
-        softwareProficiency: softwareSkills,
-        languages,
-        companyHistory,
-        existingPortfolio: getOriginalPortfolioPaths(),
-      };
-
-      dispatch(updateArchitectProfile(dataToSend));
+        if (servicesChanged && selectedServices.length > 0) {
+          await dispatch(updateArchitectServices(selectedServices));
+        }
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
     }
   };
 
-  // Cancel editing and return to profile
-  const handleCancel = () => {
-    navigate(-1);
+  const handleClose = () => {
+    dispatch(clearUpdateError());
+    onClose();
   };
 
-  if (loading) return <p className="loading">Loading profile data...</p>;
-  if (error)
-    return (
-      <p className="error">Error: {error.message || JSON.stringify(error)}</p>
-    );
+  // Helper function to render service categories
+  const renderServiceCategories = () => {
+    if (serviceCategoriesLoading) {
+      return <div className="pe-loading">Loading services...</div>;
+    }
+
+    if (!serviceCategories || serviceCategories.length === 0) {
+      return <div className="pe-no-services">No services available</div>;
+    }
+
+    return serviceCategories.map((category) => (
+      <div key={category._id || category.id} className="pe-service-category">
+        <h4 className="pe-category-title">{category.name}</h4>
+        {category.subcategories && category.subcategories.length > 0 ? (
+          <div className="pe-subcategories">
+            {category.subcategories.map((subcategory) => (
+              <label
+                key={subcategory._id || subcategory.id}
+                className="pe-service-checkbox"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedServices.includes(
+                    subcategory._id || subcategory.id
+                  )}
+                  onChange={() =>
+                    handleServiceChange(subcategory._id || subcategory.id)
+                  }
+                />
+                <span className="pe-checkbox-label">{subcategory.name}</span>
+              </label>
+            ))}
+          </div>
+        ) : (
+          <label className="pe-service-checkbox">
+            <input
+              type="checkbox"
+              checked={selectedServices.includes(category._id || category.id)}
+              onChange={() => handleServiceChange(category._id || category.id)}
+            />
+            <span className="pe-checkbox-label">{category.name}</span>
+          </label>
+        )}
+      </div>
+    ));
+  };
+
+  if (!isOpen) return null;
 
   return (
-    <div className="profile-edit-container">
-      <div className="edit-profile-container">
-        <h2 className="section-title">Edit Your Professional Profile</h2>
+    <div className="pe-dialog-overlay" onClick={handleClose}>
+      <div className="pe-dialog-container" onClick={(e) => e.stopPropagation()}>
+        <div className="pe-dialog-header">
+          <h2 className="pe-dialog-title">Edit Profile</h2>
+          <button className="pe-close-button" onClick={handleClose}>
+            <span className="pe-close-icon">×</span>
+          </button>
+        </div>
 
-        {updateError && (
-          <div className="error-message">
-            {updateError.message ||
-              "An error occurred while updating your profile."}
-          </div>
-        )}
-
-        {updateSuccess && (
-          <div className="success-message">
-            Profile updated successfully! Redirecting to your profile...
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          {/* Basic Information Section */}
-          <div className="form-section">
-            <h3>
-              <Mail className="section-icon" />
-              Basic Information
-            </h3>
-
-            <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="prenom">First Name</label>
-                <input
-                  type="text"
-                  id="prenom"
-                  name="prenom"
-                  value={formData.prenom}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="nomDeFamille">Last Name</label>
-                <input
-                  type="text"
-                  id="nomDeFamille"
-                  name="nomDeFamille"
-                  value={formData.nomDeFamille}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="email">Email Address</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="phoneNumber">Phone Number</label>
-                <input
-                  type="tel"
-                  id="phoneNumber"
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="bio">Professional Bio</label>
-              <textarea
-                id="bio"
-                name="bio"
-                value={formData.bio}
-                onChange={handleChange}
-                rows="4"
-                placeholder="Tell clients about your professional background, approach, and expertise..."
-              />
-            </div>
-          </div>
-
-          {/* Profile Picture Section */}
-          <div className="form-section">
-            <h3>
-              <Camera className="section-icon" />
-              Profile Picture
-            </h3>
-
-            <div className="profile-upload-container">
-              {profilePreview ? (
-                <div className="profile-preview">
-                  <img src={profilePreview} alt="Profile preview" />
-                  <button
-                    type="button"
-                    className="remove-image-btn"
-                    onClick={() => {
-                      setProfilePictureFile(null);
-                      setProfilePreview("");
-                    }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
+        <form className="pe-form" onSubmit={handleSubmit}>
+          <div className="pe-form-content">
+            {/* Profile Image Section */}
+            <div className="pe-section">
+              <h3 className="pe-section-title">Profile Picture</h3>
+              <div className="pe-image-upload">
+                <div className="pe-image-preview">
+                  {previewImage ? (
+                    <img
+                      src={previewImage}
+                      alt="Profile"
+                      className="pe-preview-img"
+                    />
+                  ) : (
+                    <div className="pe-placeholder-img">
+                      <span className="pe-placeholder-text">No Image</span>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="upload-placeholder">
-                  <Camera size={32} />
-                  <p>Upload a professional photo</p>
-                </div>
-              )}
-
-              <div className="upload-btn-wrapper">
-                <button type="button" className="upload-btn">
-                  <Upload size={16} /> Choose Image
-                </button>
                 <input
                   type="file"
-                  name="profilePicture"
+                  id="profileImage"
                   accept="image/*"
-                  onChange={handleFileChange}
+                  onChange={handleImageChange}
+                  className="pe-file-input"
                 />
-              </div>
-            </div>
-          </div>
-
-          {/* Professional Details Section */}
-          <div className="form-section">
-            <h3>
-              <Briefcase className="section-icon" />
-              Professional Details
-            </h3>
-
-            <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="experienceYears">Years of Experience</label>
-                <input
-                  type="number"
-                  id="experienceYears"
-                  name="experienceYears"
-                  min="0"
-                  value={formData.experienceYears}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="specialty">Primary Specialty</label>
-                <input
-                  type="text"
-                  id="specialty"
-                  name="specialty"
-                  value={formData.specialty}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="companyName">
-                  Company Name (if applicable)
+                <label htmlFor="profileImage" className="pe-file-label">
+                  Choose Image
                 </label>
-                <input
-                  type="text"
-                  id="companyName"
-                  name="companyName"
-                  value={formData.companyName}
-                  onChange={handleChange}
-                  placeholder="Leave blank if self-employed"
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="website">Website</label>
-                <input
-                  type="url"
-                  id="website"
-                  name="website"
-                  value={formData.website}
-                  onChange={handleChange}
-                  placeholder="https://your-website.com"
-                />
               </div>
             </div>
-          </div>
 
-          {/* Company Logo Section (conditional) */}
-          {formData.companyName && (
-            <div className="form-section">
-              <h3>
-                <Building className="section-icon" />
-                Company Logo
-              </h3>
-
-              <div className="profile-upload-container">
-                {companyLogoPreview ? (
-                  <div className="profile-preview">
-                    <img src={companyLogoPreview} alt="Company logo preview" />
-                    <button
-                      type="button"
-                      className="remove-image-btn"
-                      onClick={() => {
-                        setCompanyLogoFile(null);
-                        setCompanyLogoPreview("");
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="upload-placeholder">
-                    <Building size={32} />
-                    <p>Upload company logo</p>
-                  </div>
-                )}
-
-                <div className="upload-btn-wrapper">
-                  <button type="button" className="upload-btn">
-                    <Upload size={16} /> Choose Logo
-                  </button>
+            {/* Basic Information */}
+            <div className="pe-section">
+              <h3 className="pe-section-title">Basic Information</h3>
+              <div className="pe-form-grid">
+                <div className="pe-form-group">
+                  <label className="pe-label">First Name *</label>
                   <input
-                    type="file"
-                    name="companyLogo"
-                    accept="image/*"
-                    onChange={handleFileChange}
+                    type="text"
+                    name="prenom"
+                    value={formData.prenom}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    required
+                  />
+                </div>
+                <div className="pe-form-group">
+                  <label className="pe-label">Last Name *</label>
+                  <input
+                    type="text"
+                    name="nomDeFamille"
+                    value={formData.nomDeFamille}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    required
+                  />
+                </div>
+                <div className="pe-form-group">
+                  <label className="pe-label">Email *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    required
+                  />
+                </div>
+                <div className="pe-form-group">
+                  <label className="pe-label">Phone Number</label>
+                  <input
+                    type="tel"
+                    name="phoneNumber"
+                    value={formData.phoneNumber}
+                    onChange={handleInputChange}
+                    className="pe-input"
                   />
                 </div>
               </div>
             </div>
-          )}
 
-          {/* Location Section */}
-          <div className="form-section">
-            <h3>
-              <Globe className="section-icon" />
-              Location
-            </h3>
-
-            <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="location.country">Country</label>
-                <input
-                  type="text"
-                  id="location.country"
-                  name="location.country"
-                  value={formData.location.country}
-                  onChange={handleChange}
+            {/* Professional Information */}
+            <div className="pe-section">
+              <h3 className="pe-section-title">Professional Information</h3>
+              <div className="pe-form-group">
+                <label className="pe-label">Bio *</label>
+                <textarea
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleInputChange}
+                  className="pe-textarea"
+                  rows="4"
+                  required
                 />
               </div>
-
-              <div className="form-group">
-                <label htmlFor="location.region">Region/State</label>
-                <input
-                  type="text"
-                  id="location.region"
-                  name="location.region"
-                  value={formData.location.region}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="location.city">City</label>
-                <input
-                  type="text"
-                  id="location.city"
-                  name="location.city"
-                  value={formData.location.city}
-                  onChange={handleChange}
-                />
+              <div className="pe-form-grid">
+                <div className="pe-form-group">
+                  <label className="pe-label">Experience Years *</label>
+                  <input
+                    type="number"
+                    name="experienceYears"
+                    value={formData.experienceYears}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    min="0"
+                    required
+                  />
+                </div>
+                <div className="pe-form-group">
+                  <label className="pe-label">Specialty *</label>
+                  <input
+                    type="text"
+                    name="specialty"
+                    value={formData.specialty}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    required
+                  />
+                </div>
+                <div className="pe-form-group">
+                  <label className="pe-label">Patent Number *</label>
+                  <input
+                    type="text"
+                    name="patenteNumber"
+                    value={formData.patenteNumber}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    required
+                  />
+                </div>
+                <div className="pe-form-group">
+                  <label className="pe-label">Company Name</label>
+                  <input
+                    type="text"
+                    name="companyName"
+                    value={formData.companyName}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                  />
+                </div>
+                <div className="pe-form-group pe-full-width">
+                  <label className="pe-label">Website</label>
+                  <input
+                    type="url"
+                    name="website"
+                    value={formData.website}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    placeholder="https://example.com"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Education Section */}
-          <div className="form-section">
-            <h3>
-              <Award className="section-icon" />
-              Education
-            </h3>
-
-            <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="education.degree">Degree</label>
-                <input
-                  type="text"
-                  id="education.degree"
-                  name="education.degree"
-                  value={formData.education.degree}
-                  onChange={handleChange}
-                  placeholder="e.g. Bachelor of Architecture"
-                />
+            {/* Services Section - Now managed through serviceCategoriesSlice */}
+            <div className="pe-section">
+              <h3 className="pe-section-title">Services</h3>
+              <div className="pe-services-container">
+                {renderServiceCategories()}
               </div>
+            </div>
 
-              <div className="form-group">
-                <label htmlFor="education.institution">Institution</label>
-                <input
-                  type="text"
-                  id="education.institution"
-                  name="education.institution"
-                  value={formData.education.institution}
-                  onChange={handleChange}
-                  placeholder="e.g. University of Architecture"
-                />
+            {/* Location */}
+            <div className="pe-section">
+              <h3 className="pe-section-title">Location</h3>
+              <div className="pe-form-grid">
+                <div className="pe-form-group">
+                  <label className="pe-label">Country *</label>
+                  <input
+                    type="text"
+                    name="location.country"
+                    value={formData.location.country}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    required
+                  />
+                </div>
+                <div className="pe-form-group">
+                  <label className="pe-label">Region</label>
+                  <input
+                    type="text"
+                    name="location.region"
+                    value={formData.location.region}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                  />
+                </div>
+                <div className="pe-form-group">
+                  <label className="pe-label">City *</label>
+                  <input
+                    type="text"
+                    name="location.city"
+                    value={formData.location.city}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    required
+                  />
+                </div>
               </div>
+            </div>
 
-              <div className="form-group">
-                <label htmlFor="education.graduationYear">
-                  Graduation Year
+            {/* Education */}
+            <div className="pe-section">
+              <h3 className="pe-section-title">Education</h3>
+              <div className="pe-form-grid">
+                <div className="pe-form-group">
+                  <label className="pe-label">Degree</label>
+                  <input
+                    type="text"
+                    name="education.degree"
+                    value={formData.education.degree}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                  />
+                </div>
+                <div className="pe-form-group">
+                  <label className="pe-label">Institution</label>
+                  <input
+                    type="text"
+                    name="education.institution"
+                    value={formData.education.institution}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                  />
+                </div>
+                <div className="pe-form-group">
+                  <label className="pe-label">Graduation Year</label>
+                  <input
+                    type="number"
+                    name="education.graduationYear"
+                    value={formData.education.graduationYear}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    min="1950"
+                    max={new Date().getFullYear()}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Social Media */}
+            <div className="pe-section">
+              <h3 className="pe-section-title">Social Media</h3>
+              <div className="pe-form-grid">
+                <div className="pe-form-group">
+                  <label className="pe-label">LinkedIn</label>
+                  <input
+                    type="url"
+                    name="socialMedia.linkedin"
+                    value={formData.socialMedia.linkedin}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    placeholder="https://linkedin.com/in/username"
+                  />
+                </div>
+                <div className="pe-form-group">
+                  <label className="pe-label">Instagram</label>
+                  <input
+                    type="url"
+                    name="socialMedia.instagram"
+                    value={formData.socialMedia.instagram}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    placeholder="https://instagram.com/username"
+                  />
+                </div>
+                <div className="pe-form-group">
+                  <label className="pe-label">Facebook</label>
+                  <input
+                    type="url"
+                    name="socialMedia.facebook"
+                    value={formData.socialMedia.facebook}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    placeholder="https://facebook.com/username"
+                  />
+                </div>
+                <div className="pe-form-group">
+                  <label className="pe-label">Twitter</label>
+                  <input
+                    type="url"
+                    name="socialMedia.twitter"
+                    value={formData.socialMedia.twitter}
+                    onChange={handleInputChange}
+                    className="pe-input"
+                    placeholder="https://twitter.com/username"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Skills and Expertise */}
+            <div className="pe-section">
+              <h3 className="pe-section-title">Skills & Expertise</h3>
+              <div className="pe-form-group">
+                <label className="pe-label">
+                  Specializations (comma-separated)
                 </label>
                 <input
-                  type="number"
-                  id="education.graduationYear"
-                  name="education.graduationYear"
-                  value={formData.education.graduationYear}
-                  onChange={handleChange}
-                  min="1950"
-                  max={new Date().getFullYear()}
-                  placeholder={new Date().getFullYear()}
+                  type="text"
+                  value={formData.specialization.join(", ")}
+                  onChange={(e) =>
+                    handleArrayInputChange("specialization", e.target.value)
+                  }
+                  className="pe-input"
+                  placeholder="Residential, Commercial, Sustainable Design"
                 />
               </div>
-            </div>
-          </div>
-
-          {/* Specializations Section */}
-          <div className="form-section">
-            <h3>
-              <Briefcase className="section-icon" />
-              Areas of Specialization
-            </h3>
-
-            <div className="tags-input-container">
-              <div className="tag-input-group">
+              <div className="pe-form-group">
+                <label className="pe-label">
+                  Certifications (comma-separated)
+                </label>
                 <input
                   type="text"
-                  value={newSpecialization}
-                  onChange={(e) => setNewSpecialization(e.target.value)}
-                  placeholder="Add a specialization"
+                  value={formData.certifications.join(", ")}
+                  onChange={(e) =>
+                    handleArrayInputChange("certifications", e.target.value)
+                  }
+                  className="pe-input"
+                  placeholder="LEED AP, NCARB, AIA"
                 />
-                <button
-                  type="button"
-                  className="add-tag-btn"
-                  onClick={addSpecialization}
-                >
-                  <Plus size={16} /> Add
-                </button>
               </div>
-
-              <div className="tags-container">
-                {specializations.map((spec, index) => (
-                  <div key={index} className="tag">
-                    {spec}
-                    <button
-                      type="button"
-                      className="remove-tag-btn"
-                      onClick={() => removeSpecialization(index)}
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Project Types Section */}
-          <div className="form-section">
-            <h3>
-              <FileText className="section-icon" />
-              Project Types
-            </h3>
-
-            <div className="tags-input-container">
-              <div className="tag-input-group">
+              <div className="pe-form-group">
+                <label className="pe-label">
+                  Project Types (comma-separated)
+                </label>
                 <input
                   type="text"
-                  value={newProjectType}
-                  onChange={(e) => setNewProjectType(e.target.value)}
-                  placeholder="Add a project type"
+                  value={formData.projectTypes.join(", ")}
+                  onChange={(e) =>
+                    handleArrayInputChange("projectTypes", e.target.value)
+                  }
+                  className="pe-input"
+                  placeholder="Houses, Offices, Schools"
                 />
-                <button
-                  type="button"
-                  className="add-tag-btn"
-                  onClick={addProjectType}
-                >
-                  <Plus size={16} /> Add
-                </button>
-              </div>
-
-              <div className="tags-container">
-                {projectTypes.map((type, index) => (
-                  <div key={index} className="tag">
-                    {type}
-                    <button
-                      type="button"
-                      className="remove-tag-btn"
-                      onClick={() => removeProjectType(index)}
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
               </div>
             </div>
-          </div>
 
-          {/* Services Section */}
-          <div className="form-section">
-            <h3>
-              <Briefcase className="section-icon" />
-              Services Offered
-            </h3>
-
-            <div className="tags-input-container">
-              <div className="tag-input-group">
+            {/* Software & Languages */}
+            <div className="pe-section">
+              <h3 className="pe-section-title">Software & Languages</h3>
+              <div className="pe-form-group">
+                <label className="pe-label">
+                  Software Proficiency (comma-separated)
+                </label>
                 <input
                   type="text"
-                  value={newService}
-                  onChange={(e) => setNewService(e.target.value)}
-                  placeholder="Add a service"
+                  value={formData.softwareProficiency.join(", ")}
+                  onChange={(e) =>
+                    handleArrayInputChange(
+                      "softwareProficiency",
+                      e.target.value
+                    )
+                  }
+                  className="pe-input"
+                  placeholder="AutoCAD, Revit, SketchUp, Photoshop"
                 />
-                <button
-                  type="button"
-                  className="add-tag-btn"
-                  onClick={addService}
-                >
-                  <Plus size={16} /> Add
-                </button>
               </div>
-
-              <div className="tags-container">
-                {services.map((service, index) => (
-                  <div key={index} className="tag">
-                    {service}
-                    <button
-                      type="button"
-                      className="remove-tag-btn"
-                      onClick={() => removeService(index)}
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Software Proficiency Section */}
-          <div className="form-section">
-            <h3>
-              <Code className="section-icon" />
-              Software Proficiency
-            </h3>
-
-            <div className="software-input-container">
-              <div className="software-input-group">
+              <div className="pe-form-group">
+                <label className="pe-label">Languages (comma-separated)</label>
                 <input
                   type="text"
-                  name="name"
-                  value={newSoftware.name}
-                  onChange={handleSoftwareChange}
-                  placeholder="Software name"
-                />
-                <select
-                  name="level"
-                  value={newSoftware.level}
-                  onChange={handleSoftwareChange}
-                >
-                  <option value="Beginner">Beginner</option>
-                  <option value="Intermediate">Intermediate</option>
-                  <option value="Advanced">Advanced</option>
-                  <option value="Expert">Expert</option>
-                </select>
-                <button
-                  type="button"
-                  className="add-software-btn"
-                  onClick={addSoftwareSkill}
-                >
-                  <Plus size={16} /> Add
-                </button>
-              </div>
-
-              <div className="software-skills-container">
-                {softwareSkills.map((skill, index) => (
-                  <div key={index} className="software-skill">
-                    <span className="software-name">{skill.name}</span>
-                    <span className="software-level">{skill.level}</span>
-                    <button
-                      type="button"
-                      className="remove-software-btn"
-                      onClick={() => removeSoftwareSkill(index)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Languages Section */}
-          <div className="form-section">
-            <h3>
-              <Globe className="section-icon" />
-              Languages
-            </h3>
-
-            <div className="language-input-container">
-              <div className="language-input-group">
-                <input
-                  type="text"
-                  name="language"
-                  value={newLanguage.language}
-                  onChange={handleLanguageChange}
-                  placeholder="Language"
-                />
-                <select
-                  name="proficiency"
-                  value={newLanguage.proficiency}
-                  onChange={handleLanguageChange}
-                >
-                  <option value="Basic">Basic</option>
-                  <option value="Conversational">Conversational</option>
-                  <option value="Intermediate">Intermediate</option>
-                  <option value="Professional">Professional</option>
-                  <option value="Fluent">Fluent</option>
-                  <option value="Native">Native</option>
-                </select>
-                <button
-                  type="button"
-                  className="add-language-btn"
-                  onClick={addLanguage}
-                >
-                  <Plus size={16} /> Add
-                </button>
-              </div>
-
-              <div className="languages-container">
-                {languages.map((lang, index) => (
-                  <div key={index} className="language-item">
-                    <span className="language-name">{lang.language}</span>
-                    <span className="language-level">{lang.proficiency}</span>
-                    <button
-                      type="button"
-                      className="remove-language-btn"
-                      onClick={() => removeLanguage(index)}
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Company History Section */}
-          <div className="form-section">
-            <h3>
-              <Building className="section-icon" />
-              Company History
-            </h3>
-
-            <div className="company-input-container">
-              <div className="company-form">
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label htmlFor="company-name">Company Name</label>
-                    <input
-                      type="text"
-                      id="company-name"
-                      name="name"
-                      value={newCompany.name}
-                      onChange={handleCompanyChange}
-                      placeholder="e.g. Architect Studio"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="company-position">Position</label>
-                    <input
-                      type="text"
-                      id="company-position"
-                      name="position"
-                      value={newCompany.position}
-                      onChange={handleCompanyChange}
-                      placeholder="e.g. Senior Architect"
-                    />
-                  </div>
-                </div>
-
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label htmlFor="company-start-date">Start Date</label>
-                    <input
-                      type="date"
-                      id="company-start-date"
-                      name="startDate"
-                      value={newCompany.startDate}
-                      onChange={handleCompanyChange}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="company-end-date">End Date</label>
-                    <input
-                      type="date"
-                      id="company-end-date"
-                      name="endDate"
-                      value={newCompany.endDate}
-                      onChange={handleCompanyChange}
-                      disabled={newCompany.isCurrentPosition}
-                    />
-
-                    <div className="checkbox-group">
-                      <input
-                        type="checkbox"
-                        id="current-position"
-                        name="isCurrentPosition"
-                        checked={newCompany.isCurrentPosition}
-                        onChange={handleCompanyChange}
-                      />
-                      <label htmlFor="current-position">Current Position</label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="company-description">Description</label>
-                  <textarea
-                    id="company-description"
-                    name="description"
-                    value={newCompany.description}
-                    onChange={handleCompanyChange}
-                    rows="3"
-                    placeholder="Describe your role and responsibilities..."
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  className="add-company-btn"
-                  onClick={addCompany}
-                >
-                  <Plus size={16} /> Add to History
-                </button>
-              </div>
-
-              <div className="company-history-container">
-                {companyHistory.map((company, index) => (
-                  <div key={index} className="company-item">
-                    <div className="company-header">
-                      <h4>{company.name}</h4>
-                      <button
-                        type="button"
-                        className="remove-company-btn"
-                        onClick={() => removeCompany(index)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-
-                    <p className="company-position">{company.position}</p>
-                    <p className="company-dates">
-                      {new Date(company.startDate).toLocaleDateString()} -
-                      {company.isCurrentPosition
-                        ? " Present"
-                        : company.endDate
-                        ? ` ${new Date(company.endDate).toLocaleDateString()}`
-                        : " Not specified"}
-                    </p>
-                    {company.description && (
-                      <p className="company-description">
-                        {company.description}
-                      </p>
-                    )}
-                  </div>
-                ))}
-
-                {companyHistory.length === 0 && (
-                  <p className="no-items-message">
-                    No company history added yet.
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Certifications Section */}
-          <div className="form-section">
-            <h3>
-              <Award className="section-icon" />
-              Certifications & Licenses
-            </h3>
-
-            <div className="tags-input-container">
-              <div className="tag-input-group">
-                <input
-                  type="text"
-                  value={newCertification}
-                  onChange={(e) => setNewCertification(e.target.value)}
-                  placeholder="Add a certification or license"
-                />
-                <button
-                  type="button"
-                  className="add-tag-btn"
-                  onClick={addCertification}
-                >
-                  <Plus size={16} /> Add
-                </button>
-              </div>
-
-              <div className="tags-container">
-                {certifications.map((cert, index) => (
-                  <div key={index} className="tag">
-                    {cert}
-                    <button
-                      type="button"
-                      className="remove-tag-btn"
-                      onClick={() => removeCertification(index)}
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Portfolio Upload Section */}
-          <div className="form-section">
-            <h3>
-              <FileText className="section-icon" />
-              Portfolio
-            </h3>
-
-            <div className="portfolio-section">
-              {/* Existing Portfolio Items */}
-              {portfolioItems.length > 0 && (
-                <div className="existing-portfolio">
-                  <h4>Current Portfolio Items</h4>
-                  <div className="portfolio-grid">
-                    {portfolioItems.map((item, index) => (
-                      <div key={index} className="portfolio-item">
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title || `Portfolio item ${index + 1}`}
-                        />
-                        <div className="portfolio-item-overlay">
-                          <h5>{item.title || `Project ${index + 1}`}</h5>
-                          <button
-                            type="button"
-                            className="delete-portfolio-btn"
-                            onClick={() => handleDeletePortfolioItem(index)}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* New Portfolio Upload */}
-              <div className="portfolio-upload">
-                <h4>Add New Portfolio Items</h4>
-
-                <div className="portfolio-upload-container">
-                  <div className="upload-btn-wrapper">
-                    <button type="button" className="upload-btn">
-                      <Upload size={16} /> Choose Images
-                    </button>
-                    <input
-                      type="file"
-                      name="portfolio"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileChange}
-                    />
-                  </div>
-
-                  <p className="upload-help">
-                    Upload high-quality images of your completed projects
-                  </p>
-                </div>
-
-                {/* New Portfolio Previews */}
-                {portfolioPreviews.length > 0 && (
-                  <div className="portfolio-previews">
-                    <h4>New Images to Upload</h4>
-                    <div className="portfolio-grid">
-                      {portfolioPreviews.map((preview, index) => (
-                        <div key={index} className="portfolio-preview">
-                          <img
-                            src={preview}
-                            alt={`New portfolio item ${index + 1}`}
-                          />
-                          <div className="portfolio-preview-overlay">
-                            <button
-                              type="button"
-                              className="remove-preview-btn"
-                              onClick={() => removePortfolioPreview(index)}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Social Media Section */}
-          <div className="form-section">
-            <h3>
-              <Globe className="section-icon" />
-              Social Media
-            </h3>
-
-            <div className="form-grid">
-              <div className="form-group">
-                <label htmlFor="socialMedia.linkedin">LinkedIn</label>
-                <input
-                  type="url"
-                  id="socialMedia.linkedin"
-                  name="socialMedia.linkedin"
-                  value={formData.socialMedia.linkedin}
-                  onChange={handleChange}
-                  placeholder="https://linkedin.com/in/your-profile"
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="socialMedia.instagram">Instagram</label>
-                <input
-                  type="url"
-                  id="socialMedia.instagram"
-                  name="socialMedia.instagram"
-                  value={formData.socialMedia.instagram}
-                  onChange={handleChange}
-                  placeholder="https://instagram.com/your-profile"
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="socialMedia.facebook">Facebook</label>
-                <input
-                  type="url"
-                  id="socialMedia.facebook"
-                  name="socialMedia.facebook"
-                  value={formData.socialMedia.facebook}
-                  onChange={handleChange}
-                  placeholder="https://facebook.com/your-profile"
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="socialMedia.twitter">Twitter</label>
-                <input
-                  type="url"
-                  id="socialMedia.twitter"
-                  name="socialMedia.twitter"
-                  value={formData.socialMedia.twitter}
-                  onChange={handleChange}
-                  placeholder="https://twitter.com/your-handle"
+                  value={formData.languages.join(", ")}
+                  onChange={(e) =>
+                    handleArrayInputChange("languages", e.target.value)
+                  }
+                  className="pe-input"
+                  placeholder="English, French, Arabic"
                 />
               </div>
             </div>
+
+            {updateError && (
+              <div className="pe-error-message">
+                {updateError.error ||
+                  "An error occurred while updating your profile"}
+              </div>
+            )}
           </div>
 
-          {/* Form Actions */}
-          <div className="form-actions">
-            <button type="button" className="cancel-btn" onClick={handleCancel}>
-              <X size={16} /> Cancel
+          <div className="pe-dialog-footer">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="pe-cancel-button"
+              disabled={updateLoading}
+            >
+              Cancel
             </button>
-
-            <button type="submit" className="save-btn" disabled={updateLoading}>
+            <button
+              type="submit"
+              className="pe-save-button"
+              disabled={updateLoading}
+            >
               {updateLoading ? (
-                "Saving..."
-              ) : (
                 <>
-                  <Save size={16} /> Save Profile
+                  <span className="pe-spinner"></span>
+                  Saving...
                 </>
+              ) : (
+                "Save Changes"
               )}
             </button>
           </div>
         </form>
-
-        {/* Delete Portfolio Modal */}
-        {showDeletePortfolioModal && (
-          <div className="modal-overlay">
-            <div className="modal-content">
-              <h4>Delete Portfolio Item</h4>
-              <p>
-                Are you sure you want to delete this portfolio item? This action
-                cannot be undone.
-              </p>
-
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="cancel-btn"
-                  onClick={() => {
-                    setShowDeletePortfolioModal(false);
-                    setPortfolioItemToDelete(null);
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="delete-btn"
-                  onClick={confirmDeletePortfolioItem}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

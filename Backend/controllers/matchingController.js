@@ -86,62 +86,115 @@ function calculateDistance(coords1, coords2) {
  * @returns {Boolean} true if all services are covered, false otherwise
  */
 function providesAllRequiredServices(needsheet, architect) {
-  if (
-    !needsheet.services ||
-    !needsheet.services.length ||
-    !architect.services
-  ) {
-    console.log("Missing services in needsheet or architect");
+  console.log("=== DEBUG: Service Matching ===");
+  console.log(
+    "Needsheet services:",
+    JSON.stringify(needsheet.services, null, 2)
+  );
+  console.log(
+    "Architect services:",
+    JSON.stringify(architect.services, null, 2)
+  );
+
+  if (!needsheet.services || !needsheet.services.length) {
+    console.log("❌ No services in needsheet");
+    return false;
+  }
+
+  if (!architect.services) {
+    console.log("❌ No services in architect profile");
     return false;
   }
 
   // Extract required service IDs from needsheet
   const requiredServiceIds = new Set();
-  needsheet.services.forEach((service) => {
-    if (service.category && service.category._id) {
-      requiredServiceIds.add(service.category._id.toString());
-      console.log(`Added category ID: ${service.category._id.toString()}`);
+
+  needsheet.services.forEach((service, index) => {
+    console.log(`Processing needsheet service ${index}:`, service);
+
+    if (service.category) {
+      // Handle both populated and non-populated category
+      const categoryId = service.category._id || service.category;
+      if (categoryId) {
+        requiredServiceIds.add(categoryId.toString());
+        console.log(`✅ Added category ID: ${categoryId.toString()}`);
+      }
     }
+
     if (service.subcategories && service.subcategories.length) {
-      service.subcategories.forEach((sub) => {
-        if (sub._id) {
-          requiredServiceIds.add(sub._id.toString());
-          console.log(`Added subcategory ID: ${sub._id.toString()}`);
+      service.subcategories.forEach((sub, subIndex) => {
+        console.log(`Processing subcategory ${subIndex}:`, sub);
+        // Handle both populated and non-populated subcategory
+        const subId = sub._id || sub;
+        if (subId) {
+          requiredServiceIds.add(subId.toString());
+          console.log(`✅ Added subcategory ID: ${subId.toString()}`);
         }
       });
     }
   });
 
-  // Check if architect provides all these services
+  console.log("Required service IDs:", Array.from(requiredServiceIds));
+
+  // Check architect services
   const architectServiceIds = new Set();
+
   if (Array.isArray(architect.services)) {
-    architect.services.forEach((service) => {
+    architect.services.forEach((service, index) => {
+      console.log(`Processing architect service ${index}:`, service);
+
       if (service.category) {
-        architectServiceIds.add(service.category.toString());
-        console.log(
-          `Architect provides category ID: ${service.category.toString()}`
-        );
+        const categoryId = service.category._id || service.category;
+        if (categoryId) {
+          architectServiceIds.add(categoryId.toString());
+          console.log(
+            `✅ Architect provides category ID: ${categoryId.toString()}`
+          );
+        }
       }
+
       if (service.subcategories && service.subcategories.length) {
-        service.subcategories.forEach((sub) => {
-          architectServiceIds.add(sub.toString());
-          console.log(`Architect provides subcategory ID: ${sub.toString()}`);
+        service.subcategories.forEach((sub, subIndex) => {
+          console.log(`Processing architect subcategory ${subIndex}:`, sub);
+          const subId = sub._id || sub;
+          if (subId) {
+            architectServiceIds.add(subId.toString());
+            console.log(
+              `✅ Architect provides subcategory ID: ${subId.toString()}`
+            );
+          }
         });
       }
     });
+  } else {
+    console.log(
+      "❌ Architect services is not an array:",
+      typeof architect.services
+    );
   }
 
+  console.log("Architect service IDs:", Array.from(architectServiceIds));
+
   // Check if all required services are provided
+  const missingServices = [];
   let allServicesProvided = true;
+
   for (const requiredId of requiredServiceIds) {
     if (!architectServiceIds.has(requiredId)) {
-      console.log(`Missing required service ID: ${requiredId}`);
+      console.log(`❌ Missing required service ID: ${requiredId}`);
+      missingServices.push(requiredId);
       allServicesProvided = false;
-      break;
+    } else {
+      console.log(`✅ Service ID ${requiredId} is provided`);
     }
   }
 
-  console.log(`All services provided: ${allServicesProvided}`);
+  console.log(`Final result: ${allServicesProvided ? "MATCH" : "NO MATCH"}`);
+  if (!allServicesProvided) {
+    console.log("Missing services:", missingServices);
+  }
+  console.log("=== END DEBUG ===");
+
   return allServicesProvided;
 }
 
@@ -381,39 +434,37 @@ async function hasReachedMatchLimit(architect) {
 function prepareProjectDataForLLM(needsheet, architects) {
   // Format client requirements
   const clientRequirements = {
-    projectType: needsheet.projectType || "Not specified",
+    projectType: needsheet.projectTypes
+      ? needsheet.projectTypes.join(", ")
+      : "Not specified",
     budget: needsheet.budget
-      ? `$${needsheet.budget.amount || needsheet.budget}`
+      ? `$${needsheet.budget.min || 0} - $${needsheet.budget.max || 0}`
       : "Not specified",
     location: needsheet.location
       ? needsheet.location.city
         ? `${needsheet.location.city}, ${needsheet.location.region || ""}`
         : needsheet.location.region || "Not specified"
       : "Not specified",
-    timeline: needsheet.timeline
-      ? needsheet.timeline.startDate
-        ? new Date(needsheet.timeline.startDate).toLocaleDateString()
-        : "Not specified"
-      : "Not specified",
+    timeline: needsheet.startTime || "Not specified",
     stylePreferences: Array.isArray(needsheet.stylePreferences)
       ? needsheet.stylePreferences.join(", ")
       : needsheet.stylePreferences || "Not specified",
     services:
       needsheet.services && needsheet.services.length
         ? needsheet.services
-            .map(
-              (service) =>
-                `${service.category ? service.category.name : ""}${
-                  service.subcategories && service.subcategories.length
-                    ? ` (${service.subcategories
-                        .map((sub) => sub.name)
-                        .join(", ")})`
-                    : ""
-                }`
-            )
+            .map((service) => {
+              const categoryName = service.category?.name || "Unknown Category";
+              const subcategoryNames =
+                service.subcategories
+                  ?.map((sub) => sub.name || sub)
+                  .join(", ") || "";
+              return `${categoryName}${
+                subcategoryNames ? ` (${subcategoryNames})` : ""
+              }`;
+            })
             .join("; ")
         : "Not specified",
-    projectDescription: needsheet.description || "Not specified",
+    projectDescription: needsheet.projectDescription || "Not specified",
   };
 
   // Format architect information (top architects only)

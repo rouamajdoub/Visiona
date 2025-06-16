@@ -30,7 +30,7 @@ const sampleProducts = [
     title: "Scandinavian Lounge Chair",
     price: 499,
     category: "furniture",
-    image: img2,
+    image: img4,
     description:
       "Embrace comfort and style with this Scandinavian-inspired lounge chair. Features organic curves and premium upholstery for ultimate relaxation.",
     popularity: 4.9,
@@ -52,7 +52,7 @@ const sampleProducts = [
     title: "Handwoven Wool Area Rug",
     price: 349,
     category: "textiles",
-    image: img4,
+    image: img2,
     description:
       "Add warmth and texture to your floors with this handwoven wool rug. Features a subtle pattern in neutral tones that complement any interior.",
     popularity: 4.7,

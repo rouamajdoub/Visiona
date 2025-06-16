@@ -314,13 +314,13 @@ const AddProject = ({ onCancel }) => {
       beforePhotos.forEach((photo) => URL.revokeObjectURL(photo.preview));
       afterPhotos.forEach((photo) => URL.revokeObjectURL(photo.preview));
     };
-  }, []);
+  }, [coverImagePreview, beforePhotos, afterPhotos]);
 
   // Helper function to safely render error messages
   const getErrorMessage = (error) => {
     if (typeof error === "string") return error;
     if (error && typeof error === "object") {
-      return error.message || "An error occurred";
+      return error.message || JSON.stringify(error) || "An error occurred";
     }
     return "An error occurred";
   };
@@ -439,7 +439,7 @@ const AddProject = ({ onCancel }) => {
             )}
           />
 
-          {safeArray(clients).length === 0 && (
+          {safeArray(clients).length === 0 && !clientsLoading && (
             <Typography
               variant="caption"
               color="error"
@@ -546,7 +546,8 @@ const AddProject = ({ onCancel }) => {
                     helperText={
                       !selectedCategory
                         ? "Please select a category first"
-                        : safeArray(selectedCategorySubcategories).length === 0
+                        : safeArray(selectedCategorySubcategories).length ===
+                            0 && !subcategoriesLoading
                         ? "No subcategories available for selected category"
                         : ""
                     }
